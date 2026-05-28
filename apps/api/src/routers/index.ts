@@ -3,6 +3,7 @@
  * mounted here as they land in subsequent sprints.
  */
 import { protectedProcedure, publicProcedure, router } from '../trpc.js';
+import { apiTokenRouter } from './api-token.js';
 import { blockRouter } from './block.js';
 import { pbiRouter } from './pbi.js';
 import { workspaceRouter } from './workspace.js';
@@ -18,6 +19,7 @@ export const appRouter = router({
   workspace: workspaceRouter,
   block: blockRouter,
   pbi: pbiRouter,
+  apiToken: apiTokenRouter,
 });
 
 export type AppRouter = typeof appRouter;
