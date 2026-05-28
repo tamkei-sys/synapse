@@ -39,16 +39,24 @@ function PageView() {
 
   const { page } = pageQuery.data;
   const props = (page.props ?? {}) as PageProps;
-  return <PageShell pageId={page.id} initialTitle={props.title ?? 'Untitled'} token={token} />;
+  return (
+    <PageShell
+      pageId={page.id}
+      workspaceId={page.workspaceId}
+      initialTitle={props.title ?? 'Untitled'}
+      token={token}
+    />
+  );
 }
 
 type ShellProps = {
   pageId: string;
+  workspaceId: string;
   initialTitle: string;
   token: string | undefined;
 };
 
-function PageShell({ pageId, initialTitle, token }: ShellProps) {
+function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
   const { doc, status } = useCollabDoc(pageId, token);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(initialTitle);
@@ -96,7 +104,11 @@ function PageShell({ pageId, initialTitle, token }: ShellProps) {
         ) : null}
       </p>
 
-      {doc ? <PageEditor doc={doc} /> : <p className="text-zinc-500">Loading editor…</p>}
+      {doc ? (
+        <PageEditor doc={doc} workspaceId={workspaceId} />
+      ) : (
+        <p className="text-zinc-500">Loading editor…</p>
+      )}
     </div>
   );
 }

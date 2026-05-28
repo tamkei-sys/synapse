@@ -13,15 +13,27 @@ import Collaboration from '@tiptap/extension-collaboration';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useMemo } from 'react';
 import type * as Y from 'yjs';
 
+import { PbiRefNode } from './pbi-ref-node.js';
+import { makePbiSlashCommand } from './pbi-slash.js';
 import { SlashCommandExtension } from './slash-extension.js';
+import { SLASH_COMMANDS } from './slash-menu.js';
 
 type EditorProps = {
   doc: Y.Doc;
+  workspaceId: string;
 };
 
-export function PageEditor({ doc }: EditorProps) {
+export function PageEditor({ doc, workspaceId }: EditorProps) {
+  // Per-workspace closure for the /pbi command. Stable across renders as
+  // long as the route's workspaceId doesn't change.
+  const slashCommands = useMemo(
+    () => [...SLASH_COMMANDS, makePbiSlashCommand(workspaceId)],
+    [workspaceId],
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -32,7 +44,8 @@ export function PageEditor({ doc }: EditorProps) {
         placeholder: 'Start typing — press “/” for commands…',
       }),
       Collaboration.configure({ document: doc }),
-      SlashCommandExtension,
+      PbiRefNode,
+      SlashCommandExtension.configure({ commands: slashCommands }),
     ],
     editorProps: {
       attributes: {

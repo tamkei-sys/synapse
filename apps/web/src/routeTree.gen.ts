@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root';
 import { Route as SignupRouteImport } from './routes/signup';
+import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
@@ -17,6 +18,11 @@ import { Route as PPageIdRouteImport } from './routes/p.$pageId';
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const PbiRoute = PbiRouteImport.update({
+  id: '/pbi',
+  path: '/pbi',
   getParentRoute: () => rootRouteImport,
 } as any);
 const LoginRoute = LoginRouteImport.update({
@@ -38,12 +44,14 @@ const PPageIdRoute = PPageIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
+  '/pbi': typeof PbiRoute;
   '/signup': typeof SignupRoute;
   '/p/$pageId': typeof PPageIdRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
+  '/pbi': typeof PbiRoute;
   '/signup': typeof SignupRoute;
   '/p/$pageId': typeof PPageIdRoute;
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
+  '/pbi': typeof PbiRoute;
   '/signup': typeof SignupRoute;
   '/p/$pageId': typeof PPageIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/login' | '/signup' | '/p/$pageId';
+  fullPaths: '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/signup' | '/p/$pageId';
-  id: '__root__' | '/' | '/login' | '/signup' | '/p/$pageId';
+  to: '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId';
+  id: '__root__' | '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   LoginRoute: typeof LoginRoute;
+  PbiRoute: typeof PbiRoute;
   SignupRoute: typeof SignupRoute;
   PPageIdRoute: typeof PPageIdRoute;
 }
@@ -76,6 +86,13 @@ declare module '@tanstack/react-router' {
       path: '/signup';
       fullPath: '/signup';
       preLoaderRoute: typeof SignupRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/pbi': {
+      id: '/pbi';
+      path: '/pbi';
+      fullPath: '/pbi';
+      preLoaderRoute: typeof PbiRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/login': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  PbiRoute: PbiRoute,
   SignupRoute: SignupRoute,
   PPageIdRoute: PPageIdRoute,
 };

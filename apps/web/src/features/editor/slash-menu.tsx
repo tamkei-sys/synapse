@@ -75,13 +75,19 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   },
 ];
 
-export function filterCommands(query: string): SlashCommand[] {
+/** Generic filter that works against any command list (built-in or user). */
+export function filterCommandsFrom(source: readonly SlashCommand[], query: string): SlashCommand[] {
   const q = query.trim().toLowerCase();
-  if (!q) return [...SLASH_COMMANDS];
-  return SLASH_COMMANDS.filter((cmd) => {
+  if (!q) return [...source];
+  return source.filter((cmd) => {
     if (cmd.title.toLowerCase().includes(q)) return true;
     return cmd.keywords.some((k) => k.includes(q));
   });
+}
+
+/** Backwards-compatible filter over the built-in list. */
+export function filterCommands(query: string): SlashCommand[] {
+  return filterCommandsFrom(SLASH_COMMANDS, query);
 }
 
 // ---- React popup ---------------------------------------------------------

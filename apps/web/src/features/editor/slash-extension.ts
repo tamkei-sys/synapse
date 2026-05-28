@@ -11,7 +11,13 @@ import Suggestion from '@tiptap/suggestion';
 import tippy, { type Instance as TippyInstance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 
-import { SlashMenu, type SlashCommand, type SlashMenuRef, filterCommands } from './slash-menu.js';
+import {
+  SlashMenu,
+  SLASH_COMMANDS,
+  type SlashCommand,
+  type SlashMenuRef,
+  filterCommandsFrom,
+} from './slash-menu.js';
 
 type RenderProps = {
   editor: Editor;
@@ -27,7 +33,20 @@ type MenuProps = {
   command: (item: SlashCommand) => void;
 };
 
-export const SlashCommandExtension = Extension.create({
+type SlashOptions = {
+  suggestion: {
+    char: string;
+    startOfLine: boolean;
+    allowSpaces: boolean;
+    command: (args: { editor: Editor; range: Range; props: SlashCommand }) => void;
+  };
+  /** Commands shown in the palette. Editor instances can extend the
+   * default list with closures (e.g. /pbi, which needs the current
+   * workspaceId). */
+  commands: readonly SlashCommand[];
+};
+
+export const SlashCommandExtension = Extension.create<SlashOptions>({
   name: 'slashCommand',
 
   addOptions() {
@@ -36,27 +55,21 @@ export const SlashCommandExtension = Extension.create({
         char: '/',
         startOfLine: false,
         allowSpaces: false,
-        command: ({
-          editor,
-          range,
-          props,
-        }: {
-          editor: Editor;
-          range: Range;
-          props: SlashCommand;
-        }) => {
+        command: ({ editor, range, props }) => {
           props.run(editor, range);
         },
       },
+      commands: SLASH_COMMANDS,
     };
   },
 
   addProseMirrorPlugins() {
+    const options = this.options;
     return [
       Suggestion({
         editor: this.editor,
         ...this.options.suggestion,
-        items: ({ query }: { query: string }) => filterCommands(query),
+        items: ({ query }: { query: string }) => filterCommandsFrom(options.commands, query),
         render: () => {
           let component: ReactRenderer<SlashMenuRef, MenuProps> | null = null;
           let popup: TippyInstance | null = null;
