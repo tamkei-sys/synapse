@@ -18,7 +18,7 @@ import { z } from 'zod';
 import { db as schema } from '@synapse/schema';
 
 import { assertWorkspaceMember } from '../lib/access.js';
-import { EMPTY_DOC, pageDocSchema } from '../lib/page-doc.js';
+import { EMPTY_DOC } from '../lib/page-doc.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 const workspaceIdInput = z.object({ workspaceId: z.string().min(1) });
@@ -92,26 +92,23 @@ export const blockRouter = router({
     }),
 
   /**
-   * Persist editor content.
+   * Persist the page title.
    *
-   * Optimistic concurrency: the caller passes the `version` it last saw;
-   * if the DB row has moved on, we reject with CONFLICT so the client can
-   * reload (and surface a banner) rather than silently clobbering a peer.
+   * Body content is owned by Yjs / Hocuspocus (see apps/sync); the title
+   * stays in `block.props.title` so the workspace's page list can render
+   * it without spinning up a CRDT connection.
    */
-  updatePageContent: protectedProcedure
+  updatePageTitle: protectedProcedure
     .input(
       z.object({
         pageId: z.string().min(1),
-        version: z.number().int().nonnegative(),
-        title: z.string().trim().min(1).max(200).optional(),
-        doc: pageDocSchema,
+        title: z.string().trim().min(1).max(200),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
         .select({
           workspaceId: schema.block.workspaceId,
-          version: schema.block.version,
           props: schema.block.props,
         })
         .from(schema.block)
@@ -127,38 +124,17 @@ export const blockRouter = router({
 
       await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      if (existing.version !== input.version) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'Page was updated elsewhere — please reload.',
-        });
-      }
-
       const currentProps = (existing.props ?? {}) as Record<string, unknown>;
-      const nextTitle =
-        typeof input.title === 'string'
-          ? input.title
-          : typeof currentProps['title'] === 'string'
-            ? (currentProps['title'] as string)
-            : 'Untitled';
-
       const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: { ...currentProps, title: nextTitle, doc: input.doc },
+          props: { ...currentProps, title: input.title },
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
-        .where(and(eq(schema.block.id, input.pageId), eq(schema.block.version, input.version)))
+        .where(eq(schema.block.id, input.pageId))
         .returning();
-
-      if (!updated) {
-        // Race between SELECT and UPDATE — surface as the same conflict.
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'Page was updated elsewhere — please reload.',
-        });
-      }
+      if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       return updated;
     }),
 });

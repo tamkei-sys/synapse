@@ -1,28 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PageEditor } from '../features/editor/editor.js';
-import { EMPTY_DOC, type PageDoc } from '../features/editor/types.js';
-import { useAutosave } from '../features/editor/use-autosave.js';
+import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
+import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/p/$pageId')({
   component: PageView,
 });
 
-type PageProps = { title?: string; doc?: PageDoc };
+type PageProps = { title?: string };
 
 function PageView() {
   const { pageId } = Route.useParams();
-  const queryClient = useQueryClient();
+  const session = useSession();
+  const token = session.data?.session.token;
 
   const pageQuery = useQuery({
     queryKey: ['block', 'getPage', pageId],
     queryFn: () => trpc.block.getPage.query({ pageId }),
   });
 
-  if (pageQuery.isPending) {
+  if (pageQuery.isPending || session.isPending) {
     return <CenteredMessage>Loading page…</CenteredMessage>;
   }
   if (pageQuery.error) {
@@ -38,124 +39,98 @@ function PageView() {
 
   const { page } = pageQuery.data;
   const props = (page.props ?? {}) as PageProps;
-  const title = props.title ?? 'Untitled';
-  const doc = props.doc ?? EMPTY_DOC;
-
-  return (
-    <PageEditorShell
-      pageId={page.id}
-      initialTitle={title}
-      initialDoc={doc}
-      initialVersion={page.version}
-      onSaved={(updatedVersion) => {
-        // Mutate the query cache so optimistic version tracking stays
-        // accurate without a refetch.
-        queryClient.setQueryData(
-          ['block', 'getPage', pageId],
-          (prev: { page: typeof page } | undefined) =>
-            prev ? { page: { ...prev.page, version: updatedVersion } } : prev,
-        );
-      }}
-    />
-  );
+  return <PageShell pageId={page.id} initialTitle={props.title ?? 'Untitled'} token={token} />;
 }
 
 type ShellProps = {
   pageId: string;
   initialTitle: string;
-  initialDoc: PageDoc;
-  initialVersion: number;
-  onSaved: (newVersion: number) => void;
+  token: string | undefined;
 };
 
-function PageEditorShell({
-  pageId,
-  initialTitle,
-  initialDoc,
-  initialVersion,
-  onSaved,
-}: ShellProps) {
+function PageShell({ pageId, initialTitle, token }: ShellProps) {
+  const { doc, status } = useCollabDoc(pageId, token);
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState(initialTitle);
-  const [doc, setDoc] = useState<PageDoc>(initialDoc);
-  const [version, setVersion] = useState(initialVersion);
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
-  const [conflict, setConflict] = useState(false);
+  const [titleSavedAt, setTitleSavedAt] = useState<Date | null>(null);
 
-  const saveMutation = useMutation({
-    mutationFn: (payload: { title: string; doc: PageDoc; version: number }) =>
-      trpc.block.updatePageContent.mutate({ pageId, ...payload }),
-    onSuccess: (row) => {
-      setVersion(row.version);
-      setSavedAt(new Date());
-      setConflict(false);
-      onSaved(row.version);
-    },
-    onError: (e: Error) => {
-      if (e.message.toLowerCase().includes('reload')) setConflict(true);
+  // Title still lives in `block.props.title`; the editor body is owned by
+  // Yjs. Persist title via the existing tRPC endpoint on blur.
+  const updateTitle = useMutation({
+    mutationFn: (newTitle: string) =>
+      trpc.block.updatePageTitle.mutate({ pageId, title: newTitle }),
+    onSuccess: () => {
+      setTitleSavedAt(new Date());
+      void queryClient.invalidateQueries({ queryKey: ['block', 'listPages'] });
     },
   });
 
-  const save = useCallback(
-    (next: { title: string; doc: PageDoc }) => {
-      saveMutation.mutate({ ...next, version });
-    },
-    [saveMutation, version],
-  );
-
-  // Autosave both title and doc as one combined value so they ship together.
-  const { flush } = useAutosave({ title, doc }, save, 1_000);
-
-  if (conflict) {
-    return (
-      <CenteredMessage>
-        <p>This page has been updated elsewhere.</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-4 rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
-        >
-          Reload
-        </button>
-      </CenteredMessage>
-    );
-  }
+  // Keep local title in sync if the server snapshot updates beneath us.
+  useEffect(() => setTitle(initialTitle), [initialTitle]);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12">
       <nav className="mb-6 text-sm">
-        <BackLink onClick={flush} />
+        <BackLink />
       </nav>
       <input
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        onBlur={flush}
+        onBlur={() => {
+          if (title.trim().length > 0 && title !== initialTitle) {
+            updateTitle.mutate(title.trim());
+          }
+        }}
         data-testid="page-title-input"
         className="mb-2 w-full bg-transparent text-3xl font-semibold tracking-tight focus:outline-none"
         placeholder="Untitled"
       />
-      <p className="mb-8 font-mono text-xs text-zinc-400" data-testid="page-id">
-        {pageId} · v{version}
-        {savedAt ? (
-          <span className="ml-2 text-zinc-500" data-testid="saved-indicator">
-            saved {savedAt.toLocaleTimeString()}
+      <p className="mb-8 flex items-center gap-3 font-mono text-xs text-zinc-400">
+        <span data-testid="page-id">{pageId}</span>
+        <ConnectionBadge status={status} />
+        {titleSavedAt ? (
+          <span data-testid="title-saved" className="text-zinc-500">
+            title saved {titleSavedAt.toLocaleTimeString()}
           </span>
         ) : null}
-        {saveMutation.isPending ? <span className="ml-2 text-zinc-500">saving…</span> : null}
       </p>
 
-      <PageEditor initialDoc={doc} onDocChange={setDoc} />
+      {doc ? <PageEditor doc={doc} /> : <p className="text-zinc-500">Loading editor…</p>}
     </div>
   );
 }
 
-function BackLink({ onClick }: { onClick?: () => void } = {}) {
+function ConnectionBadge({ status }: { status: CollabStatus }) {
+  const label =
+    status === 'connected'
+      ? 'live'
+      : status === 'connecting'
+        ? 'connecting…'
+        : status === 'offline'
+          ? 'offline'
+          : 'disconnected';
+  const tone =
+    status === 'connected'
+      ? 'bg-emerald-500'
+      : status === 'connecting'
+        ? 'bg-amber-500'
+        : 'bg-zinc-400';
   return (
-    <Link
-      to="/"
-      onClick={onClick}
-      className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+    <span
+      data-testid="connection-status"
+      data-status={status}
+      className="inline-flex items-center gap-1.5"
     >
+      <span className={`inline-block h-2 w-2 rounded-full ${tone}`} />
+      {label}
+    </span>
+  );
+}
+
+function BackLink() {
+  return (
+    <Link to="/" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
       ← back to workspace
     </Link>
   );
