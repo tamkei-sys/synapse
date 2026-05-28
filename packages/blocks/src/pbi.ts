@@ -67,11 +67,27 @@ export function issueStateToStatus(state: 'open' | 'closed', current: PbiStatus)
   return current;
 }
 
+/**
+ * CI status, fed by the GitHub `check_run` webhook and surfaced as a
+ * badge on the PBI card (S10).
+ */
+export const pbiCiStatusSchema = z.object({
+  conclusion: z
+    .enum(['success', 'failure', 'neutral', 'cancelled', 'timed_out', 'action_required', 'skipped'])
+    .nullable(),
+  status: z.enum(['queued', 'in_progress', 'completed']),
+  url: z.string().url().optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+export type PbiCiStatus = z.infer<typeof pbiCiStatusSchema>;
+
 export const pbiPropsSchema = z.object({
   title: z.string().trim().min(1).max(200),
   status: pbiStatusSchema.default('backlog'),
   storyPoints: z.number().int().min(0).max(100).optional(),
   github: pbiGithubLinkSchema.optional(),
+  ci: pbiCiStatusSchema.optional(),
 });
 
 export type PbiProps = z.infer<typeof pbiPropsSchema>;

@@ -18,6 +18,8 @@ import type * as Y from 'yjs';
 
 import { PbiRefNode } from './pbi-ref-node.js';
 import { makePbiSlashCommand } from './pbi-slash.js';
+import { PrDiffEmbedNode } from './pr-diff-node.js';
+import { makePrSlashCommand } from './pr-slash.js';
 import { SheetEmbedNode } from './sheet-embed-node.js';
 import { makeSheetSlashCommand } from './sheet-slash.js';
 import { SlashCommandExtension } from './slash-extension.js';
@@ -32,7 +34,12 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
   // Per-workspace closure for the /pbi command. Stable across renders as
   // long as the route's workspaceId doesn't change.
   const slashCommands = useMemo(
-    () => [...SLASH_COMMANDS, makePbiSlashCommand(workspaceId), makeSheetSlashCommand(workspaceId)],
+    () => [
+      ...SLASH_COMMANDS,
+      makePbiSlashCommand(workspaceId),
+      makeSheetSlashCommand(workspaceId),
+      makePrSlashCommand(),
+    ],
     [workspaceId],
   );
 
@@ -48,6 +55,7 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
       Collaboration.configure({ document: doc }),
       PbiRefNode,
       SheetEmbedNode,
+      PrDiffEmbedNode,
       SlashCommandExtension.configure({ commands: slashCommands }),
     ],
     editorProps: {
