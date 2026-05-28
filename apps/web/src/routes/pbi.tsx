@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { nextStatus, PBI_STATUS_ORDER, type PbiStatus } from '@synapse/blocks';
+import { nextStatus, PBI_STATUS_ORDER, type PbiGithubLink, type PbiStatus } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
@@ -122,12 +122,25 @@ function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMo
 
 type PbiRow = Awaited<ReturnType<typeof trpc.pbi.list.query>>[number];
 
-function readPbiProps(row: PbiRow): { title: string; status: PbiStatus; storyPoints?: number } {
-  const p = (row.props ?? {}) as { title?: string; status?: PbiStatus; storyPoints?: number };
+type PbiPropsRead = {
+  title: string;
+  status: PbiStatus;
+  storyPoints?: number;
+  github?: PbiGithubLink;
+};
+
+function readPbiProps(row: PbiRow): PbiPropsRead {
+  const p = (row.props ?? {}) as {
+    title?: string;
+    status?: PbiStatus;
+    storyPoints?: number;
+    github?: PbiGithubLink;
+  };
   return {
     title: p.title ?? 'Untitled',
     status: p.status ?? 'backlog',
     ...(typeof p.storyPoints === 'number' ? { storyPoints: p.storyPoints } : {}),
+    ...(p.github ? { github: p.github } : {}),
   };
 }
 
@@ -153,7 +166,7 @@ function BacklogTable({ items, workspaceId }: { items: PbiRow[]; workspaceId: st
       {items.map((row) => {
         const p = readPbiProps(row);
         return (
-          <li key={row.id} className="flex items-center justify-between px-4 py-3">
+          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
             <div className="flex items-center gap-3">
               <span className="font-mono text-xs text-zinc-400">{row.id.slice(-6)}</span>
               <span className="text-sm font-medium" data-testid={`pbi-title-${row.id}`}>
@@ -162,13 +175,17 @@ function BacklogTable({ items, workspaceId }: { items: PbiRow[]; workspaceId: st
               {typeof p.storyPoints === 'number' ? (
                 <span className="text-xs text-zinc-500">{p.storyPoints} sp</span>
               ) : null}
+              {p.github ? <GithubBadge pbiId={row.id} link={p.github} /> : null}
             </div>
-            <StatusButton
-              status={p.status}
-              pbiId={row.id}
-              onClick={() => update.mutate({ pbiId: row.id, status: nextStatus(p.status) })}
-              disabled={update.isPending}
-            />
+            <div className="flex items-center gap-2">
+              <GithubLinkControl pbiId={row.id} workspaceId={workspaceId} link={p.github} />
+              <StatusButton
+                status={p.status}
+                pbiId={row.id}
+                onClick={() => update.mutate({ pbiId: row.id, status: nextStatus(p.status) })}
+                disabled={update.isPending}
+              />
+            </div>
           </li>
         );
       })}
@@ -251,6 +268,150 @@ function StatusButton({
     >
       {status}
     </button>
+  );
+}
+
+function GithubBadge({ pbiId, link }: { pbiId: string; link: PbiGithubLink }) {
+  const url = `https://github.com/${link.owner}/${link.repo}/issues/${link.issueNumber}`;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      data-testid={`pbi-github-badge-${pbiId}`}
+      data-state={link.state ?? 'unknown'}
+      className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2 py-0.5 font-mono text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+      title={`Linked to GitHub Issue ${link.owner}/${link.repo}#${link.issueNumber} (${link.state ?? 'unknown'})`}
+    >
+      <span className="text-zinc-500">gh</span>
+      <span>
+        {link.owner}/{link.repo}#{link.issueNumber}
+      </span>
+    </a>
+  );
+}
+
+function GithubLinkControl({
+  pbiId,
+  workspaceId,
+  link,
+}: {
+  pbiId: string;
+  workspaceId: string;
+  link: PbiGithubLink | undefined;
+}) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [owner, setOwner] = useState('');
+  const [repo, setRepo] = useState('');
+  const [issueNumber, setIssueNumber] = useState('');
+
+  const invalidateBoard = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['pbi', 'list', workspaceId] });
+    await queryClient.invalidateQueries({ queryKey: ['pbi', 'get', pbiId] });
+  };
+
+  const linkMut = useMutation({
+    mutationFn: (args: { owner: string; repo: string; issueNumber: number }) =>
+      trpc.pbi.linkGithubIssue.mutate({
+        pbiId,
+        link: { owner: args.owner, repo: args.repo, issueNumber: args.issueNumber },
+      }),
+    onSuccess: async () => {
+      setOpen(false);
+      setOwner('');
+      setRepo('');
+      setIssueNumber('');
+      await invalidateBoard();
+    },
+  });
+
+  const unlinkMut = useMutation({
+    mutationFn: () => trpc.pbi.unlinkGithubIssue.mutate({ pbiId }),
+    onSuccess: invalidateBoard,
+  });
+
+  if (link) {
+    return (
+      <button
+        type="button"
+        onClick={() => unlinkMut.mutate()}
+        disabled={unlinkMut.isPending}
+        data-testid={`pbi-unlink-${pbiId}`}
+        className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-60 dark:hover:text-zinc-100"
+      >
+        unlink
+      </button>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        data-testid={`pbi-link-open-${pbiId}`}
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+      >
+        + link issue
+      </button>
+    );
+  }
+
+  return (
+    <form
+      data-testid={`pbi-link-form-${pbiId}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const num = Number(issueNumber);
+        if (!owner.trim() || !repo.trim() || !Number.isInteger(num) || num <= 0) return;
+        linkMut.mutate({ owner: owner.trim(), repo: repo.trim(), issueNumber: num });
+      }}
+      className="flex items-center gap-1.5"
+    >
+      <input
+        type="text"
+        placeholder="owner"
+        value={owner}
+        onChange={(e) => setOwner(e.target.value)}
+        data-testid={`pbi-link-owner-${pbiId}`}
+        className="w-20 rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+      />
+      <span className="text-zinc-400">/</span>
+      <input
+        type="text"
+        placeholder="repo"
+        value={repo}
+        onChange={(e) => setRepo(e.target.value)}
+        data-testid={`pbi-link-repo-${pbiId}`}
+        className="w-24 rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+      />
+      <span className="text-zinc-400">#</span>
+      <input
+        type="number"
+        min={1}
+        placeholder="123"
+        value={issueNumber}
+        onChange={(e) => setIssueNumber(e.target.value)}
+        data-testid={`pbi-link-issue-${pbiId}`}
+        className="w-16 rounded border border-zinc-300 bg-white px-1.5 py-0.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+      />
+      <button
+        type="submit"
+        disabled={linkMut.isPending}
+        data-testid={`pbi-link-submit-${pbiId}`}
+        className="rounded bg-violet-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+      >
+        {linkMut.isPending ? '…' : 'link'}
+      </button>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+      >
+        cancel
+      </button>
+    </form>
   );
 }
 
