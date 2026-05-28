@@ -15,6 +15,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
+import { sheetCellsSchema, sheetPropsSchema } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
 import { assertWorkspaceMember } from '../lib/access.js';
@@ -89,6 +90,97 @@ export const blockRouter = router({
         .returning();
       if (!page) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       return page;
+    }),
+
+  /** Create a new sheet block (top-level, embeddable). */
+  createSheet: protectedProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        rows: z.number().int().min(1).max(500).optional(),
+        cols: z.number().int().min(1).max(26).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      const id = ulid();
+      const props = sheetPropsSchema.parse({
+        ...(input.rows !== undefined ? { rows: input.rows } : {}),
+        ...(input.cols !== undefined ? { cols: input.cols } : {}),
+        cells: {},
+      });
+      const [row] = await ctx.db
+        .insert(schema.block)
+        .values({
+          id,
+          workspaceId: input.workspaceId,
+          parentId: null,
+          type: 'sheet',
+          position: id,
+          props,
+          createdBy: ctx.session.user.id,
+        })
+        .returning();
+      if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      return row;
+    }),
+
+  /** Fetch a sheet block by id (workspace-scoped). */
+  getSheet: protectedProcedure
+    .input(z.object({ sheetId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [row] = await ctx.db
+        .select()
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.sheetId),
+            eq(schema.block.type, 'sheet'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, row.workspaceId, ctx.session.user.id);
+      return row;
+    }),
+
+  /**
+   * Replace the cell map (last-write-wins for S7).
+   *
+   * Server still re-validates with Zod so feature code on read can
+   * trust the shape — the client is not the trust boundary.
+   */
+  updateSheetCells: protectedProcedure
+    .input(z.object({ sheetId: z.string().min(1), cells: sheetCellsSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.sheetId),
+            eq(schema.block.type, 'sheet'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+      const current = (existing.props ?? {}) as Record<string, unknown>;
+      const validated = sheetPropsSchema.parse({ ...current, cells: input.cells });
+      const [updated] = await ctx.db
+        .update(schema.block)
+        .set({
+          props: validated,
+          version: sql`${schema.block.version} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.block.id, input.sheetId))
+        .returning();
+      if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      return updated;
     }),
 
   /**
