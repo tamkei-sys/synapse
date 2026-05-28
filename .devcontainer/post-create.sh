@@ -20,6 +20,7 @@ if [ ! -f apps/api/.dev.vars ]; then
   cat > apps/api/.dev.vars <<EOF
 DATABASE_URL=postgres://synapse:synapse@postgres:5432/synapse_dev
 BETTER_AUTH_SECRET=dev-only-not-a-real-secret-change-me
+GITHUB_WEBHOOK_SECRET=dev-only-webhook-secret
 EOF
 fi
 
