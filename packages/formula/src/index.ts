@@ -1,4 +1,6 @@
 // @synapse/formula — HyperFormula extensions.
-// Real functions (=ASK, =SUMMARIZE) land in S7/S8 per docs/roadmap.md.
+// S8 ships `=ASK("prompt")` powered by Anthropic via apps/api.
+
+export * from './ask.js';
 
 export const SYNAPSE_FORMULA_PACKAGE = 'synapse-formula';

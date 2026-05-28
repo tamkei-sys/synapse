@@ -200,6 +200,9 @@ importers:
       '@synapse/blocks':
         specifier: workspace:*
         version: link:../../packages/blocks
+      '@synapse/formula':
+        specifier: workspace:*
+        version: link:../../packages/formula
       '@synapse/schema':
         specifier: workspace:*
         version: link:../../packages/schema

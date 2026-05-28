@@ -35,6 +35,8 @@ services:
       BETTER_AUTH_URL: http://localhost:8787
       BETTER_AUTH_SECRET: dev-only-not-a-real-secret-change-me
       WEB_ORIGIN: http://localhost:5173
+      TYPESENSE_URL: http://typesense:8108
+      TYPESENSE_API_KEY: dev-typesense-key
       # pnpm store path matches the named volume mount above.
       PNPM_HOME: /home/node/.local/share/pnpm
     ports:
@@ -43,6 +45,8 @@ services:
       - '1234:1234' # Hocuspocus (apps/sync) — reserved for S3
     depends_on:
       postgres:
+        condition: service_healthy
+      typesense:
         condition: service_healthy
 
   postgres:
@@ -64,11 +68,29 @@ services:
       timeout: 3s
       retries: 10
 
+  typesense:
+    # Full-text + (eventually) vector search. The dev key is non-secret —
+    # production sets a strong one via wrangler secret put.
+    image: typesense/typesense:27.1
+    restart: unless-stopped
+    networks: [synapse-net]
+    command: ['--data-dir=/data', '--api-key=dev-typesense-key', '--enable-cors']
+    ports:
+      - '127.0.0.1:8108:8108'
+    volumes:
+      - typesense-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8108/health | grep -q ''"ok":true''']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 networks:
   synapse-net:
     driver: bridge
 
 volumes:
   postgres-data:
+  typesense-data:
   pnpm-store:
   node-modules:

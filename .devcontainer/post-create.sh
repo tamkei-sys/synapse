@@ -21,6 +21,8 @@ if [ ! -f apps/api/.dev.vars ]; then
 DATABASE_URL=postgres://synapse:synapse@postgres:5432/synapse_dev
 BETTER_AUTH_SECRET=dev-only-not-a-real-secret-change-me
 GITHUB_WEBHOOK_SECRET=dev-only-webhook-secret
+TYPESENSE_URL=http://typesense:8108
+TYPESENSE_API_KEY=dev-typesense-key
 EOF
 fi
 

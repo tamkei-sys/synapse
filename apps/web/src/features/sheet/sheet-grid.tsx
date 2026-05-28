@@ -1,14 +1,14 @@
 /**
- * Spreadsheet rendered with AG Grid Community + HyperFormula.
+ * Spreadsheet rendered with AG Grid Community + HyperFormula + the
+ * SYNAPSE `=ASK()` extension.
  *
- * Single source of truth for cell input is `cells` (A1 → raw string,
- * formulas start with `=`). HyperFormula holds a parallel in-memory
- * sheet and tells us the computed value for each cell on every keystroke
- * commit.
- *
- * The renderer is unaware of the database — `onCellsChange` fires after
- * a successful local update so the consumer (TipTap node) can debounce
- * a tRPC `block.updateSheetCells` call.
+ * Cell input is the single source of truth (A1 → raw string). For most
+ * formulas HyperFormula evaluates synchronously and we display the
+ * computed value. `=ASK("prompt")` is special: it can't run inside HF
+ * (async), so the renderer intercepts it, fires a tRPC `ai.ask` call,
+ * and shows the resolved text in place of the raw expression. The
+ * cells map still stores `=ASK("...")` so the source round-trips on
+ * reload.
  */
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
@@ -20,9 +20,10 @@ import {
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import { HyperFormula } from 'hyperformula';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { colIndexToLetter, makeCellRef, parseCellRef, type SheetCells } from '@synapse/blocks';
+import { parseAskExpression } from '@synapse/formula';
 
 const HF_LICENSE_KEY = 'gpl-v3'; // HyperFormula's public GPLv3 build key.
 const HF_SHEET_ID = 0;
@@ -32,40 +33,77 @@ type SheetGridProps = {
   cols: number;
   cells: SheetCells;
   onCellsChange: (next: SheetCells) => void;
+  /** Resolver for `=ASK(...)` prompts. Returns `null` while async. */
+  resolveAsk?: (prompt: string) => string | null;
+  /** Notified when a new `=ASK("...")` lands so the host can kick off
+   * the API call. */
+  onAskPromptSeen?: (prompt: string) => void;
   readOnly?: boolean;
 };
 
-/** AG Grid row: `__row` is the zero-based row index; lettered keys hold
- * the rendered cell values for columns A, B, C, ... */
 type Row = { __row: number; [columnLetter: string]: string | number };
 
-export function SheetGrid({ rows, cols, cells, onCellsChange, readOnly }: SheetGridProps) {
-  // HyperFormula instance is owned by the component for its lifetime.
-  // We mutate it in place on edits, so a ref is the right fit.
+export function SheetGrid({
+  rows,
+  cols,
+  cells,
+  onCellsChange,
+  resolveAsk,
+  onAskPromptSeen,
+  readOnly,
+}: SheetGridProps) {
   const hfRef = useRef<HyperFormula | null>(null);
   if (!hfRef.current) {
     hfRef.current = HyperFormula.buildEmpty({ licenseKey: HF_LICENSE_KEY });
     hfRef.current.addSheet('default');
   }
 
-  // `data` is the AG Grid rowData. We seed it from props once; subsequent
-  // edits flow through HyperFormula and back into setData.
-  const [data, setData] = useState<Row[]>(() => buildRows(hfRef.current, rows, cols, cells));
+  const computeCellValue = useCallback(
+    (col: number, row: number): string => {
+      const hf = hfRef.current;
+      if (!hf) return '';
+      const raw = cells[makeCellRef(col, row)];
+      if (typeof raw === 'string') {
+        const ask = parseAskExpression(raw);
+        if (ask) {
+          const resolved = resolveAsk?.(ask.prompt);
+          return resolved ?? '…';
+        }
+      }
+      const value = hf.getCellValue({ sheet: HF_SHEET_ID, col, row });
+      return formatValue(value);
+    },
+    [cells, resolveAsk],
+  );
 
-  // Re-seed when the cell map changes from outside (initial load, reload).
+  const buildRows = useCallback(
+    (rs: number, cs: number): Row[] => {
+      const out: Row[] = [];
+      for (let r = 0; r < rs; r++) {
+        const rowObj: Row = { __row: r };
+        for (let c = 0; c < cs; c++) {
+          rowObj[colIndexToLetter(c)] = computeCellValue(c, r);
+        }
+        out.push(rowObj);
+      }
+      return out;
+    },
+    [computeCellValue],
+  );
+
+  const [data, setData] = useState<Row[]>(() => {
+    seedHF(hfRef.current!, rows, cols, cells);
+    return buildRows(rows, cols);
+  });
+
   useEffect(() => {
     if (!hfRef.current) return;
     const hf = hfRef.current;
-    // HF doesn't ship a "clear sheet" helper that's both 1-call and 2.x
-    // stable, so we recreate the sheet instead — the engine is small.
-    if (hf.doesSheetExist('default')) {
-      hf.removeSheet(HF_SHEET_ID);
-    }
+    if (hf.doesSheetExist('default')) hf.removeSheet(HF_SHEET_ID);
     hf.addSheet('default');
     seedHF(hf, rows, cols, cells);
-    setData(buildRowsFromHF(hf, rows, cols));
-    // We intentionally re-seed only on cell-map identity change.
-  }, [cells, rows, cols]);
+    setData(buildRows(rows, cols));
+  }, [cells, rows, cols, buildRows]);
 
   const colDefs = useMemo<ColDef<Row>[]>(() => {
     const defs: ColDef<Row>[] = [
@@ -104,16 +142,23 @@ export function SheetGrid({ rows, cols, cells, onCellsChange, readOnly }: SheetG
     const raw = String(event.newValue ?? '');
 
     const hf = hfRef.current;
-    hf.setCellContents({ sheet: HF_SHEET_ID, col: colIndex, row: rowIndex }, raw);
+    // For ASK cells, don't feed the raw expression to HF (it'd return
+    // a #NAME? error). Leave the HF cell empty; the renderer's
+    // computeCellValue handles the override.
+    const ask = parseAskExpression(raw);
+    if (ask) {
+      hf.setCellContents({ sheet: HF_SHEET_ID, col: colIndex, row: rowIndex }, null);
+      onAskPromptSeen?.(ask.prompt);
+    } else {
+      hf.setCellContents({ sheet: HF_SHEET_ID, col: colIndex, row: rowIndex }, raw);
+    }
 
-    // Persist the user-entered formula/value only. Computed values
-    // re-derive on reload from the HF re-evaluation of the cell map.
     const next: SheetCells = { ...cells };
     if (raw === '') delete next[cellRef];
     else next[cellRef] = raw;
 
     onCellsChange(next);
-    setData(buildRowsFromHF(hf, rows, cols));
+    setData(buildRows(rows, cols));
   }
 
   return (
@@ -134,7 +179,7 @@ export function SheetGrid({ rows, cols, cells, onCellsChange, readOnly }: SheetG
   );
 }
 
-// ---- helpers ----------------------------------------------------------------
+// ---- helpers ---------------------------------------------------------------
 
 function seedHF(hf: HyperFormula, rows: number, cols: number, cells: SheetCells): void {
   const data: (string | number | null)[][] = [];
@@ -142,43 +187,25 @@ function seedHF(hf: HyperFormula, rows: number, cols: number, cells: SheetCells)
     const row: (string | number | null)[] = [];
     for (let c = 0; c < cols; c++) {
       const ref = makeCellRef(c, r);
-      row.push(cells[ref] ?? null);
+      const raw = cells[ref] ?? null;
+      // ASK cells stay out of HF — see handleCellValueChanged for why.
+      if (typeof raw === 'string' && parseAskExpression(raw)) {
+        row.push(null);
+      } else {
+        row.push(raw);
+      }
     }
     data.push(row);
   }
   hf.setSheetContent(HF_SHEET_ID, data);
 }
 
-function buildRows(hf: HyperFormula | null, rows: number, cols: number, cells: SheetCells): Row[] {
-  if (hf) seedHF(hf, rows, cols, cells);
-  return buildRowsFromHF(hf, rows, cols);
-}
-
-function buildRowsFromHF(hf: HyperFormula | null, rows: number, cols: number): Row[] {
-  const out: Row[] = [];
-  for (let r = 0; r < rows; r++) {
-    const row: Row = { __row: r };
-    for (let c = 0; c < cols; c++) {
-      const letter = colIndexToLetter(c);
-      if (!hf) {
-        row[letter] = '';
-        continue;
-      }
-      const value = hf.getCellValue({ sheet: HF_SHEET_ID, col: c, row: r });
-      row[letter] = formatValue(value);
-    }
-    out.push(row);
-  }
-  return out;
-}
-
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : String(value);
+  if (typeof value === 'number') return String(value);
   if (typeof value === 'string') return value;
   if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
   if (value && typeof value === 'object' && 'type' in value && 'value' in value) {
-    // HF DetailedCellError → "#REF!" etc.
     return String((value as { value: unknown }).value);
   }
   return String(value);

@@ -22,6 +22,8 @@ import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../db.js';
 import { pushPbiToGithub } from '../integrations/github/outbound.js';
+import { indexBlock } from '../integrations/typesense/client.js';
+import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
@@ -100,6 +102,14 @@ export const pbiRouter = router({
         })
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      const doc = projectBlock(row);
+      if (doc) {
+        try {
+          await indexBlock(ctx.env, doc);
+        } catch (err) {
+          console.warn('[search] indexBlock failed:', err);
+        }
+      }
       return row;
     }),
 
@@ -162,6 +172,14 @@ export const pbiRouter = router({
         status: validated.status,
         github: validated.github ?? linkBefore,
       });
+      const indexDoc = projectBlock(updated);
+      if (indexDoc) {
+        try {
+          await indexBlock(ctx.env, indexDoc);
+        } catch (err) {
+          console.warn('[search] indexBlock failed:', err);
+        }
+      }
       return updated;
     }),
 

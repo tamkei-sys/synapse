@@ -85,17 +85,18 @@ function SheetEmbedView({ node }: ReactNodeViewProps) {
     enabled: !!sheetId,
   });
 
-  // Local mirror so edits feel instant; debounced flush to the server.
   const [cells, setCells] = useState<SheetCells>({});
   const seededRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Prompt → resolved text. `null` while in flight; once resolved we keep
+  // the answer indefinitely (same prompt → same answer for the session).
+  const [askAnswers, setAskAnswers] = useState<Record<string, string | null>>({});
 
   const props: SheetProps | null = query.data
     ? sheetPropsSchema.parse(query.data.props ?? {})
     : null;
+  const workspaceId = query.data?.workspaceId ?? '';
 
-  // Hydrate once after first successful fetch — subsequent re-renders
-  // keep the local state so the cursor doesn't jump on every refetch.
   useEffect(() => {
     if (!seededRef.current && props) {
       setCells(props.cells);
@@ -110,6 +111,10 @@ function SheetEmbedView({ node }: ReactNodeViewProps) {
     },
   });
 
+  const askMut = useMutation({
+    mutationFn: (prompt: string) => trpc.ai.ask.mutate({ workspaceId, prompt }),
+  });
+
   const handleCellsChange = useCallback(
     (next: SheetCells) => {
       setCells(next);
@@ -120,6 +125,26 @@ function SheetEmbedView({ node }: ReactNodeViewProps) {
       }, SAVE_DEBOUNCE_MS);
     },
     [save],
+  );
+
+  const resolveAsk = useCallback((prompt: string) => askAnswers[prompt] ?? null, [askAnswers]);
+
+  const handleAskPrompt = useCallback(
+    (prompt: string) => {
+      if (!workspaceId) return;
+      // Skip if already resolved or in flight.
+      if (prompt in askAnswers) return;
+      setAskAnswers((m) => ({ ...m, [prompt]: null }));
+      askMut.mutate(prompt, {
+        onSuccess: (res) => {
+          setAskAnswers((m) => ({ ...m, [prompt]: res.text }));
+        },
+        onError: () => {
+          setAskAnswers((m) => ({ ...m, [prompt]: '#ASK!' }));
+        },
+      });
+    },
+    [askAnswers, askMut, workspaceId],
   );
 
   if (!sheetId) {
@@ -146,6 +171,8 @@ function SheetEmbedView({ node }: ReactNodeViewProps) {
           cols={props.cols}
           cells={cells}
           onCellsChange={handleCellsChange}
+          resolveAsk={resolveAsk}
+          onAskPromptSeen={handleAskPrompt}
         />
       )}
       <footer className="flex items-center justify-between px-3 py-2 text-xs text-zinc-500">

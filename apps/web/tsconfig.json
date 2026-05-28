@@ -12,6 +12,7 @@
   "include": ["src/**/*", "src/routeTree.gen.ts"],
   "references": [
     { "path": "../../packages/blocks" },
+    { "path": "../../packages/formula" },
     { "path": "../../packages/schema" },
     { "path": "../../packages/ui" },
     { "path": "../api" }

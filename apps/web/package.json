@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@synapse/blocks": "workspace:*",
+    "@synapse/formula": "workspace:*",
     "@synapse/schema": "workspace:*",
     "@synapse/ui": "workspace:*",
     "@tanstack/react-query": "^5.62.0",

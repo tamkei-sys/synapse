@@ -18,9 +18,36 @@ import { z } from 'zod';
 import { sheetCellsSchema, sheetPropsSchema } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
+import type { Env } from '../env.js';
+import { indexBlock } from '../integrations/typesense/client.js';
+import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertWorkspaceMember } from '../lib/access.js';
 import { EMPTY_DOC } from '../lib/page-doc.js';
 import { protectedProcedure, router } from '../trpc.js';
+
+type IndexableBlock = {
+  id: string;
+  workspaceId: string;
+  type: string;
+  props: unknown;
+  updatedAt: Date;
+};
+
+/**
+ * Project + push to Typesense. Awaited in S8 because workerd may cancel
+ * post-response promises without a waitUntil binding; in prod we'll
+ * move to Cloudflare Queues + waitUntil so the response stays <100ms.
+ * Failures only warn.
+ */
+async function indexAfterWrite(env: Env, row: IndexableBlock): Promise<void> {
+  const doc = projectBlock(row);
+  if (!doc) return;
+  try {
+    await indexBlock(env, doc);
+  } catch (err) {
+    console.warn('[search] indexBlock failed:', err);
+  }
+}
 
 const workspaceIdInput = z.object({ workspaceId: z.string().min(1) });
 
@@ -89,6 +116,7 @@ export const blockRouter = router({
         })
         .returning();
       if (!page) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await indexAfterWrite(ctx.env, page);
       return page;
     }),
 
@@ -122,6 +150,7 @@ export const blockRouter = router({
         })
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await indexAfterWrite(ctx.env, row);
       return row;
     }),
 
@@ -180,6 +209,7 @@ export const blockRouter = router({
         .where(eq(schema.block.id, input.sheetId))
         .returning();
       if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await indexAfterWrite(ctx.env, updated);
       return updated;
     }),
 
@@ -227,6 +257,7 @@ export const blockRouter = router({
         .where(eq(schema.block.id, input.pageId))
         .returning();
       if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await indexAfterWrite(ctx.env, updated);
       return updated;
     }),
 });

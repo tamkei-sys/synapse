@@ -26,6 +26,16 @@ export type Env = {
   GITHUB_TOKEN?: string;
   /** Base URL of the GitHub REST API. Override in tests to point at a mock. */
   GITHUB_API_BASE?: string;
+
+  // ---- Search (S8) -------------------------------------------------------
+  /** Typesense base URL (e.g. http://typesense:8108). */
+  TYPESENSE_URL?: string;
+  /** Typesense API key — workspace-isolated scoping comes via search keys S8+. */
+  TYPESENSE_API_KEY?: string;
+
+  // ---- AI (S8) -----------------------------------------------------------
+  /** Anthropic API key for the `=ASK()` formula and other AI surfaces. */
+  ANTHROPIC_API_KEY?: string;
 };
 
 export type AppBindings = {
