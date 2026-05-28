@@ -1,5 +1,7 @@
 // @synapse/blocks — Block primitive type definitions.
-// Mirrors docs/design.md §5. Concrete schemas land in S1 follow-ups.
+// Mirrors docs/design.md §5. Concrete schemas land per sprint.
+
+export * from './pbi.js';
 
 export type BlockType =
   | 'page'
