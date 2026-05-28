@@ -16,6 +16,8 @@ import type { Env } from './env.js';
 export type TrpcContext = {
   db: Database;
   auth: Auth;
+  /** Cloudflare bindings — secrets, etc. Feature code reads via `ctx.env`. */
+  env: Env;
   session: Awaited<ReturnType<Auth['api']['getSession']>>;
   headers: Headers;
 };
@@ -27,7 +29,7 @@ export async function createTrpcContext(
   const db = createDb(env.DATABASE_URL);
   const auth = createAuth(env);
   const session = await auth.api.getSession({ headers: opts.req.headers });
-  return { db, auth, session, headers: opts.req.headers };
+  return { db, auth, env, session, headers: opts.req.headers };
 }
 
 const t = initTRPC.context<TrpcContext>().create({ transformer: superjson });

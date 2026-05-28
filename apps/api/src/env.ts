@@ -14,6 +14,18 @@ export type Env = {
   BETTER_AUTH_SECRET: string;
   /** Origin of the web client; used for CORS allow-list. */
   WEB_ORIGIN: string;
+
+  // ---- GitHub integration (S5) -------------------------------------------
+  /** Webhook signing secret configured on the GitHub App. */
+  GITHUB_WEBHOOK_SECRET?: string;
+  /**
+   * Personal access token or installation token used for outbound pushes
+   * in dev. Production switches to a proper GitHub App installation token
+   * (S5 follow-up). Outbound is a no-op when this is unset.
+   */
+  GITHUB_TOKEN?: string;
+  /** Base URL of the GitHub REST API. Override in tests to point at a mock. */
+  GITHUB_API_BASE?: string;
 };
 
 export type AppBindings = {

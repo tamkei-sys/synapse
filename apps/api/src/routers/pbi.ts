@@ -12,9 +12,16 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
-import { pbiPropsSchema, pbiStatusSchema, type PbiProps } from '@synapse/blocks';
+import {
+  pbiGithubLinkSchema,
+  pbiPropsSchema,
+  pbiStatusSchema,
+  type PbiProps,
+} from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
+import type { Database } from '../db.js';
+import { pushPbiToGithub } from '../integrations/github/outbound.js';
 import { assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
@@ -145,6 +152,78 @@ export const pbiRouter = router({
         .where(eq(schema.block.id, input.pbiId))
         .returning();
       if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+      // Fire-and-forget outbound push if a GitHub link exists. We don't
+      // block the caller on it — the network round-trip would breach the
+      // tRPC <100ms budget. Failures only warn; the next change retries.
+      const linkBefore = (current['github'] as PbiGithubLinkLike | undefined) ?? undefined;
+      void pushPbiToGithub(ctx.env, {
+        title: validated.title,
+        status: validated.status,
+        github: validated.github ?? linkBefore,
+      });
+      return updated;
+    }),
+
+  /** Attach a GitHub Issue reference to a PBI. */
+  linkGithubIssue: protectedProcedure
+    .input(z.object({ pbiId: z.string().min(1), link: pbiGithubLinkSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const updated = await mergeLinkAndUpdate(ctx, input.pbiId, () => ({
+        ...input.link,
+        syncedAt: new Date().toISOString(),
+      }));
+      return updated;
+    }),
+
+  /** Detach the GitHub Issue reference (does not delete the issue). */
+  unlinkGithubIssue: protectedProcedure
+    .input(z.object({ pbiId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const updated = await mergeLinkAndUpdate(ctx, input.pbiId, () => undefined);
       return updated;
     }),
 });
+
+type PbiGithubLinkLike = {
+  owner: string;
+  repo: string;
+  issueNumber: number;
+  state?: 'open' | 'closed';
+  syncedAt?: string;
+};
+
+async function mergeLinkAndUpdate(
+  ctx: { db: Database; session: { user: { id: string } } },
+  pbiId: string,
+  nextLink: (current: PbiGithubLinkLike | undefined) => PbiGithubLinkLike | undefined,
+) {
+  const [existing] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(eq(schema.block.id, pbiId), eq(schema.block.type, 'pbi'), isNull(schema.block.deletedAt)),
+    )
+    .limit(1);
+  if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+  await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+  const current = (existing.props ?? {}) as Record<string, unknown>;
+  const link = nextLink(current['github'] as PbiGithubLinkLike | undefined);
+  const next: Record<string, unknown> = { ...current };
+  if (link === undefined) delete next['github'];
+  else next['github'] = link;
+
+  const validated = pbiPropsSchema.parse(next);
+  const [updated] = await ctx.db
+    .update(schema.block)
+    .set({
+      props: validated,
+      version: sql`${schema.block.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.block.id, pbiId))
+    .returning();
+  if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+  return updated;
+}
