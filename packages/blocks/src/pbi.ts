@@ -1,13 +1,16 @@
 /**
- * PBI (Product Backlog Item) block — a top-level workspace item that
- * tracks one piece of deliverable work.
+ * PBI (Product Backlog Item) block.
  *
- * Mirrors docs/design.md §5 but in S4 ships a deliberately narrow subset:
- *   - title, status, storyPoints
- * Later sprints add: assigneeIds, sprintId, epicId, acceptanceCriteria,
- *                    linkedDocs, linkedPRs, github, claudeCode.
+ * After P1 (大和心 model alignment) PBIs carry the full surface 大和心's
+ * 🔵 PBI database uses: status, priority, Fibonacci estimate,
+ * assignees, parent project / sprint references, dates, AI summary,
+ * human-friendly auto-incremented id (`PBI-<n>`).
+ *
+ * The existing GitHub + CI surface from S5 / S10 stays as-is.
  */
 import { z } from 'zod';
+
+import { prioritySchema } from './project.js';
 
 export const PBI_STATUSES = ['backlog', 'ready', 'in_progress', 'review', 'done'] as const;
 export type PbiStatus = (typeof PBI_STATUSES)[number];
@@ -82,10 +85,37 @@ export const pbiCiStatusSchema = z.object({
 
 export type PbiCiStatus = z.infer<typeof pbiCiStatusSchema>;
 
+/** Fibonacci story points — the same scale 大和心 uses on the PBI DB. */
+export const PBI_ESTIMATES = [1, 2, 3, 5, 8, 13, 21] as const;
+export type PbiEstimate = (typeof PBI_ESTIMATES)[number];
+export const pbiEstimateSchema = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(5),
+  z.literal(8),
+  z.literal(13),
+  z.literal(21),
+]);
+
 export const pbiPropsSchema = z.object({
   title: z.string().trim().min(1).max(200),
   status: pbiStatusSchema.default('backlog'),
+  priority: prioritySchema.default('should'),
+  /** Fibonacci estimate (Notion-compatible). `storyPoints` stays as a
+   * back-compat numeric mirror for surfaces that haven't migrated. */
+  estimate: pbiEstimateSchema.optional(),
   storyPoints: z.number().int().min(0).max(100).optional(),
+  assigneeIds: z.array(z.string()).max(16).optional(),
+  dueDate: z.string().date().optional(),
+  startedAt: z.string().datetime().optional(),
+  completedAt: z.string().datetime().optional(),
+  projectId: z.string().optional(),
+  sprintId: z.string().optional(),
+  /** Short AI-written summary; backs the Notion `AI 要約` column. */
+  aiSummary: z.string().max(2_000).optional(),
+  /** Human-friendly id `PBI-<n>`, allocated by entity_sequence. */
+  number: z.number().int().positive().optional(),
   github: pbiGithubLinkSchema.optional(),
   ci: pbiCiStatusSchema.optional(),
 });

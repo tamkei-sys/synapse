@@ -1,14 +1,19 @@
 // @synapse/blocks — Block primitive type definitions.
 // Mirrors docs/design.md §5. Concrete schemas land per sprint.
 
+export * from './project.js';
+export * from './sprint.js';
 export * from './pbi.js';
+export * from './sbi.js';
 export * from './sheet.js';
 
 export type BlockType =
   | 'page'
   | 'paragraph'
   | 'heading'
+  | 'project'
   | 'pbi'
+  | 'sbi'
   | 'sprint'
   | 'epic'
   | 'sheet'
