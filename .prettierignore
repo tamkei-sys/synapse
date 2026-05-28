@@ -17,6 +17,9 @@ pnpm-lock.yaml
 # Auto-generated route tree — owned by @tanstack/router-cli.
 apps/web/src/routeTree.gen.ts
 
+# Auto-generated drizzle migration metadata.
+packages/schema/migrations/meta/
+
 # Pre-existing project docs — formatting handled in separate ADR-tracked pass.
 # Remove this section once docs/ markdown has been normalised.
 CLAUDE.md
