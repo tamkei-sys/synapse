@@ -1,0 +1,74 @@
+# SYNAPSE dev container stack.
+#
+# Project name `synapse-dev` keeps these containers / networks / volumes
+# isolated from any other projects sharing the same Docker daemon.
+#
+# Host port choices avoid the most common defaults so a casual host-side
+# `postgres` or another `vite` dev server keeps working:
+#   - Postgres 5432  -> host 54322
+#   - Vite     5173  -> host 5173   (uncommon enough to keep)
+#   - Wrangler 8787  -> host 8787
+#   - Hocuspocus 1234 -> host 1234
+
+name: synapse-dev
+
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    init: true
+    command: sleep infinity
+    networks: [synapse-net]
+    volumes:
+      # Bind-mount the repo so edits on the host appear instantly inside.
+      - ..:/workspace:cached
+      # Named volume keeps the pnpm store warm across rebuilds.
+      - pnpm-store:/home/node/.local/share/pnpm
+      # node_modules stays on a named volume to avoid macOS bind-mount perf
+      # issues on a tree this large.
+      - node-modules:/workspace/node_modules
+    environment:
+      # Inside the container, services talk to each other via service name.
+      DATABASE_URL: postgres://synapse:synapse@postgres:5432/synapse_dev
+      # Better-Auth defaults; override in .dev.vars / wrangler secret put.
+      BETTER_AUTH_URL: http://localhost:8787
+      BETTER_AUTH_SECRET: dev-only-not-a-real-secret-change-me
+      WEB_ORIGIN: http://localhost:5173
+      # pnpm store path matches the named volume mount above.
+      PNPM_HOME: /home/node/.local/share/pnpm
+    ports:
+      - '5173:5173' # Vite (apps/web)
+      - '8787:8787' # Wrangler dev (apps/api)
+      - '1234:1234' # Hocuspocus (apps/sync) — reserved for S3
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    networks: [synapse-net]
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: synapse
+      POSTGRES_DB: synapse_dev
+    ports:
+      # Non-default host port so an existing host postgres keeps its 5432.
+      - '127.0.0.1:54322:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U synapse -d synapse_dev']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  synapse-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  pnpm-store:
+  node-modules:

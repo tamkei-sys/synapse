@@ -9,6 +9,14 @@ coverage
 pnpm-lock.yaml
 *.tsbuildinfo
 
+# Per-user / per-tool state — formatting owned by the tool that writes it.
+.claude/
+.idea/
+.vscode/
+
+# Auto-generated route tree — owned by @tanstack/router-cli.
+apps/web/src/routeTree.gen.ts
+
 # Pre-existing project docs — formatting handled in separate ADR-tracked pass.
 # Remove this section once docs/ markdown has been normalised.
 CLAUDE.md

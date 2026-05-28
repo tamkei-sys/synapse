@@ -1,0 +1,40 @@
+# Mirrors .gitignore plus dev-container-specific exclusions to keep the
+# build context small. Anything that the dev container builds itself or
+# that ships large native binaries should be excluded here.
+
+# Dependencies and build output
+node_modules
+**/node_modules
+dist
+build
+.next
+.output
+.turbo
+.wrangler
+
+# Test / coverage
+coverage
+.vitest
+playwright-report
+test-results
+
+# Env & secrets (defence in depth — never sent to the build context)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+credentials.json
+auth.json
+service-account*.json
+.dev.vars
+
+# Misc
+.git
+.DS_Store
+.idea
+.vscode
+*.log
+*.tsbuildinfo

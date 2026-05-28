@@ -16,7 +16,11 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    // 0.0.0.0 so the dev server is reachable from outside the dev container
+    // through the docker-compose port forward.
+    host: true,
     port: 5173,
+    strictPort: true,
   },
   build: {
     target: 'es2023',
