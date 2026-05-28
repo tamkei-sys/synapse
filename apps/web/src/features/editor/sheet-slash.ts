@@ -11,9 +11,9 @@ import { trpc } from '../../lib/trpc.js';
 export function makeSheetSlashCommand(workspaceId: string): SlashCommand {
   return {
     id: 'sheet',
-    title: 'New spreadsheet',
-    description: 'Embed an AG Grid + HyperFormula sheet',
-    keywords: ['sheet', 'table', 'spreadsheet', 'grid', 'excel'],
+    title: '新規スプレッドシート',
+    description: 'AG Grid + HyperFormula のシートを埋め込み',
+    keywords: ['sheet', 'シート', 'spreadsheet', '表', 'grid', 'excel'],
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run();
       void trpc.block.createSheet.mutate({ workspaceId }).then((sheet) => {

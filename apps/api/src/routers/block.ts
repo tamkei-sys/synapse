@@ -52,6 +52,26 @@ async function indexAfterWrite(env: Env, row: IndexableBlock): Promise<void> {
 const workspaceIdInput = z.object({ workspaceId: z.string().min(1) });
 
 export const blockRouter = router({
+  /**
+   * Fetch any non-deleted block by id, regardless of `type`.
+   *
+   * Powers the unified `/b/$blockId` detail route — pages, sheets,
+   * projects, sprints, PBIs and SBIs all flow through this single
+   * read. The caller decides how to render based on `row.type`.
+   */
+  getAny: protectedProcedure
+    .input(z.object({ blockId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [row] = await ctx.db
+        .select()
+        .from(schema.block)
+        .where(and(eq(schema.block.id, input.blockId), isNull(schema.block.deletedAt)))
+        .limit(1);
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, row.workspaceId, ctx.session.user.id);
+      return row;
+    }),
+
   /** Top-level page blocks in the workspace. */
   listPages: protectedProcedure.input(workspaceIdInput).query(async ({ ctx, input }) => {
     await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);

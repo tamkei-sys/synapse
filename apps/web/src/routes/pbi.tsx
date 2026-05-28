@@ -1,16 +1,37 @@
+/**
+ * PBI 一覧 / バックログ / カンバン。
+ *
+ * - 直接「+ 新規 PBI」フォーム（タイトル + プロジェクト + スプリント
+ *   + 優先度 + Fibonacci 見積）を持つ。`/pbi` スラッシュコマンド頼みの
+ *   作成 UX は editor 経由でのみ意味があるため、ここでの一次入口にする。
+ * - 各カードは PRJ-X / SP-Y の親バッジ、PBI-N の人間 ID、GitHub / CI /
+ *   cc の補助バッジを並べる。タイトルをクリックすると詳細ルート
+ *   `/b/$blockId` に遷移しドキュメント編集に入る。
+ */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   nextStatus,
+  PBI_ESTIMATES,
   PBI_STATUS_ORDER,
+  PRIORITIES,
   type PbiCiStatus,
+  type PbiEstimate,
   type PbiGithubLink,
   type PbiStatus,
+  type Priority,
 } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import {
+  blockHumanPrefix,
+  pbiStatusLabel,
+  priorityLabel,
+  priorityTone,
+  statusTone,
+} from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/pbi')({
@@ -21,49 +42,40 @@ type ViewMode = 'backlog' | 'kanban';
 
 function PbiBoardRoute() {
   const session = useSession();
-
-  // The board scopes to the user's first workspace — matches what the
-  // dashboard route already assumes for S4. Multi-workspace switching
-  // arrives with the sidebar in S5+.
   const workspaces = useQuery({
     queryKey: ['workspace', 'listMine'],
     queryFn: () => trpc.workspace.listMine.query(),
     enabled: !!session.data,
   });
 
-  if (session.isPending || workspaces.isPending) {
-    return <Centered>Loading…</Centered>;
-  }
-  if (!session.data) {
+  if (session.isPending || workspaces.isPending) return <Centered>読み込み中…</Centered>;
+  if (!session.data)
     return (
       <Centered>
         <Link to="/login" className="text-violet-600 hover:underline">
-          Sign in to see your PBIs
+          ログインして PBI を表示
         </Link>
       </Centered>
     );
-  }
 
   const workspace = workspaces.data?.[0];
-  if (!workspace) {
+  if (!workspace)
     return (
       <Centered>
-        <p>No workspace yet.</p>
+        <p>ワークスペースがありません。</p>
         <p className="mt-2">
           <Link to="/" className="text-violet-600 hover:underline">
-            ← go create one
+            ← まずはワークスペースを作成
           </Link>
         </p>
       </Centered>
     );
-  }
 
   return <PbiBoard workspaceId={workspace.id} workspaceName={workspace.name} />;
 }
 
 function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspaceName: string }) {
   const [view, setView] = useState<ViewMode>('backlog');
-
   const list = useQuery({
     queryKey: ['pbi', 'list', workspaceId],
     queryFn: () => trpc.pbi.list.query({ workspaceId }),
@@ -71,20 +83,24 @@ function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspa
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">PBIs · {workspaceName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">PBI 一覧 · {workspaceName}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             <Link to="/" className="hover:underline">
-              ← back to workspace
+              ← ワークスペースに戻る
             </Link>
+            {' · '}
+            プロダクトバックログアイテム
           </p>
         </div>
         <ViewToggle value={view} onChange={setView} />
       </header>
 
+      <NewPbiForm workspaceId={workspaceId} />
+
       {list.isPending ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <p className="text-sm text-zinc-500">読み込み中…</p>
       ) : list.data && list.data.length > 0 ? (
         view === 'backlog' ? (
           <BacklogTable items={list.data} workspaceId={workspaceId} />
@@ -99,6 +115,7 @@ function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspa
 }
 
 function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
+  const labels: Record<ViewMode, string> = { backlog: 'バックログ', kanban: 'カンバン' };
   return (
     <div
       role="tablist"
@@ -113,41 +130,174 @@ function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMo
           aria-selected={value === v}
           data-testid={`view-${v}`}
           onClick={() => onChange(v)}
-          className={`rounded px-3 py-1 capitalize ${
+          className={`rounded px-3 py-1 ${
             value === v
               ? 'bg-white shadow-sm dark:bg-zinc-800'
               : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
-          {v}
+          {labels[v]}
         </button>
       ))}
     </div>
   );
 }
 
+// ── 新規作成フォーム ─────────────────────────────────────────
+
+function NewPbiForm({ workspaceId }: { workspaceId: string }) {
+  const qc = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [sprintId, setSprintId] = useState('');
+  const [priority, setPriority] = useState<Priority>('should');
+  const [estimate, setEstimate] = useState<PbiEstimate | ''>('');
+
+  const projects = useQuery({
+    queryKey: ['project', 'list', workspaceId],
+    queryFn: () => trpc.project.list.query({ workspaceId }),
+  });
+  const sprints = useQuery({
+    queryKey: ['sprint', 'list', workspaceId],
+    queryFn: () => trpc.sprint.list.query({ workspaceId }),
+  });
+
+  const create = useMutation({
+    mutationFn: () =>
+      trpc.pbi.create.mutate({
+        workspaceId,
+        title: title.trim(),
+        priority,
+        ...(estimate !== '' ? { estimate } : {}),
+        ...(projectId ? { projectId } : {}),
+        ...(sprintId ? { sprintId } : {}),
+      }),
+    onSuccess: async () => {
+      setTitle('');
+      setProjectId('');
+      setSprintId('');
+      setPriority('should');
+      setEstimate('');
+      await qc.invalidateQueries({ queryKey: ['pbi', 'list', workspaceId] });
+    },
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        create.mutate();
+      }}
+      data-testid="new-pbi-form"
+      className="mb-6 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] dark:border-zinc-800 dark:bg-zinc-900/30"
+    >
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="新しい PBI のタイトル"
+        data-testid="new-pbi-title"
+        className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      />
+      <select
+        value={projectId}
+        onChange={(e) => setProjectId(e.target.value)}
+        data-testid="new-pbi-project"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        <option value="">プロジェクト（任意）</option>
+        {(projects.data ?? []).map((row) => {
+          const p = (row.props ?? {}) as { name?: string; number?: number };
+          return (
+            <option key={row.id} value={row.id}>
+              PRJ-{p.number ?? '?'} {p.name ?? ''}
+            </option>
+          );
+        })}
+      </select>
+      <select
+        value={sprintId}
+        onChange={(e) => setSprintId(e.target.value)}
+        data-testid="new-pbi-sprint"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        <option value="">スプリント（任意）</option>
+        {(sprints.data ?? []).map((row) => {
+          const p = (row.props ?? {}) as { name?: string; number?: number };
+          return (
+            <option key={row.id} value={row.id}>
+              SP-{p.number ?? '?'} {p.name ?? ''}
+            </option>
+          );
+        })}
+      </select>
+      <select
+        value={priority}
+        onChange={(e) => setPriority(e.target.value as Priority)}
+        data-testid="new-pbi-priority"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        {PRIORITIES.map((p) => (
+          <option key={p} value={p}>
+            優先：{priorityLabel[p]}
+          </option>
+        ))}
+      </select>
+      <select
+        value={estimate === '' ? '' : String(estimate)}
+        onChange={(e) =>
+          setEstimate(e.target.value === '' ? '' : (Number(e.target.value) as PbiEstimate))
+        }
+        data-testid="new-pbi-estimate"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        <option value="">見積（任意）</option>
+        {PBI_ESTIMATES.map((n) => (
+          <option key={n} value={n}>
+            {n} sp
+          </option>
+        ))}
+      </select>
+      <button
+        type="submit"
+        disabled={create.isPending || !title.trim()}
+        data-testid="new-pbi-submit"
+        className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+      >
+        {create.isPending ? '作成中…' : '+ 新規 PBI'}
+      </button>
+    </form>
+  );
+}
+
+// ── 一覧 / カンバン ─────────────────────────────────────────
+
 type PbiRow = Awaited<ReturnType<typeof trpc.pbi.list.query>>[number];
 
 type PbiPropsRead = {
   title: string;
   status: PbiStatus;
+  priority: Priority;
+  estimate?: number;
   storyPoints?: number;
+  number?: number;
+  projectId?: string;
+  sprintId?: string;
   github?: PbiGithubLink;
   ci?: PbiCiStatus;
 };
 
 function readPbiProps(row: PbiRow): PbiPropsRead {
-  const p = (row.props ?? {}) as {
-    title?: string;
-    status?: PbiStatus;
-    storyPoints?: number;
-    github?: PbiGithubLink;
-    ci?: PbiCiStatus;
-  };
+  const p = (row.props ?? {}) as Partial<PbiPropsRead>;
   return {
-    title: p.title ?? 'Untitled',
+    title: p.title ?? '無題 PBI',
     status: p.status ?? 'backlog',
+    priority: p.priority ?? 'should',
+    ...(typeof p.estimate === 'number' ? { estimate: p.estimate } : {}),
     ...(typeof p.storyPoints === 'number' ? { storyPoints: p.storyPoints } : {}),
+    ...(typeof p.number === 'number' ? { number: p.number } : {}),
+    ...(p.projectId ? { projectId: p.projectId } : {}),
+    ...(p.sprintId ? { sprintId: p.sprintId } : {}),
     ...(p.github ? { github: p.github } : {}),
     ...(p.ci ? { ci: p.ci } : {}),
   };
@@ -156,10 +306,10 @@ function readPbiProps(row: PbiRow): PbiPropsRead {
 function CiBadge({ pbiId, ci }: { pbiId: string; ci: PbiCiStatus }) {
   const label =
     ci.status === 'completed'
-      ? (ci.conclusion ?? 'completed')
+      ? (ci.conclusion ?? '完了')
       : ci.status === 'in_progress'
-        ? 'running'
-        : 'queued';
+        ? '実行中'
+        : '待機';
   const tone =
     ci.conclusion === 'success'
       ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300'
@@ -173,7 +323,7 @@ function CiBadge({ pbiId, ci }: { pbiId: string; ci: PbiCiStatus }) {
       className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs ${tone}`}
       title={ci.url ?? ''}
     >
-      <span className="text-zinc-500">ci</span>
+      <span className="text-zinc-500">CI</span>
       <span>{label}</span>
     </span>
   );
@@ -194,28 +344,99 @@ function usePbiUpdate(workspaceId: string) {
     onSuccess: async (row) => {
       await queryClient.invalidateQueries({ queryKey: ['pbi', 'list', workspaceId] });
       await queryClient.invalidateQueries({ queryKey: ['pbi', 'get', row.id] });
+      await queryClient.invalidateQueries({ queryKey: ['block', 'getAny', row.id] });
     },
   });
 }
 
+function ParentBadge({
+  kind,
+  id,
+  workspaceId,
+}: {
+  kind: 'project' | 'sprint';
+  id: string;
+  workspaceId: string;
+}) {
+  // 親の最小限のメタ（番号・名前）を一覧用にキャッシュ。
+  const listKey = kind === 'project' ? 'project' : 'sprint';
+  const list = useQuery({
+    queryKey: [listKey, 'list', workspaceId],
+    queryFn: () =>
+      kind === 'project'
+        ? trpc.project.list.query({ workspaceId })
+        : trpc.sprint.list.query({ workspaceId }),
+  });
+  const parent = list.data?.find((b) => b.id === id);
+  const p = (parent?.props ?? {}) as { name?: string; number?: number };
+  const prefix = blockHumanPrefix[kind] ?? kind.toUpperCase();
+  return (
+    <Link
+      to="/b/$blockId"
+      params={{ blockId: id }}
+      data-testid={`pbi-parent-${kind}`}
+      className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-0.5 font-mono text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+    >
+      <span className="text-zinc-500">{kind === 'project' ? 'プロジェクト' : 'スプリント'}</span>
+      <span>
+        {prefix}-{p.number ?? '?'}
+      </span>
+      {p.name ? (
+        <span className="max-w-[8rem] truncate text-zinc-700 dark:text-zinc-300">{p.name}</span>
+      ) : null}
+    </Link>
+  );
+}
+
 function BacklogTable({ items, workspaceId }: { items: PbiRow[]; workspaceId: string }) {
   const update = usePbiUpdate(workspaceId);
+  const sorted = useMemo(
+    () =>
+      [...items].sort((a, b) => {
+        const an = (a.props as { number?: number } | null)?.number ?? 0;
+        const bn = (b.props as { number?: number } | null)?.number ?? 0;
+        return an - bn;
+      }),
+    [items],
+  );
   return (
     <ul
       data-testid="pbi-backlog"
       className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
     >
-      {items.map((row) => {
+      {sorted.map((row) => {
         const p = readPbiProps(row);
         return (
-          <li key={row.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-xs text-zinc-400">{row.id.slice(-6)}</span>
-              <span className="text-sm font-medium" data-testid={`pbi-title-${row.id}`}>
-                {p.title}
+          <li
+            key={row.id}
+            data-testid={`pbi-row-${row.id}`}
+            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="font-mono text-xs text-zinc-400" data-testid={`pbi-human-${row.id}`}>
+                PBI-{p.number ?? '–'}
               </span>
-              {typeof p.storyPoints === 'number' ? (
-                <span className="text-xs text-zinc-500">{p.storyPoints} sp</span>
+              <Link
+                to="/b/$blockId"
+                params={{ blockId: row.id }}
+                data-testid={`pbi-title-${row.id}`}
+                className="text-sm font-medium hover:underline"
+              >
+                {p.title}
+              </Link>
+              <span className={`rounded px-1.5 font-mono text-xs ${priorityTone[p.priority]}`}>
+                {priorityLabel[p.priority]}
+              </span>
+              {typeof p.estimate === 'number' ? (
+                <span className="font-mono text-xs text-zinc-500">{p.estimate} sp</span>
+              ) : typeof p.storyPoints === 'number' ? (
+                <span className="font-mono text-xs text-zinc-500">{p.storyPoints} sp</span>
+              ) : null}
+              {p.projectId ? (
+                <ParentBadge kind="project" id={p.projectId} workspaceId={workspaceId} />
+              ) : null}
+              {p.sprintId ? (
+                <ParentBadge kind="sprint" id={p.sprintId} workspaceId={workspaceId} />
               ) : null}
               {p.github ? <GithubBadge pbiId={row.id} link={p.github} /> : null}
               {p.ci ? <CiBadge pbiId={row.id} ci={p.ci} /> : null}
@@ -260,7 +481,7 @@ function KanbanBoard({ items, workspaceId }: { items: PbiRow[]; workspaceId: str
             className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/30"
           >
             <header className="mb-3 flex items-center justify-between text-xs font-medium uppercase tracking-wide text-zinc-500">
-              <span>{status.replace(/_/g, ' ')}</span>
+              <span>{pbiStatusLabel[status]}</span>
               <span>{cards.length}</span>
             </header>
             <ul className="space-y-2">
@@ -272,7 +493,26 @@ function KanbanBoard({ items, workspaceId }: { items: PbiRow[]; workspaceId: str
                     data-testid={`kanban-card-${row.id}`}
                     className="rounded-md border border-zinc-200 bg-white p-3 text-sm shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                   >
-                    <p className="mb-2 font-medium">{p.title}</p>
+                    <p className="mb-1 font-mono text-[10px] text-zinc-400">
+                      PBI-{p.number ?? '–'}
+                    </p>
+                    <Link
+                      to="/b/$blockId"
+                      params={{ blockId: row.id }}
+                      className="mb-2 block font-medium hover:underline"
+                    >
+                      {p.title}
+                    </Link>
+                    <div className="mb-2 flex flex-wrap items-center gap-1">
+                      <span
+                        className={`rounded px-1 font-mono text-[10px] ${priorityTone[p.priority]}`}
+                      >
+                        {priorityLabel[p.priority]}
+                      </span>
+                      {typeof p.estimate === 'number' ? (
+                        <span className="font-mono text-[10px] text-zinc-500">{p.estimate} sp</span>
+                      ) : null}
+                    </div>
                     <StatusButton
                       status={p.status}
                       pbiId={row.id}
@@ -308,9 +548,9 @@ function StatusButton({
       disabled={disabled}
       data-testid={`pbi-status-${pbiId}`}
       data-status={status}
-      className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs uppercase tracking-wide hover:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+      className={`inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs hover:opacity-80 disabled:opacity-60 dark:border-zinc-700 ${statusTone[status] ?? ''}`}
     >
-      {status}
+      {pbiStatusLabel[status]}
     </button>
   );
 }
@@ -325,9 +565,9 @@ function GithubBadge({ pbiId, link }: { pbiId: string; link: PbiGithubLink }) {
       data-testid={`pbi-github-badge-${pbiId}`}
       data-state={link.state ?? 'unknown'}
       className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-2 py-0.5 font-mono text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-      title={`Linked to GitHub Issue ${link.owner}/${link.repo}#${link.issueNumber} (${link.state ?? 'unknown'})`}
+      title={`GitHub Issue ${link.owner}/${link.repo}#${link.issueNumber}（状態：${link.state ?? '不明'}）`}
     >
-      <span className="text-zinc-500">gh</span>
+      <span className="text-zinc-500">GH</span>
       <span>
         {link.owner}/{link.repo}#{link.issueNumber}
       </span>
@@ -366,7 +606,7 @@ function ImplementButton({ pbiId }: { pbiId: string }) {
         data-testid={`pbi-cc-pr-${pbiId}`}
         className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300"
       >
-        PR ↗
+        PR を開く ↗
       </a>
     );
   }
@@ -380,7 +620,7 @@ function ImplementButton({ pbiId }: { pbiId: string }) {
       data-cc-status={status ?? 'idle'}
       className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-60 dark:border-violet-700/60 dark:bg-violet-900/30 dark:text-violet-300"
     >
-      {inFlight ? '…working' : 'Implement'}
+      {inFlight ? '実装中…' : 'cc で実装'}
     </button>
   );
 }
@@ -434,7 +674,7 @@ function GithubLinkControl({
         data-testid={`pbi-unlink-${pbiId}`}
         className="text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-60 dark:hover:text-zinc-100"
       >
-        unlink
+        Issue 連携解除
       </button>
     );
   }
@@ -447,7 +687,7 @@ function GithubLinkControl({
         data-testid={`pbi-link-open-${pbiId}`}
         className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
       >
-        + link issue
+        + Issue を紐付け
       </button>
     );
   }
@@ -496,14 +736,14 @@ function GithubLinkControl({
         data-testid={`pbi-link-submit-${pbiId}`}
         className="rounded bg-violet-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-violet-500 disabled:opacity-60"
       >
-        {linkMut.isPending ? '…' : 'link'}
+        {linkMut.isPending ? '…' : '連携'}
       </button>
       <button
         type="button"
         onClick={() => setOpen(false)}
         className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
       >
-        cancel
+        キャンセル
       </button>
     </form>
   );
@@ -512,7 +752,8 @@ function GithubLinkControl({
 function Empty() {
   return (
     <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700">
-      No PBIs yet. Type <code className="font-mono">/pbi</code> in any page to create one.
+      PBI はまだありません。上のフォームから直接追加するか、ページ内で{' '}
+      <code className="font-mono">/pbi</code> と打って作成してください。
     </div>
   );
 }

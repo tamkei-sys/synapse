@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
 import { Route as SettingsAuditLogRouteImport } from './routes/settings.audit-log';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
+import { Route as BBlockIdRouteImport } from './routes/b.$blockId';
 
 const SprintRoute = SprintRouteImport.update({
   id: '/sprint',
@@ -70,6 +71,11 @@ const PPageIdRoute = PPageIdRouteImport.update({
   path: '/p/$pageId',
   getParentRoute: () => rootRouteImport,
 } as any);
+const BBlockIdRoute = BBlockIdRouteImport.update({
+  id: '/b/$blockId',
+  path: '/b/$blockId',
+  getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/b/$blockId': typeof BBlockIdRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/b/$blockId': typeof BBlockIdRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/b/$blockId': typeof BBlockIdRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/b/$blockId'
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/tokens';
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/b/$blockId'
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/tokens';
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/b/$blockId'
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/tokens';
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   SbiRoute: typeof SbiRoute;
   SignupRoute: typeof SignupRoute;
   SprintRoute: typeof SprintRoute;
+  BBlockIdRoute: typeof BBlockIdRoute;
   PPageIdRoute: typeof PPageIdRoute;
   SettingsAuditLogRoute: typeof SettingsAuditLogRoute;
   SettingsTokensRoute: typeof SettingsTokensRoute;
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PPageIdRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/b/$blockId': {
+      id: '/b/$blockId';
+      path: '/b/$blockId';
+      fullPath: '/b/$blockId';
+      preLoaderRoute: typeof BBlockIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   SbiRoute: SbiRoute,
   SignupRoute: SignupRoute,
   SprintRoute: SprintRoute,
+  BBlockIdRoute: BBlockIdRoute,
   PPageIdRoute: PPageIdRoute,
   SettingsAuditLogRoute: SettingsAuditLogRoute,
   SettingsTokensRoute: SettingsTokensRoute,

@@ -54,7 +54,7 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
         history: false,
       }),
       Placeholder.configure({
-        placeholder: 'Start typing — press “/” for commands…',
+        placeholder: 'ここに入力 — 「/」でコマンドメニュー',
       }),
       Collaboration.configure({ document: doc }),
       PbiRefNode,

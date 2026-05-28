@@ -1,10 +1,23 @@
+/**
+ * プロジェクト一覧。
+ *
+ * 行をクリックするとプロジェクト詳細 `/b/$blockId` に飛び、PBI 一覧 +
+ * ドキュメント編集ができる。インラインでステータス変更も可能。
+ */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { PROJECT_STATUSES, type Priority, type ProjectStatus } from '@synapse/blocks';
+import { PRIORITIES, PROJECT_STATUSES, type Priority, type ProjectStatus } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import {
+  formatDate,
+  priorityLabel,
+  priorityTone,
+  projectStatusLabel,
+  statusTone,
+} from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/project')({
@@ -24,7 +37,7 @@ type ProjectPropsRead = {
 function readProjectProps(row: ProjectRow): ProjectPropsRead {
   const p = (row.props ?? {}) as Partial<ProjectPropsRead>;
   return {
-    name: p.name ?? 'Untitled',
+    name: p.name ?? '無題',
     status: p.status ?? 'backlog',
     priority: p.priority ?? 'should',
     ...(typeof p.number === 'number' ? { number: p.number } : {}),
@@ -40,28 +53,24 @@ function ProjectRoute() {
     queryFn: () => trpc.workspace.listMine.query(),
     enabled: !!session.data,
   });
-  if (session.isPending || workspaces.isPending) {
-    return <Centered>Loading…</Centered>;
-  }
-  if (!session.data) {
+  if (session.isPending || workspaces.isPending) return <Centered>読み込み中…</Centered>;
+  if (!session.data)
     return (
       <Centered>
         <Link to="/login" className="text-violet-600 hover:underline">
-          Sign in
+          ログイン
         </Link>
       </Centered>
     );
-  }
   const workspace = workspaces.data?.[0];
-  if (!workspace) {
+  if (!workspace)
     return (
       <Centered>
         <Link to="/" className="text-violet-600 hover:underline">
-          Create a workspace first
+          まずはワークスペースを作成
         </Link>
       </Centered>
     );
-  }
   return <ProjectsPanel workspaceId={workspace.id} workspaceName={workspace.name} />;
 }
 
@@ -78,10 +87,12 @@ function ProjectsPanel({
     queryFn: () => trpc.project.list.query({ workspaceId }),
   });
   const [name, setName] = useState('');
+  const [priority, setPriority] = useState<Priority>('should');
   const create = useMutation({
-    mutationFn: (newName: string) => trpc.project.create.mutate({ workspaceId, name: newName }),
+    mutationFn: () => trpc.project.create.mutate({ workspaceId, name: name.trim(), priority }),
     onSuccess: async () => {
       setName('');
+      setPriority('should');
       await qc.invalidateQueries({ queryKey: ['project', 'list', workspaceId] });
     },
   });
@@ -93,43 +104,60 @@ function ProjectsPanel({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-12">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projects · {workspaceName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            プロジェクト一覧 · {workspaceName}
+          </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             <Link to="/" className="hover:underline">
-              ← back to workspace
+              ← ワークスペースに戻る
             </Link>
+            {' · '}
+            行クリックで詳細・配下 PBI に遷移
           </p>
         </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            create.mutate(name.trim());
+            create.mutate();
           }}
+          data-testid="new-project-form"
           className="flex items-center gap-2"
         >
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="New project name"
+            placeholder="新規プロジェクト名"
             data-testid="new-project-name"
             className="w-56 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as Priority)}
+            data-testid="new-project-priority"
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            {PRIORITIES.map((p) => (
+              <option key={p} value={p}>
+                優先：{priorityLabel[p]}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             disabled={create.isPending || !name.trim()}
             data-testid="create-project-submit"
             className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
           >
-            Add
+            + 作成
           </button>
         </form>
       </header>
 
       {list.isPending ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <p className="text-sm text-zinc-500">読み込み中…</p>
       ) : list.data && list.data.length > 0 ? (
         <ul
           data-testid="project-list"
@@ -145,10 +173,22 @@ function ProjectsPanel({
               >
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs text-zinc-400">PRJ-{p.number ?? '–'}</span>
-                  <span className="text-sm font-medium" data-testid={`project-name-${row.id}`}>
+                  <Link
+                    to="/b/$blockId"
+                    params={{ blockId: row.id }}
+                    data-testid={`project-name-${row.id}`}
+                    className="text-sm font-medium hover:underline"
+                  >
                     {p.name}
+                  </Link>
+                  <span className={`rounded px-1.5 font-mono text-xs ${priorityTone[p.priority]}`}>
+                    {priorityLabel[p.priority]}
                   </span>
-                  <PriorityChip priority={p.priority} />
+                  {p.startDate ? (
+                    <span className="font-mono text-xs text-zinc-500">
+                      開始 {formatDate(p.startDate)}
+                    </span>
+                  ) : null}
                 </div>
                 <select
                   value={p.status}
@@ -157,11 +197,11 @@ function ProjectsPanel({
                   }
                   disabled={update.isPending}
                   data-testid={`project-status-${row.id}`}
-                  className="rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
+                  className={`rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs dark:border-zinc-700 ${statusTone[p.status] ?? ''}`}
                 >
                   {PROJECT_STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {projectStatusLabel[s]}
                     </option>
                   ))}
                 </select>
@@ -171,24 +211,10 @@ function ProjectsPanel({
         </ul>
       ) : (
         <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700">
-          No projects yet. Add one above.
+          プロジェクトはまだありません。上のフォームから 1 つ作成してください。
         </div>
       )}
     </div>
-  );
-}
-
-function PriorityChip({ priority }: { priority: Priority }) {
-  const tone =
-    priority === 'must'
-      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-      : priority === 'should'
-        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-        : priority === 'could'
-          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
-          : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-400';
-  return (
-    <span className={`inline-block rounded px-1.5 font-mono text-xs ${tone}`}>{priority}</span>
   );
 }
 

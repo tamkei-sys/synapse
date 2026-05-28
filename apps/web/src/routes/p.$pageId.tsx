@@ -24,12 +24,12 @@ function PageView() {
   });
 
   if (pageQuery.isPending || session.isPending) {
-    return <CenteredMessage>Loading page…</CenteredMessage>;
+    return <CenteredMessage>ページを読み込み中…</CenteredMessage>;
   }
   if (pageQuery.error) {
     return (
       <CenteredMessage>
-        <p>Failed to load page: {pageQuery.error.message}</p>
+        <p>ページの取得に失敗：{pageQuery.error.message}</p>
         <p className="mt-4">
           <BackLink />
         </p>
@@ -43,7 +43,7 @@ function PageView() {
     <PageShell
       pageId={page.id}
       workspaceId={page.workspaceId}
-      initialTitle={props.title ?? 'Untitled'}
+      initialTitle={props.title ?? '無題'}
       token={token}
     />
   );
@@ -57,7 +57,7 @@ type ShellProps = {
 };
 
 function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
-  const { doc, status } = useCollabDoc(pageId, token);
+  const { doc, status } = useCollabDoc(`page:${pageId}`, token);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(initialTitle);
   const [titleSavedAt, setTitleSavedAt] = useState<Date | null>(null);
@@ -92,14 +92,14 @@ function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
         }}
         data-testid="page-title-input"
         className="mb-2 w-full bg-transparent text-3xl font-semibold tracking-tight focus:outline-none"
-        placeholder="Untitled"
+        placeholder="無題"
       />
       <p className="mb-8 flex items-center gap-3 font-mono text-xs text-zinc-400">
         <span data-testid="page-id">{pageId}</span>
         <ConnectionBadge status={status} />
         {titleSavedAt ? (
           <span data-testid="title-saved" className="text-zinc-500">
-            title saved {titleSavedAt.toLocaleTimeString()}
+            タイトル保存 {titleSavedAt.toLocaleTimeString('ja-JP')}
           </span>
         ) : null}
       </p>
@@ -107,7 +107,7 @@ function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
       {doc ? (
         <PageEditor doc={doc} workspaceId={workspaceId} />
       ) : (
-        <p className="text-zinc-500">Loading editor…</p>
+        <p className="text-zinc-500">エディタを準備中…</p>
       )}
     </div>
   );
@@ -116,12 +116,12 @@ function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
 function ConnectionBadge({ status }: { status: CollabStatus }) {
   const label =
     status === 'connected'
-      ? 'live'
+      ? '同期中'
       : status === 'connecting'
-        ? 'connecting…'
+        ? '接続中…'
         : status === 'offline'
-          ? 'offline'
-          : 'disconnected';
+          ? 'オフライン'
+          : '切断';
   const tone =
     status === 'connected'
       ? 'bg-emerald-500'
@@ -143,7 +143,7 @@ function ConnectionBadge({ status }: { status: CollabStatus }) {
 function BackLink() {
   return (
     <Link to="/" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
-      ← back to workspace
+      ← ワークスペースに戻る
     </Link>
   );
 }

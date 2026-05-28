@@ -5,8 +5,8 @@ import { trpc } from '../../lib/trpc.js';
 export function makeSprintSlashCommand(workspaceId: string): SlashCommand {
   return {
     id: 'sprint',
-    title: 'New sprint',
-    description: 'Plan a 2-week sprint',
+    title: '新規スプリント',
+    description: '2 週間のスプリントを計画',
     keywords: ['sprint', 'スプリント', 'iteration'],
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run();

@@ -7,9 +7,18 @@
  *   3. Hocuspocus forwards it to `onAuthenticate({ token, documentName })`.
  *
  * Server-side we resolve token → session → user → workspace-membership
- * check against the `page:<blockId>` document name. Rejecting the
- * connection from inside `onAuthenticate` is the only safe place — once
- * a websocket is upgraded, every byte that flows is authenticated.
+ * check against the document name. Rejecting the connection from inside
+ * `onAuthenticate` is the only safe place — once a websocket is
+ * upgraded, every byte that flows is authenticated.
+ *
+ * Two document name prefixes are accepted:
+ *   - `page:<blockId>`    legacy /p/$pageId route; backing block must be
+ *                         type='page'
+ *   - `block:<blockId>`   /b/$blockId detail route; backing block can be
+ *                         any non-deleted type (project / sprint / pbi /
+ *                         sbi / page / sheet). Project / Sprint / PBI /
+ *                         SBI gain a Notion-style "the item *is* the
+ *                         document" body this way.
  */
 import { and, eq } from 'drizzle-orm';
 
@@ -20,15 +29,19 @@ export type AuthedConnection = {
   userId: string;
   workspaceId: string;
   blockId: string;
+  kind: 'page' | 'block';
 };
 
-/** Document names follow `page:<blockId>` — keeps namespacing extensible. */
-export function parseDocumentName(documentName: string): { kind: 'page'; blockId: string } {
+/** Document name → `{kind, blockId}`. Throws on unsupported namespaces. */
+export function parseDocumentName(documentName: string): {
+  kind: 'page' | 'block';
+  blockId: string;
+} {
   const [kind, rest] = documentName.split(':');
-  if (kind !== 'page' || !rest) {
-    throw new Error(`Unsupported document name: ${documentName}`);
+  if ((kind === 'page' || kind === 'block') && rest) {
+    return { kind, blockId: rest };
   }
-  return { kind: 'page', blockId: rest };
+  throw new Error(`Unsupported document name: ${documentName}`);
 }
 
 export async function authenticateConnection(
@@ -36,7 +49,7 @@ export async function authenticateConnection(
   token: string,
   documentName: string,
 ): Promise<AuthedConnection> {
-  const { blockId } = parseDocumentName(documentName);
+  const { kind, blockId } = parseDocumentName(documentName);
 
   const [sessionRow] = await db
     .select({ userId: schema.session.userId, expiresAt: schema.session.expiresAt })
@@ -54,7 +67,11 @@ export async function authenticateConnection(
     .limit(1);
 
   if (!blockRow) throw new Error('Block not found');
-  if (blockRow.type !== 'page') throw new Error('Block is not a page');
+  // `page:` legacy prefix is reserved for actual page rows; the generic
+  // `block:` prefix is allowed for any other block type.
+  if (kind === 'page' && blockRow.type !== 'page') {
+    throw new Error('Block is not a page');
+  }
 
   const [membership] = await db
     .select({ role: schema.workspaceMember.role })
@@ -73,5 +90,6 @@ export async function authenticateConnection(
     userId: sessionRow.userId,
     workspaceId: blockRow.workspaceId,
     blockId,
+    kind,
   };
 }

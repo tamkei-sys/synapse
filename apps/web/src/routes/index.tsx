@@ -1,3 +1,10 @@
+/**
+ * ワークスペースのトップページ。
+ *
+ * 認証済みであればワークスペースの主要ナビ（プロジェクト・スプリント・
+ * PBI・SBI・トークン）と最近のページ一覧を表示する。ワークスペースが
+ * 1 つも無ければ新規作成フォームに切り替わる。
+ */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -14,7 +21,7 @@ function Dashboard() {
   const user = session.data?.user;
 
   if (session.isPending) {
-    return <Centered>Loading…</Centered>;
+    return <Centered>読み込み中…</Centered>;
   }
 
   if (!user) {
@@ -28,22 +35,22 @@ function UnauthenticatedHome() {
   return (
     <Centered>
       <div className="space-y-4 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome to SYNAPSE</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">SYNAPSE へようこそ</h1>
         <p className="text-zinc-500 dark:text-zinc-400">
-          A block-native workspace for docs, PBIs, and spreadsheets.
+          ドキュメント・PBI・スプレッドシートを Block で統一したワークスペース。
         </p>
         <div className="flex justify-center gap-3 pt-2">
           <Link
             to="/login"
             className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
           >
-            Sign in
+            ログイン
           </Link>
           <Link
             to="/signup"
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            Create account
+            新規登録
           </Link>
         </div>
       </div>
@@ -58,11 +65,11 @@ function AuthenticatedHome() {
   });
 
   if (workspaces.isPending) {
-    return <Centered>Loading workspaces…</Centered>;
+    return <Centered>ワークスペースを読み込み中…</Centered>;
   }
 
   if (workspaces.error) {
-    return <Centered>Failed to load workspaces: {workspaces.error.message}</Centered>;
+    return <Centered>ワークスペースの取得に失敗：{workspaces.error.message}</Centered>;
   }
 
   if (workspaces.data.length === 0) {
@@ -71,7 +78,7 @@ function AuthenticatedHome() {
 
   const workspace = workspaces.data[0];
   if (!workspace) {
-    return <Centered>No workspace found.</Centered>;
+    return <Centered>ワークスペースが見つかりません。</Centered>;
   }
 
   return <WorkspaceHome workspace={workspace} />;
@@ -94,7 +101,7 @@ function CreateWorkspaceForm() {
     e.preventDefault();
     setError(null);
     if (name.trim().length === 0) {
-      setError('Name is required.');
+      setError('名前は必須です。');
       return;
     }
     createWorkspace.mutate(name.trim());
@@ -107,18 +114,18 @@ function CreateWorkspaceForm() {
         className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
       >
         <header className="space-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">Create your first workspace</h1>
+          <h1 className="text-xl font-semibold tracking-tight">最初のワークスペースを作る</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Everything in SYNAPSE — pages, PBIs, sheets — lives inside a workspace.
+            SYNAPSE のあらゆるもの（ページ・PBI・シート）はワークスペースの中で動きます。
           </p>
         </header>
         <label className="block">
-          <span className="mb-1 block text-sm font-medium">Workspace name</span>
+          <span className="mb-1 block text-sm font-medium">ワークスペース名</span>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="My team"
+            placeholder="チーム名・プロダクト名など"
             required
             data-testid="workspace-name-input"
             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-950"
@@ -131,7 +138,7 @@ function CreateWorkspaceForm() {
           data-testid="create-workspace-submit"
           className="w-full rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
         >
-          {createWorkspace.isPending ? 'Creating…' : 'Create workspace'}
+          {createWorkspace.isPending ? '作成中…' : 'ワークスペースを作成'}
         </button>
       </form>
     </Centered>
@@ -153,8 +160,7 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
   });
 
   const createPage = useMutation({
-    mutationFn: () =>
-      trpc.block.createPage.mutate({ workspaceId: workspace.id, title: 'Untitled' }),
+    mutationFn: () => trpc.block.createPage.mutate({ workspaceId: workspace.id, title: '無題' }),
     onSuccess: async (page) => {
       await queryClient.invalidateQueries({ queryKey: ['block', 'listPages', workspace.id] });
       await navigate({ to: '/p/$pageId', params: { pageId: page.id } });
@@ -169,7 +175,7 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             {workspace.name}
           </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            <code className="font-mono">{workspace.slug}</code> · signed in as {email}
+            <code className="font-mono">{workspace.slug}</code> · ログイン中：{email}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -178,35 +184,42 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             data-testid="open-projects"
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            Projects
+            プロジェクト
           </Link>
           <Link
             to="/sprint"
             data-testid="open-sprints"
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            Sprints
+            スプリント
           </Link>
           <Link
             to="/pbi"
             data-testid="open-pbi-board"
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            PBIs
+            PBI
           </Link>
           <Link
             to="/sbi"
             data-testid="open-sbi-board"
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            SBIs
+            SBI
           </Link>
           <Link
             to="/settings/tokens"
             data-testid="open-tokens-settings"
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            Tokens
+            トークン
+          </Link>
+          <Link
+            to="/settings/audit-log"
+            data-testid="open-audit-log"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            監査ログ
           </Link>
           <button
             type="button"
@@ -215,15 +228,15 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             data-testid="new-page-button"
             className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
           >
-            {createPage.isPending ? 'Creating…' : 'New page'}
+            {createPage.isPending ? '作成中…' : '+ 新規ページ'}
           </button>
         </div>
       </header>
 
       <section>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">Pages</h2>
+        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">ページ</h2>
         {pages.isPending ? (
-          <p className="text-sm text-zinc-500">Loading…</p>
+          <p className="text-sm text-zinc-500">読み込み中…</p>
         ) : pages.data && pages.data.length > 0 ? (
           <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             {pages.data.map((page) => (
@@ -232,7 +245,7 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
           </ul>
         ) : (
           <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700">
-            No pages yet. Click <em>New page</em> to create your first one.
+            ページはまだありません。<em>+ 新規ページ</em> から最初の 1 ページを作りましょう。
           </div>
         )}
       </section>
@@ -244,7 +257,7 @@ function PageListItem({ page }: { page: PageRow }) {
   const title =
     typeof page.props === 'object' && page.props && 'title' in page.props
       ? String(page.props['title'])
-      : 'Untitled';
+      : '無題';
 
   return (
     <li>

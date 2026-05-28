@@ -18,13 +18,13 @@ function TokensRoute() {
   });
 
   if (session.isPending || workspaces.isPending) {
-    return <Centered>Loading…</Centered>;
+    return <Centered>読み込み中…</Centered>;
   }
   if (!session.data) {
     return (
       <Centered>
         <Link to="/login" className="text-violet-600 hover:underline">
-          Sign in to manage API tokens
+          ログインして API トークンを管理
         </Link>
       </Centered>
     );
@@ -35,7 +35,7 @@ function TokensRoute() {
     return (
       <Centered>
         <Link to="/" className="text-violet-600 hover:underline">
-          Create a workspace first
+          まずはワークスペースを作成
         </Link>
       </Centered>
     );
@@ -81,13 +81,13 @@ function TokensPanel({
     <div className="mx-auto w-full max-w-3xl px-6 py-12">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">API tokens · {workspaceName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">API トークン · {workspaceName}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Used by the SYNAPSE MCP server so Claude Code can read and write PBIs from the terminal.
+            SYNAPSE MCP サーバーから Claude Code が PBI を読み書きする際に使うトークンです。
           </p>
         </div>
         <Link to="/" className="text-sm text-zinc-500 hover:underline">
-          ← back to workspace
+          ← ワークスペースに戻る
         </Link>
       </header>
 
@@ -100,12 +100,12 @@ function TokensPanel({
         className="mb-6 flex items-end gap-3"
       >
         <label className="flex-1">
-          <span className="mb-1 block text-sm font-medium">New token label</span>
+          <span className="mb-1 block text-sm font-medium">新しいトークンのラベル</span>
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="cc on my laptop"
+            placeholder="例：自分のラップトップ用 cc"
             data-testid="new-token-label"
             className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
@@ -116,7 +116,7 @@ function TokensPanel({
           data-testid="create-token-submit"
           className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
         >
-          {createMut.isPending ? 'Creating…' : 'Create token'}
+          {createMut.isPending ? '作成中…' : 'トークンを作成'}
         </button>
       </form>
 
@@ -126,7 +126,7 @@ function TokensPanel({
           className="mb-6 rounded-lg border border-violet-300 bg-violet-50 p-4 dark:border-violet-700 dark:bg-violet-950/40"
         >
           <p className="mb-2 text-sm font-medium">
-            New token (copy it now — it won&apos;t be shown again):
+            新しいトークンです。今コピーしてください（二度と表示されません）：
           </p>
           <code
             data-testid="created-token-value"
@@ -139,7 +139,7 @@ function TokensPanel({
             onClick={() => setJustCreated(null)}
             className="mt-2 text-xs text-zinc-500 hover:underline"
           >
-            I&apos;ve copied it — dismiss
+            コピー済み — 閉じる
           </button>
         </section>
       ) : null}
@@ -162,18 +162,20 @@ function TokensPanel({
                   <p className="text-sm font-medium">{t.label}</p>
                   <p className="font-mono text-xs text-zinc-500">…{t.suffix}</p>
                   <p className="text-xs text-zinc-500">
-                    created {new Date(t.createdAt).toLocaleString()}
+                    作成 {new Date(t.createdAt).toLocaleString('ja-JP')}
                     {t.expiresAt
-                      ? ` · expires ${new Date(t.expiresAt).toLocaleDateString()}`
-                      : ' · never expires'}
-                    {t.lastUsedAt ? ` · last used ${new Date(t.lastUsedAt).toLocaleString()}` : ''}
+                      ? ` · 失効 ${new Date(t.expiresAt).toLocaleDateString('ja-JP')}`
+                      : ' · 失効なし'}
+                    {t.lastUsedAt
+                      ? ` · 最終使用 ${new Date(t.lastUsedAt).toLocaleString('ja-JP')}`
+                      : ''}
                   </p>
                 </div>
                 <div>
                   {isRevoked ? (
-                    <span className="text-xs uppercase text-zinc-400">revoked</span>
+                    <span className="text-xs uppercase text-zinc-400">無効化済み</span>
                   ) : isExpired ? (
-                    <span className="text-xs uppercase text-zinc-400">expired</span>
+                    <span className="text-xs uppercase text-zinc-400">失効済み</span>
                   ) : (
                     <button
                       type="button"
@@ -182,7 +184,7 @@ function TokensPanel({
                       data-testid={`revoke-token-${t.id}`}
                       className="rounded-md border border-zinc-300 px-3 py-1 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
                     >
-                      Revoke
+                      無効化
                     </button>
                   )}
                 </div>
@@ -192,7 +194,7 @@ function TokensPanel({
         </ul>
       ) : (
         <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
-          No tokens yet.
+          まだトークンはありません。
         </div>
       )}
     </div>

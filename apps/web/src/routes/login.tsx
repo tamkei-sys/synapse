@@ -21,17 +21,17 @@ function LoginPage() {
     const result = await signIn.email({ email, password });
     setBusy(false);
     if (result.error) {
-      setError(result.error.message ?? 'Sign-in failed.');
+      setError(result.error.message ?? 'ログインに失敗しました。');
       return;
     }
     await navigate({ to: '/' });
   }
 
   return (
-    <AuthShell title="Sign in to SYNAPSE">
+    <AuthShell title="SYNAPSE にログイン">
       <form onSubmit={onSubmit} className="space-y-4">
         <Field
-          label="Email"
+          label="メールアドレス"
           type="email"
           value={email}
           onChange={setEmail}
@@ -39,7 +39,7 @@ function LoginPage() {
           required
         />
         <Field
-          label="Password"
+          label="パスワード"
           type="password"
           value={password}
           onChange={setPassword}
@@ -52,13 +52,13 @@ function LoginPage() {
           disabled={busy}
           className="w-full rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
         >
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? 'ログイン中…' : 'ログイン'}
         </button>
       </form>
       <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
-        No account?{' '}
+        アカウントがない場合は{' '}
         <Link to="/signup" className="font-medium text-violet-600 hover:underline">
-          Create one
+          新規登録
         </Link>
       </p>
     </AuthShell>

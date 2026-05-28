@@ -12,14 +12,14 @@ const PR_PATTERN = /^([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)#(\d+)$/;
 export function makePrSlashCommand(): SlashCommand {
   return {
     id: 'pr',
-    title: 'GitHub PR',
-    description: 'Embed a link to a pull request — diff lands in S10+',
-    keywords: ['pr', 'pull', 'request', 'github', 'review'],
+    title: 'GitHub PR を埋め込み',
+    description: 'プルリクエストへのリンクを挿入',
+    keywords: ['pr', 'pull', 'request', 'github', 'プルリク', 'review'],
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run();
       const input =
         typeof window !== 'undefined'
-          ? window.prompt('Enter PR coordinates as owner/repo#number')
+          ? window.prompt('PR を owner/repo#number 形式で入力してください')
           : '';
       if (!input) return;
       const m = PR_PATTERN.exec(input.trim());

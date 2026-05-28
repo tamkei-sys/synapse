@@ -15,12 +15,12 @@ function AuditRoute() {
     queryFn: () => trpc.workspace.listMine.query(),
     enabled: !!session.data,
   });
-  if (session.isPending || workspaces.isPending) return <Centered>Loading…</Centered>;
+  if (session.isPending || workspaces.isPending) return <Centered>読み込み中…</Centered>;
   if (!session.data)
     return (
       <Centered>
         <Link to="/login" className="text-violet-600 hover:underline">
-          Sign in
+          ログイン
         </Link>
       </Centered>
     );
@@ -29,7 +29,7 @@ function AuditRoute() {
     return (
       <Centered>
         <Link to="/" className="text-violet-600 hover:underline">
-          Create a workspace first
+          まずはワークスペースを作成
         </Link>
       </Centered>
     );
@@ -53,18 +53,19 @@ function AuditPanel({
     <div className="mx-auto w-full max-w-4xl px-6 py-12">
       <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Audit log · {workspaceName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">監査ログ · {workspaceName}</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Every MCP tool invocation appears here. Filter / export coming after the v1 cut.
+            MCP ツールの呼び出しはすべてここに記録されます。フィルタ / エクスポートは v1
+            以降で対応。
           </p>
         </div>
         <Link to="/" className="text-sm text-zinc-500 hover:underline">
-          ← back
+          ← 戻る
         </Link>
       </header>
 
       {list.isPending ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <p className="text-sm text-zinc-500">読み込み中…</p>
       ) : list.data && list.data.length > 0 ? (
         <ul
           data-testid="audit-rows"
@@ -78,7 +79,7 @@ function AuditPanel({
               className="flex items-start gap-3 px-4 py-2"
             >
               <span className="w-44 shrink-0 text-zinc-500">
-                {new Date(row.createdAt).toLocaleString()}
+                {new Date(row.createdAt).toLocaleString('ja-JP')}
               </span>
               <span
                 className={`w-12 shrink-0 rounded px-1.5 text-center ${
@@ -87,7 +88,7 @@ function AuditPanel({
                     : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
                 }`}
               >
-                {row.result}
+                {row.result === 'ok' ? '成功' : '失敗'}
               </span>
               <span className="w-48 shrink-0 truncate">{row.tool}</span>
               <span className="flex-1 truncate text-zinc-500">
@@ -98,8 +99,8 @@ function AuditPanel({
         </ul>
       ) : (
         <p className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700">
-          No audit entries yet. Wire an MCP token in{' '}
-          <Link to="/settings/tokens">settings/tokens</Link> and run a cc tool.
+          監査ログはまだありません。<Link to="/settings/tokens">トークン設定</Link> で MCP
+          トークンを発行し、cc ツールを叩くとここに並びます。
         </p>
       )}
     </div>

@@ -104,15 +104,15 @@ export function CommandPalette() {
               if (hit) onPick(hit);
             }
           }}
-          placeholder="Search pages, PBIs, sheets…"
+          placeholder="ページ・PBI・シートを検索…"
           data-testid="command-palette-input"
           className="w-full border-b border-zinc-200 bg-transparent px-4 py-3 text-sm focus:outline-none dark:border-zinc-800"
         />
         <ul data-testid="command-palette-results" className="max-h-80 overflow-y-auto p-1">
           {results.isPending && q ? (
-            <li className="px-3 py-2 text-sm text-zinc-500">Searching…</li>
+            <li className="px-3 py-2 text-sm text-zinc-500">検索中…</li>
           ) : hits.length === 0 ? (
-            <li className="px-3 py-2 text-sm text-zinc-500">No matches</li>
+            <li className="px-3 py-2 text-sm text-zinc-500">該当なし</li>
           ) : (
             hits.map((hit, i) => (
               <li key={hit.id}>

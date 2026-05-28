@@ -23,54 +23,54 @@ export type SlashCommand = {
 export const SLASH_COMMANDS: readonly SlashCommand[] = [
   {
     id: 'heading-1',
-    title: 'Heading 1',
-    description: 'Large section heading',
-    keywords: ['h1', 'title', 'heading'],
+    title: '見出し 1',
+    description: '大きなセクション見出し',
+    keywords: ['h1', '見出し', 'heading', 'title'],
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run(),
   },
   {
     id: 'heading-2',
-    title: 'Heading 2',
-    description: 'Medium section heading',
-    keywords: ['h2', 'subtitle', 'heading'],
+    title: '見出し 2',
+    description: '中サイズのセクション見出し',
+    keywords: ['h2', '見出し', 'heading'],
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run(),
   },
   {
     id: 'heading-3',
-    title: 'Heading 3',
-    description: 'Small section heading',
-    keywords: ['h3', 'heading'],
+    title: '見出し 3',
+    description: '小サイズの見出し',
+    keywords: ['h3', '見出し', 'heading'],
     run: (editor, range) =>
       editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run(),
   },
   {
     id: 'bullet-list',
-    title: 'Bulleted list',
-    description: 'Simple bullet list',
-    keywords: ['bullet', 'list', 'ul'],
+    title: '箇条書き',
+    description: '・印つきのリスト',
+    keywords: ['箇条', 'list', 'ul', 'bullet'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).toggleBulletList().run(),
   },
   {
     id: 'ordered-list',
-    title: 'Numbered list',
-    description: 'List with numbering',
-    keywords: ['numbered', 'list', 'ol', 'ordered'],
+    title: '番号付きリスト',
+    description: '1, 2, 3 … の番号つきリスト',
+    keywords: ['番号', 'list', 'ol', 'numbered'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
   },
   {
     id: 'blockquote',
-    title: 'Quote',
-    description: 'Pull-quote style block',
-    keywords: ['quote', 'blockquote', 'citation'],
+    title: '引用',
+    description: '引用ブロック',
+    keywords: ['引用', 'quote', 'blockquote'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).setBlockquote().run(),
   },
   {
     id: 'code-block',
-    title: 'Code block',
-    description: 'Fenced code with monospace font',
-    keywords: ['code', 'snippet', 'pre'],
+    title: 'コードブロック',
+    description: '等幅フォントのコード領域',
+    keywords: ['コード', 'code', 'snippet', 'pre'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).setCodeBlock().run(),
   },
 ];
@@ -135,7 +135,7 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
   if (list.length === 0) {
     return (
       <div className="rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-500 shadow-md dark:border-zinc-700 dark:bg-zinc-900">
-        No matches
+        該当するコマンドがありません
       </div>
     );
   }

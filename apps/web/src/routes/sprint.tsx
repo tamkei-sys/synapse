@@ -1,3 +1,9 @@
+/**
+ * スプリント一覧。
+ *
+ * 行クリックで詳細 `/b/$blockId` に遷移し、配下 PBI 一覧 + ドキュメント
+ * 編集ができる。ステータスはインラインで変更可能。
+ */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -5,6 +11,7 @@ import { useState } from 'react';
 import { SPRINT_STATUSES, type SprintStatus } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import { formatDate, sprintStatusLabel, statusTone } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/sprint')({
@@ -24,7 +31,7 @@ type SprintPropsRead = {
 function readSprintProps(row: SprintRow): SprintPropsRead {
   const p = (row.props ?? {}) as Partial<SprintPropsRead>;
   return {
-    name: p.name ?? 'Untitled',
+    name: p.name ?? '無題スプリント',
     status: p.status ?? 'planning',
     startDate: p.startDate ?? '',
     endDate: p.endDate ?? '',
@@ -40,12 +47,12 @@ function SprintRoute() {
     queryFn: () => trpc.workspace.listMine.query(),
     enabled: !!session.data,
   });
-  if (session.isPending || workspaces.isPending) return <Centered>Loading…</Centered>;
+  if (session.isPending || workspaces.isPending) return <Centered>読み込み中…</Centered>;
   if (!session.data)
     return (
       <Centered>
         <Link to="/login" className="text-violet-600 hover:underline">
-          Sign in
+          ログイン
         </Link>
       </Centered>
     );
@@ -54,7 +61,7 @@ function SprintRoute() {
     return (
       <Centered>
         <Link to="/" className="text-violet-600 hover:underline">
-          Create a workspace first
+          まずはワークスペースを作成
         </Link>
       </Centered>
     );
@@ -74,10 +81,23 @@ function SprintsPanel({
     queryFn: () => trpc.sprint.list.query({ workspaceId }),
   });
   const [name, setName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [goal, setGoal] = useState('');
   const create = useMutation({
-    mutationFn: (n: string) => trpc.sprint.create.mutate({ workspaceId, name: n }),
+    mutationFn: () =>
+      trpc.sprint.create.mutate({
+        workspaceId,
+        name: name.trim(),
+        ...(startDate ? { startDate } : {}),
+        ...(endDate ? { endDate } : {}),
+        ...(goal ? { goal } : {}),
+      }),
     onSuccess: async () => {
       setName('');
+      setStartDate('');
+      setEndDate('');
+      setGoal('');
       await qc.invalidateQueries({ queryKey: ['sprint', 'list', workspaceId] });
     },
   });
@@ -89,45 +109,70 @@ function SprintsPanel({
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-12">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sprints · {workspaceName}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            スプリント一覧 · {workspaceName}
+          </h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             <Link to="/" className="hover:underline">
-              ← back to workspace
+              ← ワークスペースに戻る
             </Link>
             {' · '}
-            <span>2-week iterations</span>
+            既定の長さは 2 週間
           </p>
         </div>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim()) return;
-            create.mutate(name.trim());
-          }}
-          className="flex items-center gap-2"
-        >
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Sprint name (e.g. 2026-W22)"
-            data-testid="new-sprint-name"
-            className="w-56 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-          <button
-            type="submit"
-            disabled={create.isPending || !name.trim()}
-            data-testid="create-sprint-submit"
-            className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
-          >
-            Plan
-          </button>
-        </form>
       </header>
 
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          create.mutate();
+        }}
+        data-testid="new-sprint-form"
+        className="mb-6 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 sm:grid-cols-[1.4fr_auto_auto_1fr_auto] dark:border-zinc-800 dark:bg-zinc-900/30"
+      >
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="スプリント名（例：2026-W22）"
+          data-testid="new-sprint-name"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          data-testid="new-sprint-start"
+          className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          data-testid="new-sprint-end"
+          className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <input
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          placeholder="ゴール（任意）"
+          data-testid="new-sprint-goal"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <button
+          type="submit"
+          disabled={create.isPending || !name.trim()}
+          data-testid="create-sprint-submit"
+          className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+        >
+          + 計画
+        </button>
+      </form>
+
       {list.isPending ? (
-        <p className="text-sm text-zinc-500">Loading…</p>
+        <p className="text-sm text-zinc-500">読み込み中…</p>
       ) : list.data && list.data.length > 0 ? (
         <ul
           data-testid="sprint-list"
@@ -144,12 +189,18 @@ function SprintsPanel({
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-xs text-zinc-400">SP-{s.number ?? '–'}</span>
-                    <span className="text-sm font-medium" data-testid={`sprint-name-${row.id}`}>
+                    <Link
+                      to="/b/$blockId"
+                      params={{ blockId: row.id }}
+                      data-testid={`sprint-name-${row.id}`}
+                      className="text-sm font-medium hover:underline"
+                    >
                       {s.name}
-                    </span>
+                    </Link>
                   </div>
                   <p className="font-mono text-xs text-zinc-500">
-                    {s.startDate} → {s.endDate}
+                    期間 {formatDate(s.startDate)} → {formatDate(s.endDate)}
+                    {s.goal ? ` · 目標：${s.goal}` : ''}
                   </p>
                 </div>
                 <select
@@ -162,11 +213,11 @@ function SprintsPanel({
                   }
                   disabled={update.isPending}
                   data-testid={`sprint-status-${row.id}`}
-                  className="rounded-md border border-zinc-300 bg-white px-2 py-1 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-900"
+                  className={`rounded-md border border-zinc-300 px-2 py-1 font-mono text-xs dark:border-zinc-700 ${statusTone[s.status] ?? ''}`}
                 >
                   {SPRINT_STATUSES.map((st) => (
                     <option key={st} value={st}>
-                      {st}
+                      {sprintStatusLabel[st]}
                     </option>
                   ))}
                 </select>
@@ -176,7 +227,7 @@ function SprintsPanel({
         </ul>
       ) : (
         <div className="rounded-lg border border-dashed border-zinc-300 p-8 text-center text-zinc-500 dark:border-zinc-700">
-          No sprints planned yet.
+          スプリントはまだありません。
         </div>
       )}
     </div>

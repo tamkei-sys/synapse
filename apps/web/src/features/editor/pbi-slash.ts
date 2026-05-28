@@ -17,12 +17,12 @@ import { trpc } from '../../lib/trpc.js';
 export function makePbiSlashCommand(workspaceId: string): SlashCommand {
   return {
     id: 'pbi',
-    title: 'New PBI',
-    description: 'Create a backlog item and embed a reference',
-    keywords: ['pbi', 'task', 'backlog', 'card', 'issue'],
+    title: '新規 PBI',
+    description: 'PBI を作成して参照ノードを挿入',
+    keywords: ['pbi', 'タスク', 'task', 'backlog', 'バックログ', 'issue'],
     run: (editor, range) => {
       editor.chain().focus().deleteRange(range).run();
-      void trpc.pbi.create.mutate({ workspaceId, title: 'Untitled PBI' }).then((created) => {
+      void trpc.pbi.create.mutate({ workspaceId, title: '無題 PBI' }).then((created) => {
         editor.chain().focus().insertPbiRef(created.id).run();
       });
     },

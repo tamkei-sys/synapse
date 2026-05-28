@@ -19,14 +19,14 @@ function SignupPage() {
     e.preventDefault();
     setError(null);
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError('パスワードは 8 文字以上で設定してください。');
       return;
     }
     setBusy(true);
     const result = await signUp.email({ name, email, password });
     setBusy(false);
     if (result.error) {
-      setError(result.error.message ?? 'Sign-up failed.');
+      setError(result.error.message ?? '新規登録に失敗しました。');
       return;
     }
     await navigate({ to: '/' });
@@ -35,10 +35,10 @@ function SignupPage() {
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="mb-6 text-xl font-semibold tracking-tight">Create your account</h1>
+        <h1 className="mb-6 text-xl font-semibold tracking-tight">アカウントを作成</h1>
         <form onSubmit={onSubmit} className="space-y-4">
           <Field
-            label="Name"
+            label="お名前"
             type="text"
             value={name}
             onChange={setName}
@@ -46,7 +46,7 @@ function SignupPage() {
             required
           />
           <Field
-            label="Email"
+            label="メールアドレス"
             type="email"
             value={email}
             onChange={setEmail}
@@ -54,7 +54,7 @@ function SignupPage() {
             required
           />
           <Field
-            label="Password"
+            label="パスワード（8 文字以上）"
             type="password"
             value={password}
             onChange={setPassword}
@@ -67,13 +67,13 @@ function SignupPage() {
             disabled={busy}
             className="w-full rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
           >
-            {busy ? 'Creating…' : 'Create account'}
+            {busy ? '作成中…' : 'アカウント作成'}
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
-          Already have one?{' '}
+          すでにアカウントがある場合は{' '}
           <Link to="/login" className="font-medium text-violet-600 hover:underline">
-            Sign in
+            ログイン
           </Link>
         </p>
       </div>
