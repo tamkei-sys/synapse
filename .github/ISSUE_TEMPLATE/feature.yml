@@ -1,0 +1,55 @@
+name: ✨ Feature request
+description: Propose a new feature or improvement
+labels: [enhancement, triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening: check `docs/roadmap.md` — your request might already be planned or explicitly out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve? Whose problem is it?
+      placeholder: "As a [persona], I can't [do X] because ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you solve it? (UX sketch, API shape, or behavior)
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Where does this fit?
+      options:
+        - Editor / Docs
+        - PBI / Agile module
+        - Spreadsheet
+        - GitHub integration
+        - Claude Code integration
+        - Search
+        - Other / cross-cutting
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I checked the roadmap and this isn't already planned or out-of-scope
+          required: true
+        - label: I'm willing to discuss tradeoffs (this isn't a "please do this exactly")
+          required: true
