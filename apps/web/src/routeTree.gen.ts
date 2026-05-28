@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup';
 import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as IndexRouteImport } from './routes/index';
+import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
 
 const SignupRoute = SignupRouteImport.update({
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any);
+const SettingsTokensRoute = SettingsTokensRouteImport.update({
+  id: '/settings/tokens',
+  path: '/settings/tokens',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const PPageIdRoute = PPageIdRouteImport.update({
   id: '/p/$pageId',
   path: '/p/$pageId',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/pbi': typeof PbiRoute;
   '/signup': typeof SignupRoute;
   '/p/$pageId': typeof PPageIdRoute;
+  '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/pbi': typeof PbiRoute;
   '/signup': typeof SignupRoute;
   '/p/$pageId': typeof PPageIdRoute;
+  '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -62,13 +70,27 @@ export interface FileRoutesById {
   '/pbi': typeof PbiRoute;
   '/signup': typeof SignupRoute;
   '/p/$pageId': typeof PPageIdRoute;
+  '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId';
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/pbi'
+    | '/signup'
+    | '/p/$pageId'
+    | '/settings/tokens';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId';
-  id: '__root__' | '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId';
+  to: '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId' | '/settings/tokens';
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/pbi'
+    | '/signup'
+    | '/p/$pageId'
+    | '/settings/tokens';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -77,6 +99,7 @@ export interface RootRouteChildren {
   PbiRoute: typeof PbiRoute;
   SignupRoute: typeof SignupRoute;
   PPageIdRoute: typeof PPageIdRoute;
+  SettingsTokensRoute: typeof SettingsTokensRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/settings/tokens': {
+      id: '/settings/tokens';
+      path: '/settings/tokens';
+      fullPath: '/settings/tokens';
+      preLoaderRoute: typeof SettingsTokensRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/p/$pageId': {
       id: '/p/$pageId';
       path: '/p/$pageId';
@@ -125,6 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
   PbiRoute: PbiRoute,
   SignupRoute: SignupRoute,
   PPageIdRoute: PPageIdRoute,
+  SettingsTokensRoute: SettingsTokensRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
