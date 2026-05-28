@@ -53,7 +53,10 @@ export const ccRouter = router({
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
-      startStubSession(ctx.db, row.id);
+      // Hand the simulated lifecycle to workerd via waitUntil — without
+      // it the isolate dies right after this response returns and the
+      // status stays stuck on `queued`. See trpc.ts `WaitUntil`.
+      ctx.waitUntil(startStubSession(ctx.db, row.id));
       return row;
     }),
 

@@ -42,7 +42,13 @@ app.all('/trpc/*', (c) =>
     endpoint: '/trpc',
     req: c.req.raw,
     router: appRouter,
-    createContext: (opts) => createTrpcContext(c.env, opts),
+    createContext: (opts) =>
+      createTrpcContext(c.env, opts, (p) => {
+        // Hand off to workerd so the isolate stays alive past the response.
+        // `executionCtx` is always present in real Workers requests; the
+        // optional chain defends against synthetic Hono test contexts.
+        c.executionCtx?.waitUntil(p);
+      }),
   }),
 );
 

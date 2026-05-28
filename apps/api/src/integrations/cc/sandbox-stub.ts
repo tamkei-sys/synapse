@@ -10,6 +10,10 @@
  * with a synthetic PR URL. The fake transition is enough to exercise
  * every UI state and every audit-log row the production path will
  * write. Real cc invocation lands when `apps/sandbox` is built (S9+).
+ *
+ * Caller contract: pass the returned promise to `ctx.waitUntil(...)`.
+ * Without that, workerd kills the isolate as soon as the tRPC response
+ * is flushed and the session stays stuck on `queued` forever.
  */
 import { eq } from 'drizzle-orm';
 
@@ -17,44 +21,41 @@ import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../../db.js';
 
-export function startStubSession(db: Database, sessionId: string): void {
-  // Fire-and-forget. The tRPC response has already returned.
-  void (async () => {
-    try {
-      await sleep(200);
-      await db
-        .update(schema.ccSession)
-        .set({
-          status: 'running',
-          lastMessage: 'sandbox: cc started',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.ccSession.id, sessionId));
+export async function startStubSession(db: Database, sessionId: string): Promise<void> {
+  try {
+    await sleep(200);
+    await db
+      .update(schema.ccSession)
+      .set({
+        status: 'running',
+        lastMessage: 'sandbox: cc started',
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.ccSession.id, sessionId));
 
-      await sleep(400);
-      const fakePrUrl = `https://github.com/example/synapse-sandbox/pull/${randomNumber()}`;
-      await db
-        .update(schema.ccSession)
-        .set({
-          status: 'succeeded',
-          lastMessage: 'sandbox: PR opened (stub)',
-          prUrl: fakePrUrl,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.ccSession.id, sessionId));
-    } catch (err) {
-      console.warn('[cc/stub] background failure:', err);
-      await db
-        .update(schema.ccSession)
-        .set({
-          status: 'failed',
-          lastMessage: 'sandbox: stub error',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.ccSession.id, sessionId))
-        .catch(() => undefined);
-    }
-  })();
+    await sleep(400);
+    const fakePrUrl = `https://github.com/example/synapse-sandbox/pull/${randomNumber()}`;
+    await db
+      .update(schema.ccSession)
+      .set({
+        status: 'succeeded',
+        lastMessage: 'sandbox: PR opened (stub)',
+        prUrl: fakePrUrl,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.ccSession.id, sessionId));
+  } catch (err) {
+    console.warn('[cc/stub] background failure:', err);
+    await db
+      .update(schema.ccSession)
+      .set({
+        status: 'failed',
+        lastMessage: 'sandbox: stub error',
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.ccSession.id, sessionId))
+      .catch(() => undefined);
+  }
 }
 
 function sleep(ms: number): Promise<void> {

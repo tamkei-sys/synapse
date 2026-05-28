@@ -13,6 +13,21 @@ import { createAuth, type Auth } from './auth.js';
 import { createDb, type Database } from './db.js';
 import type { Env } from './env.js';
 
+/**
+ * Register a promise to be awaited *after* the HTTP response is sent.
+ *
+ * In Cloudflare Workers (workerd) the isolate is allowed to die as soon as
+ * the response stream is closed, which silently cancels any orphan promises
+ * left in flight. Routines like the cc sandbox stub or Typesense indexing
+ * need to keep running past that boundary — `ctx.waitUntil(p)` re-parents
+ * them onto the request's `ExecutionContext` so workerd holds the isolate
+ * open until they settle.
+ *
+ * Node (vitest) doesn't kill orphan promises, so the fallback in
+ * `createTrpcContext` is a plain `void p`.
+ */
+export type WaitUntil = (p: Promise<unknown>) => void;
+
 export type TrpcContext = {
   db: Database;
   auth: Auth;
@@ -20,16 +35,22 @@ export type TrpcContext = {
   env: Env;
   session: Awaited<ReturnType<Auth['api']['getSession']>>;
   headers: Headers;
+  /** Post-response async hook — see `WaitUntil`. */
+  waitUntil: WaitUntil;
 };
 
 export async function createTrpcContext(
   env: Env,
   opts: FetchCreateContextFnOptions,
+  waitUntil: WaitUntil = (p) => {
+    // Node fallback — orphans survive on their own.
+    void p;
+  },
 ): Promise<TrpcContext> {
   const db = createDb(env.DATABASE_URL);
   const auth = createAuth(env);
   const session = await auth.api.getSession({ headers: opts.req.headers });
-  return { db, auth, env, session, headers: opts.req.headers };
+  return { db, auth, env, session, headers: opts.req.headers, waitUntil };
 }
 
 const t = initTRPC.context<TrpcContext>().create({ transformer: superjson });
