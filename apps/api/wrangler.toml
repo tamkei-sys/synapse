@@ -3,5 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Secrets are managed via `wrangler secret put` — never committed.
-# Bindings (KV / D1 / R2 / Queues) will be added as features land.
+# Non-secret config — secrets (DATABASE_URL, BETTER_AUTH_SECRET) are managed
+# via `wrangler secret put` and surfaced through `c.env.<NAME>` only.
+[vars]
+BETTER_AUTH_URL = "http://localhost:8787"
+WEB_ORIGIN = "http://localhost:5173"
+
+# Additional bindings (KV / D1 / R2 / Queues) will be added as features land.

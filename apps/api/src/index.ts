@@ -1,14 +1,49 @@
-// SYNAPSE API entry — scaffolded in S1.
-// Hono + tRPC v11 wiring lands in S1 follow-ups.
-
+/**
+ * SYNAPSE API entrypoint.
+ *
+ * Hono mounts three concerns:
+ *   - `/healthz`        cheap liveness probe (no DB)
+ *   - `/api/auth/*`     Better-Auth handler (login, signup, session, ...)
+ *   - `/trpc/*`         tRPC v11 procedures (workspace/block ops)
+ *
+ * CORS allows only `WEB_ORIGIN`; credentialed requests are required for
+ * Better-Auth cookies to flow.
+ */
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
-// Cloudflare bindings will be declared on Env as they are added.
-// Example: type Env = { DB: D1Database; KV: KVNamespace }.
-type Env = Record<string, never>;
+import { createAuth } from './auth.js';
+import type { AppBindings } from './env.js';
+import { appRouter } from './routers/index.js';
+import { createTrpcContext } from './trpc.js';
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<AppBindings>();
+
+app.use(
+  '*',
+  cors({
+    origin: (origin, c) => (origin === c.env.WEB_ORIGIN ? origin : null),
+    credentials: true,
+  }),
+);
 
 app.get('/healthz', (c) => c.json({ ok: true, service: 'synapse-api' }));
 
+// Better-Auth mounts at /api/auth/**; it owns route resolution from there.
+app.on(['GET', 'POST'], '/api/auth/*', (c) => {
+  const auth = createAuth(c.env);
+  return auth.handler(c.req.raw);
+});
+
+app.all('/trpc/*', (c) =>
+  fetchRequestHandler({
+    endpoint: '/trpc',
+    req: c.req.raw,
+    router: appRouter,
+    createContext: (opts) => createTrpcContext(c.env, opts),
+  }),
+);
+
+export type { AppRouter } from './routers/index.js';
 export default app;
