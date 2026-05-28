@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+
+/* Tailwind v4 uses CSS-first config. Semantic tokens are declared here so
+   feature code never hard-codes a colour (per CLAUDE.md §4 "Dark mode is
+   first-class"). */
+@theme {
+  --color-surface: theme(colors.zinc.50);
+  --color-surface-dark: theme(colors.zinc.950);
+  --color-foreground: theme(colors.zinc.900);
+  --color-foreground-dark: theme(colors.zinc.100);
+  --color-muted: theme(colors.zinc.500);
+  --color-accent: theme(colors.violet.500);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}

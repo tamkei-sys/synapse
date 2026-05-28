@@ -6,9 +6,10 @@
   "description": "SYNAPSE web client (React 19 + Vite + TanStack Router).",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "pnpm routes:generate && tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b",
+    "typecheck": "pnpm routes:generate && tsc -b",
+    "routes:generate": "tsr generate",
     "lint": "eslint .",
     "test": "vitest run",
     "clean": "rm -rf dist .turbo node_modules/.vite"
@@ -17,14 +18,25 @@
     "@synapse/blocks": "workspace:*",
     "@synapse/schema": "workspace:*",
     "@synapse/ui": "workspace:*",
+    "@tanstack/react-query": "^5.62.0",
+    "@tanstack/react-router": "^1.85.0",
+    "@trpc/client": "^11.0.0-rc.617",
+    "better-auth": "^1.1.2",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "superjson": "^2.2.1",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@synapse/api": "workspace:*",
+    "@tailwindcss/vite": "^4.0.0-beta.6",
+    "@tanstack/router-cli": "^1.85.0",
+    "@tanstack/router-plugin": "^1.85.0",
     "@types/node": "catalog:",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0-beta.6",
     "typescript": "catalog:",
     "vite": "^6.0.1",
     "vitest": "catalog:"

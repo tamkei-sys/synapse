@@ -9,10 +9,11 @@
     "rootDir": "src",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/routeTree.gen.ts"],
   "references": [
     { "path": "../../packages/blocks" },
     { "path": "../../packages/schema" },
-    { "path": "../../packages/ui" }
+    { "path": "../../packages/ui" },
+    { "path": "../api" }
   ]
 }
