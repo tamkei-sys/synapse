@@ -172,27 +172,48 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             <code className="font-mono">{workspace.slug}</code> · signed in as {email}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/project"
+            data-testid="open-projects"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            Projects
+          </Link>
+          <Link
+            to="/sprint"
+            data-testid="open-sprints"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            Sprints
+          </Link>
           <Link
             to="/pbi"
             data-testid="open-pbi-board"
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            PBI board
+            PBIs
+          </Link>
+          <Link
+            to="/sbi"
+            data-testid="open-sbi-board"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            SBIs
           </Link>
           <Link
             to="/settings/tokens"
             data-testid="open-tokens-settings"
-            className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
-            API tokens
+            Tokens
           </Link>
           <button
             type="button"
             onClick={() => createPage.mutate()}
             disabled={createPage.isPending}
             data-testid="new-page-button"
-            className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+            className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
           >
             {createPage.isPending ? 'Creating…' : 'New page'}
           </button>

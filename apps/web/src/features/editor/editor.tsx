@@ -20,10 +20,12 @@ import { PbiRefNode } from './pbi-ref-node.js';
 import { makePbiSlashCommand } from './pbi-slash.js';
 import { PrDiffEmbedNode } from './pr-diff-node.js';
 import { makePrSlashCommand } from './pr-slash.js';
+import { makeProjectSlashCommand } from './project-slash.js';
 import { SheetEmbedNode } from './sheet-embed-node.js';
 import { makeSheetSlashCommand } from './sheet-slash.js';
 import { SlashCommandExtension } from './slash-extension.js';
 import { SLASH_COMMANDS } from './slash-menu.js';
+import { makeSprintSlashCommand } from './sprint-slash.js';
 
 type EditorProps = {
   doc: Y.Doc;
@@ -36,6 +38,8 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
   const slashCommands = useMemo(
     () => [
       ...SLASH_COMMANDS,
+      makeProjectSlashCommand(workspaceId),
+      makeSprintSlashCommand(workspaceId),
       makePbiSlashCommand(workspaceId),
       makeSheetSlashCommand(workspaceId),
       makePrSlashCommand(),

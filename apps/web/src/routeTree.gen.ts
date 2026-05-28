@@ -9,16 +9,35 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
+import { Route as SprintRouteImport } from './routes/sprint';
 import { Route as SignupRouteImport } from './routes/signup';
+import { Route as SbiRouteImport } from './routes/sbi';
+import { Route as ProjectRouteImport } from './routes/project';
 import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
+import { Route as SettingsAuditLogRouteImport } from './routes/settings.audit-log';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
 
+const SprintRoute = SprintRouteImport.update({
+  id: '/sprint',
+  path: '/sprint',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SbiRoute = SbiRouteImport.update({
+  id: '/sbi',
+  path: '/sbi',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ProjectRoute = ProjectRouteImport.update({
+  id: '/project',
+  path: '/project',
   getParentRoute: () => rootRouteImport,
 } as any);
 const PbiRoute = PbiRouteImport.update({
@@ -41,6 +60,11 @@ const SettingsTokensRoute = SettingsTokensRouteImport.update({
   path: '/settings/tokens',
   getParentRoute: () => rootRouteImport,
 } as any);
+const SettingsAuditLogRoute = SettingsAuditLogRouteImport.update({
+  id: '/settings/audit-log',
+  path: '/settings/audit-log',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const PPageIdRoute = PPageIdRouteImport.update({
   id: '/p/$pageId',
   path: '/p/$pageId',
@@ -51,16 +75,24 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
+  '/project': typeof ProjectRoute;
+  '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
+  '/sprint': typeof SprintRoute;
   '/p/$pageId': typeof PPageIdRoute;
+  '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
+  '/project': typeof ProjectRoute;
+  '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
+  '/sprint': typeof SprintRoute;
   '/p/$pageId': typeof PPageIdRoute;
+  '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesById {
@@ -68,8 +100,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
+  '/project': typeof ProjectRoute;
+  '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
+  '/sprint': typeof SprintRoute;
   '/p/$pageId': typeof PPageIdRoute;
+  '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRouteTypes {
@@ -78,18 +114,36 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/pbi'
+    | '/project'
+    | '/sbi'
     | '/signup'
+    | '/sprint'
     | '/p/$pageId'
+    | '/settings/audit-log'
     | '/settings/tokens';
   fileRoutesByTo: FileRoutesByTo;
-  to: '/' | '/login' | '/pbi' | '/signup' | '/p/$pageId' | '/settings/tokens';
+  to:
+    | '/'
+    | '/login'
+    | '/pbi'
+    | '/project'
+    | '/sbi'
+    | '/signup'
+    | '/sprint'
+    | '/p/$pageId'
+    | '/settings/audit-log'
+    | '/settings/tokens';
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/pbi'
+    | '/project'
+    | '/sbi'
     | '/signup'
+    | '/sprint'
     | '/p/$pageId'
+    | '/settings/audit-log'
     | '/settings/tokens';
   fileRoutesById: FileRoutesById;
 }
@@ -97,18 +151,43 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   LoginRoute: typeof LoginRoute;
   PbiRoute: typeof PbiRoute;
+  ProjectRoute: typeof ProjectRoute;
+  SbiRoute: typeof SbiRoute;
   SignupRoute: typeof SignupRoute;
+  SprintRoute: typeof SprintRoute;
   PPageIdRoute: typeof PPageIdRoute;
+  SettingsAuditLogRoute: typeof SettingsAuditLogRoute;
   SettingsTokensRoute: typeof SettingsTokensRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sprint': {
+      id: '/sprint';
+      path: '/sprint';
+      fullPath: '/sprint';
+      preLoaderRoute: typeof SprintRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/signup': {
       id: '/signup';
       path: '/signup';
       fullPath: '/signup';
       preLoaderRoute: typeof SignupRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/sbi': {
+      id: '/sbi';
+      path: '/sbi';
+      fullPath: '/sbi';
+      preLoaderRoute: typeof SbiRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/project': {
+      id: '/project';
+      path: '/project';
+      fullPath: '/project';
+      preLoaderRoute: typeof ProjectRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/pbi': {
@@ -139,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsTokensRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/settings/audit-log': {
+      id: '/settings/audit-log';
+      path: '/settings/audit-log';
+      fullPath: '/settings/audit-log';
+      preLoaderRoute: typeof SettingsAuditLogRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/p/$pageId': {
       id: '/p/$pageId';
       path: '/p/$pageId';
@@ -153,8 +239,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   PbiRoute: PbiRoute,
+  ProjectRoute: ProjectRoute,
+  SbiRoute: SbiRoute,
   SignupRoute: SignupRoute,
+  SprintRoute: SprintRoute,
   PPageIdRoute: PPageIdRoute,
+  SettingsAuditLogRoute: SettingsAuditLogRoute,
   SettingsTokensRoute: SettingsTokensRoute,
 };
 export const routeTree = rootRouteImport
