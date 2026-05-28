@@ -15,6 +15,7 @@ import { cors } from 'hono/cors';
 
 import { createAuth } from './auth.js';
 import type { AppBindings } from './env.js';
+import { createGithubWebhookRouter } from './integrations/github/webhook.js';
 import { appRouter } from './routers/index.js';
 import { createTrpcContext } from './trpc.js';
 
@@ -44,6 +45,10 @@ app.all('/trpc/*', (c) =>
     createContext: (opts) => createTrpcContext(c.env, opts),
   }),
 );
+
+// GitHub App webhook receiver. CORS doesn't apply (server-to-server) but
+// mounting under `/api/integrations/github` keeps the URL space tidy.
+app.route('/api/integrations/github', createGithubWebhookRouter());
 
 export type { AppRouter } from './routers/index.js';
 export default app;
