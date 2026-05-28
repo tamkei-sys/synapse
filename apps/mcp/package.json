@@ -17,10 +17,14 @@
     "@modelcontextprotocol/sdk": "^1.0.4",
     "@synapse/blocks": "workspace:*",
     "@synapse/schema": "workspace:*",
+    "drizzle-orm": "^0.36.4",
+    "pg": "^8.13.1",
+    "ulid": "^2.3.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "^8.11.10",
     "tsx": "^4.19.2",
     "typescript": "catalog:",
     "vitest": "catalog:"

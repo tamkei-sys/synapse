@@ -123,6 +123,15 @@ importers:
       '@synapse/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      drizzle-orm:
+        specifier: ^0.36.4
+        version: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
+      pg:
+        specifier: ^8.13.1
+        version: 8.21.0
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -130,6 +139,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.20.0
       tsx:
         specifier: ^4.19.2
         version: 4.22.3
