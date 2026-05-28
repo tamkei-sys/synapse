@@ -12,12 +12,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
-import {
-  pbiGithubLinkSchema,
-  pbiPropsSchema,
-  pbiStatusSchema,
-  type PbiProps,
-} from '@synapse/blocks';
+import { pbiGithubLinkSchema, pbiPropsSchema, pbiStatusSchema } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../db.js';
@@ -80,14 +75,12 @@ export const pbiRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
       const id = ulid();
-      const props: PbiProps = {
+      // Defer to Zod for default-filling — priority etc. have defaults.
+      const validated = pbiPropsSchema.parse({
         title: input.title,
         status: input.status,
         ...(typeof input.storyPoints === 'number' ? { storyPoints: input.storyPoints } : {}),
-      };
-      // Verify with the canonical Zod schema so feature consumers
-      // (TipTap node, board view) can trust props shape on read.
-      const validated = pbiPropsSchema.parse(props);
+      });
 
       const [row] = await ctx.db
         .insert(schema.block)
