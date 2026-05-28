@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import { nextStatus, PBI_STATUS_ORDER, type PbiGithubLink, type PbiStatus } from '@synapse/blocks';
+import {
+  nextStatus,
+  PBI_STATUS_ORDER,
+  type PbiCiStatus,
+  type PbiGithubLink,
+  type PbiStatus,
+} from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
@@ -127,6 +133,7 @@ type PbiPropsRead = {
   status: PbiStatus;
   storyPoints?: number;
   github?: PbiGithubLink;
+  ci?: PbiCiStatus;
 };
 
 function readPbiProps(row: PbiRow): PbiPropsRead {
@@ -135,13 +142,48 @@ function readPbiProps(row: PbiRow): PbiPropsRead {
     status?: PbiStatus;
     storyPoints?: number;
     github?: PbiGithubLink;
+    ci?: PbiCiStatus;
   };
   return {
     title: p.title ?? 'Untitled',
     status: p.status ?? 'backlog',
     ...(typeof p.storyPoints === 'number' ? { storyPoints: p.storyPoints } : {}),
     ...(p.github ? { github: p.github } : {}),
+    ...(p.ci ? { ci: p.ci } : {}),
   };
+}
+
+function CiBadge({ pbiId, ci }: { pbiId: string; ci: PbiCiStatus }) {
+  const label =
+    ci.status === 'completed'
+      ? (ci.conclusion ?? 'completed')
+      : ci.status === 'in_progress'
+        ? 'running'
+        : 'queued';
+  const tone =
+    ci.conclusion === 'success'
+      ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300'
+      : ci.conclusion === 'failure' || ci.conclusion === 'timed_out'
+        ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-700/60 dark:bg-red-900/30 dark:text-red-300'
+        : 'border-zinc-300 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300';
+  const inner = (
+    <span
+      data-testid={`pbi-ci-badge-${pbiId}`}
+      data-conclusion={ci.conclusion ?? 'none'}
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-xs ${tone}`}
+      title={ci.url ?? ''}
+    >
+      <span className="text-zinc-500">ci</span>
+      <span>{label}</span>
+    </span>
+  );
+  return ci.url ? (
+    <a href={ci.url} target="_blank" rel="noreferrer">
+      {inner}
+    </a>
+  ) : (
+    inner
+  );
 }
 
 function usePbiUpdate(workspaceId: string) {
@@ -176,9 +218,11 @@ function BacklogTable({ items, workspaceId }: { items: PbiRow[]; workspaceId: st
                 <span className="text-xs text-zinc-500">{p.storyPoints} sp</span>
               ) : null}
               {p.github ? <GithubBadge pbiId={row.id} link={p.github} /> : null}
+              {p.ci ? <CiBadge pbiId={row.id} ci={p.ci} /> : null}
             </div>
             <div className="flex items-center gap-2">
               <GithubLinkControl pbiId={row.id} workspaceId={workspaceId} link={p.github} />
+              <ImplementButton pbiId={row.id} />
               <StatusButton
                 status={p.status}
                 pbiId={row.id}
@@ -288,6 +332,56 @@ function GithubBadge({ pbiId, link }: { pbiId: string; link: PbiGithubLink }) {
         {link.owner}/{link.repo}#{link.issueNumber}
       </span>
     </a>
+  );
+}
+
+function ImplementButton({ pbiId }: { pbiId: string }) {
+  const queryClient = useQueryClient();
+  const session = useQuery({
+    queryKey: ['cc', 'getForPbi', pbiId],
+    queryFn: () => trpc.cc.getForPbi.query({ pbiId }),
+    refetchInterval: (q) => {
+      const data = q.state.data as { status?: string } | null | undefined;
+      if (!data) return false;
+      return data.status === 'queued' || data.status === 'running' ? 1_000 : false;
+    },
+  });
+
+  const start = useMutation({
+    mutationFn: () => trpc.cc.startForPbi.mutate({ pbiId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cc', 'getForPbi', pbiId] }),
+  });
+
+  const status = session.data?.status as string | undefined;
+  const prUrl = session.data?.prUrl as string | null | undefined;
+  const inFlight = status === 'queued' || status === 'running';
+  const succeeded = status === 'succeeded';
+
+  if (succeeded && prUrl) {
+    return (
+      <a
+        href={prUrl}
+        target="_blank"
+        rel="noreferrer"
+        data-testid={`pbi-cc-pr-${pbiId}`}
+        className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300"
+      >
+        PR ↗
+      </a>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => start.mutate()}
+      disabled={start.isPending || inFlight}
+      data-testid={`pbi-implement-${pbiId}`}
+      data-cc-status={status ?? 'idle'}
+      className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-60 dark:border-violet-700/60 dark:bg-violet-900/30 dark:text-violet-300"
+    >
+      {inFlight ? '…working' : 'Implement'}
+    </button>
   );
 }
 

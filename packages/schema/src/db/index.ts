@@ -10,3 +10,4 @@ export * from './workspace.js';
 export * from './block.js';
 export * from './yjs.js';
 export * from './mcp.js';
+export * from './cc.js';
