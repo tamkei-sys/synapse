@@ -22,19 +22,21 @@
     "clean": "rm -rf dist .turbo .wrangler"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4",
     "@synapse/blocks": "workspace:*",
     "@synapse/schema": "workspace:*",
     "@trpc/server": "^11.0.0-rc.617",
     "better-auth": "^1.1.2",
     "drizzle-orm": "^0.36.4",
     "hono": "^4.6.10",
+    "pg": "^8.13.1",
     "superjson": "^2.2.1",
+    "ulid": "^2.3.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241112.0",
     "@types/node": "catalog:",
+    "@types/pg": "^8.11.10",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "^3.87.0"

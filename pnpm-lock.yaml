@@ -32,6 +32,9 @@ importers:
       '@eslint/js':
         specifier: ^9.14.0
         version: 9.39.4
+      '@playwright/test':
+        specifier: ^1.49.0
+        version: 1.60.0
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
@@ -59,9 +62,6 @@ importers:
 
   apps/api:
     dependencies:
-      '@neondatabase/serverless':
-        specifier: ^0.10.4
-        version: 0.10.4
       '@synapse/blocks':
         specifier: workspace:*
         version: link:../../packages/blocks
@@ -73,16 +73,22 @@ importers:
         version: 11.17.0(typescript@5.9.3)
       better-auth:
         specifier: ^1.1.2
-        version: 1.6.11(@cloudflare/workers-types@4.20260527.1)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@2.1.9(@types/node@22.19.19)(lightningcss@1.32.0))
+        version: 1.6.11(@cloudflare/workers-types@4.20260527.1)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))(pg@8.21.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@2.1.9(@types/node@22.19.19)(lightningcss@1.32.0))
       drizzle-orm:
         specifier: ^0.36.4
-        version: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6)
+        version: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
       hono:
         specifier: ^4.6.10
         version: 4.12.23
+      pg:
+        specifier: ^8.13.1
+        version: 8.21.0
       superjson:
         specifier: ^2.2.1
         version: 2.2.6
+      ulid:
+        specifier: ^2.3.0
+        version: 2.4.0
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -93,6 +99,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.20.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -175,7 +184,7 @@ importers:
         version: 11.17.0(@trpc/server@11.17.0(typescript@5.9.3))(typescript@5.9.3)
       better-auth:
         specifier: ^1.1.2
-        version: 1.6.11(@cloudflare/workers-types@4.20260527.1)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@2.1.9(@types/node@22.19.19)(lightningcss@1.32.0))
+        version: 1.6.11(@cloudflare/workers-types@4.20260527.1)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))(pg@8.21.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@2.1.9(@types/node@22.19.19)(lightningcss@1.32.0))
       react:
         specifier: 'catalog:'
         version: 19.2.6
@@ -261,10 +270,10 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: ^0.36.4
-        version: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6)
+        version: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
       drizzle-zod:
         specifier: ^0.5.1
-        version: 0.5.1(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))(zod@3.25.76)
+        version: 0.5.1(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))(zod@3.25.76)
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -1634,9 +1643,6 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@neondatabase/serverless@0.10.4':
-    resolution: {integrity: sha512-2nZuh3VUO9voBauuh+IGYRhGU/MskWHt1IuZvHcJw6GLjDgtqj/KViKo7SIrLdGLdot7vFbiRRw+BgEy3wT9HA==}
-
   '@noble/ciphers@2.2.0':
     resolution: {integrity: sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA==}
     engines: {node: '>= 20.19.0'}
@@ -1648,6 +1654,11 @@ packages:
   '@opentelemetry/semantic-conventions@1.41.1':
     resolution: {integrity: sha512-/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA==}
     engines: {node: '>=14'}
+
+  '@playwright/test@1.60.0':
+    resolution: {integrity: sha512-O71yZIbAh/PxDMNGns37GHBIfrVkEVyn+AXyIa5dOTfb4/xNvRWV+Vv/NMbNCtODB/pO7vLlF2OTmMVLhmr7Ag==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -2024,8 +2035,8 @@ packages:
   '@types/node@22.19.19':
     resolution: {integrity: sha512-dyh/xO2Fh5bYrfWaaqGrRQQGkNdmYw6AmaAUvYeUMNTWQtvb796ikLdmTchRmOlOiIJ1TDXfWgVx1QkUlQ6Hew==}
 
-  '@types/pg@8.11.6':
-    resolution: {integrity: sha512-/2WmmBXHLsfRqzfHW7BNZ8SbYzE8OSk7i3WjFYvfgRHj7S1xj+16Je5fUKv3lVdVzk/zn9TXOqf+avFCFIE0yQ==}
+  '@types/pg@8.20.0':
+    resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -2754,6 +2765,11 @@ packages:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
     engines: {node: '>= 0.8'}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -3113,9 +3129,6 @@ packages:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
 
-  obuf@1.1.2:
-    resolution: {integrity: sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==}
-
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
 
@@ -3170,20 +3183,39 @@ packages:
     resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
     engines: {node: '>= 14.16'}
 
+  pg-cloudflare@1.4.0:
+    resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
+
+  pg-connection-string@2.13.0:
+    resolution: {integrity: sha512-EMnU9E2fSULdsbErBbMaXJvFeD9B4+nPcM3f+4lsiCR0BHLPrLVjv3DbyM2hgQQviKJaTWIRRTjKjWlHg3p2ig==}
+
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
     engines: {node: '>=4.0.0'}
 
-  pg-numeric@1.0.2:
-    resolution: {integrity: sha512-BM/Thnrw5jm2kKLE5uJkXqqExRUY/toLHda65XgFTBTFYZyopbKjBe29Ii3RbkvlsMoFwD+tHeGaCjjv0gHlyw==}
-    engines: {node: '>=4'}
+  pg-pool@3.14.0:
+    resolution: {integrity: sha512-gKtPkFdQPU3DksooVLi9LsjZxrsBUZIpa+7aVx+LV5pNh0KzP4Zleud2po+ConrxbuXGBJ6Hfer6hdgpIBpBaw==}
+    peerDependencies:
+      pg: '>=8.0'
 
   pg-protocol@1.14.0:
     resolution: {integrity: sha512-n5taZ1kO3s9ngDTVxsEznOqCyToTgz0FLuPq0B33COy5pPpuWJpY3/2oRBVETuOgzdqRXfWpM9HIhp2LBBT1BA==}
 
-  pg-types@4.1.0:
-    resolution: {integrity: sha512-o2XFanIMy/3+mThw69O8d4n1E5zsLhdO+OPqswezu7Z5ekP4hYDqlDjlmOpYMbzY2Br0ufCwJLdDIXeNVwcWFg==}
-    engines: {node: '>=10'}
+  pg-types@2.2.0:
+    resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
+    engines: {node: '>=4'}
+
+  pg@8.21.0:
+    resolution: {integrity: sha512-AUP1EYJuHraQGsVoCQVIcM7TEJVGtDzxWtGFZd8rds9d+CCXlU5Js1rYgfLNvxy9iJrpHjGrRjoi/3BT9fRyiA==}
+    engines: {node: '>= 16.0.0'}
+    peerDependencies:
+      pg-native: '>=3.0.1'
+    peerDependenciesMeta:
+      pg-native:
+        optional: true
+
+  pgpass@1.0.5:
+    resolution: {integrity: sha512-FdW9r/jQZhSeohs1Z3sI1yxFQNFvMcnmfuj4WBMUTxOrAyLMaTcE1aAMBiTlbMNaXvBCQuVi0R7hd8udDSP7ug==}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -3196,28 +3228,35 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
+  playwright-core@1.60.0:
+    resolution: {integrity: sha512-9bW6zvX/m0lEbgTKJ6YppOKx8H3VOPBMOCFh2irXFOT4BbHgrx5hPjwJYLT40Lu+4qtD36qKc/Hn56StUW57IA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.60.0:
+    resolution: {integrity: sha512-hheHdokM8cdqCb0lcE3s+zT4t4W+vvjpGxsZlDnikarzx8tSzMebh3UiFtgqwFwnTnjYQcsyMF8ei2mCO/tpeA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   postcss@8.5.15:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postgres-array@3.0.4:
-    resolution: {integrity: sha512-nAUSGfSDGOaOAEGwqsRY27GPOea7CNipJPOA7lPbdEpx5Kg3qzdP0AaWC5MlhTWV9s4hFX39nomVZ+C4tnGOJQ==}
-    engines: {node: '>=12'}
+  postgres-array@2.0.0:
+    resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
+    engines: {node: '>=4'}
 
-  postgres-bytea@3.0.0:
-    resolution: {integrity: sha512-CNd4jim9RFPkObHSjVHlVrxoVQXz7quwNFpz7RY1okNNme49+sVyiTvTRobiLV548Hx/hb1BG+iE7h9493WzFw==}
-    engines: {node: '>= 6'}
+  postgres-bytea@1.0.1:
+    resolution: {integrity: sha512-5+5HqXnsZPE65IJZSMkZtURARZelel2oXUEO8rH83VS/hxH5vv1uHquPg5wZs8yMAfdv971IU+kcPUczi7NVBQ==}
+    engines: {node: '>=0.10.0'}
 
-  postgres-date@2.1.0:
-    resolution: {integrity: sha512-K7Juri8gtgXVcDfZttFKVmhglp7epKb1K4pgrkLxehjqkrgPhfG6OO8LHLkfaqkbpjNRnra018XwAr1yQFWGcA==}
-    engines: {node: '>=12'}
+  postgres-date@1.0.7:
+    resolution: {integrity: sha512-suDmjLVQg78nMK2UZ454hAG+OAW+HQPZ6n++TNDUX+L0+uUlLywnoxJKDou51Zm+zTCjrCl0Nq6J9C5hP9vK/Q==}
+    engines: {node: '>=0.10.0'}
 
-  postgres-interval@3.0.0:
-    resolution: {integrity: sha512-BSNDnbyZCXSxgA+1f5UU2GmwhoI0aU5yMxRGO8CdFEcY2BQF9xm/7MqKnYoM1nJDk8nONNWDk9WeSmePFhQdlw==}
-    engines: {node: '>=12'}
-
-  postgres-range@1.1.4:
-    resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
+  postgres-interval@1.2.0:
+    resolution: {integrity: sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==}
+    engines: {node: '>=0.10.0'}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -3454,6 +3493,10 @@ packages:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
     deprecated: Please use @jridgewell/sourcemap-codec instead
 
+  split2@4.2.0:
+    resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
+    engines: {node: '>= 10.x'}
+
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
 
@@ -3564,6 +3607,10 @@ packages:
 
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
+
+  ulid@2.4.0:
+    resolution: {integrity: sha512-fIRiVTJNcSRmXKPZtGzFQv9WRrZ3M9eoptl/teFJvjOzmpU+/K/JH6HZ8deBfb5vMEpicJcLn7JmvdknlMq7Zg==}
+    hasBin: true
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
@@ -3769,6 +3816,10 @@ packages:
       utf-8-validate:
         optional: true
 
+  xtend@4.0.2:
+    resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
+    engines: {node: '>=0.4'}
+
   y-protocols@1.0.7:
     resolution: {integrity: sha512-YSVsLoXxO67J6eE/nV4AtFtT3QEotZf5sK5BHxFBXso7VDUT3Tx07IfA6hsu5Q5OmBdMkQVmFZ9QOA7fikWvnw==}
     engines: {node: '>=16.0.0', npm: '>=8.0.0'}
@@ -3971,12 +4022,12 @@ snapshots:
     optionalDependencies:
       '@cloudflare/workers-types': 4.20260527.1
 
-  '@better-auth/drizzle-adapter@1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))':
+  '@better-auth/drizzle-adapter@1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))':
     dependencies:
       '@better-auth/core': 1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.0
     optionalDependencies:
-      drizzle-orm: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6)
+      drizzle-orm: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
 
   '@better-auth/kysely-adapter@1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(kysely@0.28.17)':
     dependencies:
@@ -4703,15 +4754,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@neondatabase/serverless@0.10.4':
-    dependencies:
-      '@types/pg': 8.11.6
-
   '@noble/ciphers@2.2.0': {}
 
   '@noble/hashes@2.2.0': {}
 
   '@opentelemetry/semantic-conventions@1.41.1': {}
+
+  '@playwright/test@1.60.0':
+    dependencies:
+      playwright: 1.60.0
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
@@ -5010,11 +5061,11 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/pg@8.11.6':
+  '@types/pg@8.20.0':
     dependencies:
       '@types/node': 22.19.19
       pg-protocol: 1.14.0
-      pg-types: 4.1.0
+      pg-types: 2.2.0
 
   '@types/react-dom@19.2.3(@types/react@19.2.15)':
     dependencies:
@@ -5233,10 +5284,10 @@ snapshots:
 
   baseline-browser-mapping@2.10.32: {}
 
-  better-auth@1.6.11(@cloudflare/workers-types@4.20260527.1)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@2.1.9(@types/node@22.19.19)(lightningcss@1.32.0)):
+  better-auth@1.6.11(@cloudflare/workers-types@4.20260527.1)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))(pg@8.21.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@2.1.9(@types/node@22.19.19)(lightningcss@1.32.0)):
     dependencies:
       '@better-auth/core': 1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0)
-      '@better-auth/drizzle-adapter': 1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))
+      '@better-auth/drizzle-adapter': 1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))
       '@better-auth/kysely-adapter': 1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)(kysely@0.28.17)
       '@better-auth/memory-adapter': 1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)
       '@better-auth/mongo-adapter': 1.6.11(@better-auth/core@1.6.11(@better-auth/utils@0.4.0)(@better-fetch/fetch@1.1.21)(@cloudflare/workers-types@4.20260527.1)(better-call@1.3.5(zod@3.25.76))(jose@6.2.3)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.4.0)
@@ -5253,7 +5304,8 @@ snapshots:
       nanostores: 1.3.0
       zod: 4.4.3
     optionalDependencies:
-      drizzle-orm: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6)
+      drizzle-orm: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
+      pg: 8.21.0
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
       vitest: 2.1.9(@types/node@22.19.19)(lightningcss@1.32.0)
@@ -5428,18 +5480,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6):
+  drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20260527.1
-      '@neondatabase/serverless': 0.10.4
-      '@types/pg': 8.11.6
+      '@types/pg': 8.20.0
       '@types/react': 19.2.15
       kysely: 0.28.17
+      pg: 8.21.0
       react: 19.2.6
 
-  drizzle-zod@0.5.1(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6))(zod@3.25.76):
+  drizzle-zod@0.5.1(drizzle-orm@0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6))(zod@3.25.76):
     dependencies:
-      drizzle-orm: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.2.15)(kysely@0.28.17)(react@19.2.6)
+      drizzle-orm: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
       zod: 3.25.76
 
   dunder-proto@1.0.1:
@@ -5815,6 +5867,9 @@ snapshots:
 
   fresh@2.0.0: {}
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -6092,8 +6147,6 @@ snapshots:
 
   object-inspect@1.13.4: {}
 
-  obuf@1.1.2: {}
-
   ohash@2.0.11: {}
 
   on-finished@2.4.1:
@@ -6141,21 +6194,40 @@ snapshots:
 
   pathval@2.0.1: {}
 
+  pg-cloudflare@1.4.0:
+    optional: true
+
+  pg-connection-string@2.13.0: {}
+
   pg-int8@1.0.1: {}
 
-  pg-numeric@1.0.2: {}
+  pg-pool@3.14.0(pg@8.21.0):
+    dependencies:
+      pg: 8.21.0
 
   pg-protocol@1.14.0: {}
 
-  pg-types@4.1.0:
+  pg-types@2.2.0:
     dependencies:
       pg-int8: 1.0.1
-      pg-numeric: 1.0.2
-      postgres-array: 3.0.4
-      postgres-bytea: 3.0.0
-      postgres-date: 2.1.0
-      postgres-interval: 3.0.0
-      postgres-range: 1.1.4
+      postgres-array: 2.0.0
+      postgres-bytea: 1.0.1
+      postgres-date: 1.0.7
+      postgres-interval: 1.2.0
+
+  pg@8.21.0:
+    dependencies:
+      pg-connection-string: 2.13.0
+      pg-pool: 3.14.0(pg@8.21.0)
+      pg-protocol: 1.14.0
+      pg-types: 2.2.0
+      pgpass: 1.0.5
+    optionalDependencies:
+      pg-cloudflare: 1.4.0
+
+  pgpass@1.0.5:
+    dependencies:
+      split2: 4.2.0
 
   picocolors@1.1.1: {}
 
@@ -6163,23 +6235,29 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
+  playwright-core@1.60.0: {}
+
+  playwright@1.60.0:
+    dependencies:
+      playwright-core: 1.60.0
+    optionalDependencies:
+      fsevents: 2.3.2
+
   postcss@8.5.15:
     dependencies:
       nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postgres-array@3.0.4: {}
+  postgres-array@2.0.0: {}
 
-  postgres-bytea@3.0.0:
+  postgres-bytea@1.0.1: {}
+
+  postgres-date@1.0.7: {}
+
+  postgres-interval@1.2.0:
     dependencies:
-      obuf: 1.1.2
-
-  postgres-date@2.1.0: {}
-
-  postgres-interval@3.0.0: {}
-
-  postgres-range@1.1.4: {}
+      xtend: 4.0.2
 
   prelude-ls@1.2.1: {}
 
@@ -6409,6 +6487,8 @@ snapshots:
 
   sourcemap-codec@1.4.8: {}
 
+  split2@4.2.0: {}
+
   stackback@0.0.2: {}
 
   stacktracey@2.2.0:
@@ -6509,6 +6589,8 @@ snapshots:
   typescript@5.9.3: {}
 
   ufo@1.6.4: {}
+
+  ulid@2.4.0: {}
 
   undici-types@6.21.0: {}
 
@@ -6680,6 +6762,8 @@ snapshots:
   ws@8.18.0: {}
 
   ws@8.21.0: {}
+
+  xtend@4.0.2: {}
 
   y-protocols@1.0.7(yjs@13.6.30):
     dependencies:

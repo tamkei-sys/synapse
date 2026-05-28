@@ -1,18 +1,22 @@
 /**
- * Per-request Drizzle client factory.
+ * Drizzle client backed by node-postgres.
  *
- * Cloudflare Workers spin up a fresh isolate per request; we cannot keep a
- * connection pool around. `@neondatabase/serverless` exposes an HTTP-driver
- * that has no socket state, so constructing it per request is cheap.
+ * S1 ships local-dev only: wrangler dev runs inside the dev container with
+ * `nodejs_compat` enabled, so a TCP `pg.Pool` works. Production Workers
+ * deployment will switch to a Hyperdrive binding (or the Neon HTTP driver)
+ * — see the architecture note in apps/api/wrangler.toml when that lands.
+ *
+ * The pool is constructed per Worker invocation with `max: 1` so a stale
+ * connection from a previous request doesn't leak into the next isolate.
  */
-import { neon } from '@neondatabase/serverless';
-import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
+import pg from 'pg';
 
 import * as schema from '@synapse/schema/db';
 
-export type Database = NeonHttpDatabase<typeof schema>;
+export type Database = NodePgDatabase<typeof schema>;
 
 export function createDb(databaseUrl: string): Database {
-  const sql = neon(databaseUrl);
-  return drizzle(sql, { schema });
+  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  return drizzle(pool, { schema });
 }
