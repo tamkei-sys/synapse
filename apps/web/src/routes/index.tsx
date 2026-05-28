@@ -172,15 +172,24 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             <code className="font-mono">{workspace.slug}</code> · signed in as {email}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => createPage.mutate()}
-          disabled={createPage.isPending}
-          data-testid="new-page-button"
-          className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
-        >
-          {createPage.isPending ? 'Creating…' : 'New page'}
-        </button>
+        <div className="flex gap-2">
+          <Link
+            to="/pbi"
+            data-testid="open-pbi-board"
+            className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            PBI board
+          </Link>
+          <button
+            type="button"
+            onClick={() => createPage.mutate()}
+            disabled={createPage.isPending}
+            data-testid="new-page-button"
+            className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+          >
+            {createPage.isPending ? 'Creating…' : 'New page'}
+          </button>
+        </div>
       </header>
 
       <section>
