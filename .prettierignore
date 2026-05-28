@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+.turbo
+.output
+.wrangler
+.next
+coverage
+pnpm-lock.yaml
+*.tsbuildinfo
+
+# Pre-existing project docs — formatting handled in separate ADR-tracked pass.
+# Remove this section once docs/ markdown has been normalised.
+CLAUDE.md
+CONTRIBUTING.md
+README.md
+docs/

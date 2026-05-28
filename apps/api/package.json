@@ -1,0 +1,28 @@
+{
+  "name": "@synapse/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SYNAPSE API (Hono on Cloudflare Workers + tRPC v11).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc -b",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo .wrangler"
+  },
+  "dependencies": {
+    "@synapse/blocks": "workspace:*",
+    "@synapse/schema": "workspace:*",
+    "hono": "^4.6.10"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241112.0",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "^3.87.0"
+  }
+}

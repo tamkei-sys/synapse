@@ -1,0 +1,32 @@
+{
+  "name": "@synapse/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SYNAPSE web client (React 19 + Vite + TanStack Router).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo node_modules/.vite"
+  },
+  "dependencies": {
+    "@synapse/blocks": "workspace:*",
+    "@synapse/schema": "workspace:*",
+    "@synapse/ui": "workspace:*",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "catalog:",
+    "vite": "^6.0.1",
+    "vitest": "catalog:"
+  }
+}

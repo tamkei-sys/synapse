@@ -1,0 +1,28 @@
+{
+  "name": "@synapse/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SYNAPSE MCP Server — exposes PBI/doc tools to Claude Code.",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@synapse/blocks": "workspace:*",
+    "@synapse/schema": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "^4.19.2",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

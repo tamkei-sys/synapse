@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Native build allowlist (pnpm 11). Only well-known, audited packages.
+allowBuilds:
+  esbuild: true # Vite / wrangler / tsx native bundler
+  sharp: false # Not used yet; flip if image transforms are added
+  workerd: true # Cloudflare Workers local dev runtime
+
+# Lockfile / install behaviour
+catalog:
+  # Shared runtime versions. Reference from package.json as "catalog:".
+  react: ^19.0.0
+  react-dom: ^19.0.0
+  zod: ^3.23.8
+  typescript: ^5.6.3
+  vitest: ^2.1.4
+  '@types/node': ^22.9.0

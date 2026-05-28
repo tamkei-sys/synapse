@@ -1,0 +1,7 @@
+name = "synapse-api"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Secrets are managed via `wrangler secret put` — never committed.
+# Bindings (KV / D1 / R2 / Queues) will be added as features land.

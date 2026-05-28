@@ -1,0 +1,27 @@
+{
+  "name": "@synapse/formula",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HyperFormula extensions for SYNAPSE spreadsheets (=ASK, =SUMMARIZE, ...).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

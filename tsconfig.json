@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [],
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./apps/api" },
+    { "path": "./apps/sync" },
+    { "path": "./apps/mcp" },
+    { "path": "./packages/schema" },
+    { "path": "./packages/blocks" },
+    { "path": "./packages/formula" },
+    { "path": "./packages/ui" }
+  ]
+}
