@@ -10,6 +10,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const PORT_WEB = 5173;
 const PORT_API = 8787;
+const PORT_SYNC = 1234;
 
 export default defineConfig({
   testDir: './e2e',
@@ -38,6 +39,16 @@ export default defineConfig({
       name: 'api',
       command: 'pnpm --filter @synapse/api dev',
       url: `http://localhost:${PORT_API}/healthz`,
+      reuseExistingServer: !process.env['CI'],
+      timeout: 90_000,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+    {
+      name: 'sync',
+      command: 'pnpm --filter @synapse/sync dev',
+      // Hocuspocus speaks ws — Playwright waits on a TCP socket via `port:`.
+      port: PORT_SYNC,
       reuseExistingServer: !process.env['CI'],
       timeout: 90_000,
       stdout: 'pipe',
