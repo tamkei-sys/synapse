@@ -13,6 +13,7 @@ import { dependencyRouter } from './dependency.js';
 import { notificationRouter } from './notification.js';
 import { pbiRouter } from './pbi.js';
 import { projectRouter } from './project.js';
+import { pushRouter } from './push.js';
 import { sbiRouter } from './sbi.js';
 import { searchRouter } from './search.js';
 import { sprintRouter } from './sprint.js';
@@ -40,6 +41,7 @@ export const appRouter = router({
   audit: auditRouter,
   comment: commentRouter,
   notification: notificationRouter,
+  push: pushRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -16,3 +16,4 @@ export * from './sequence.js';
 export * from './dependency.js';
 export * from './notification.js';
 export * from './reaction.js';
+export * from './push-subscription.js';

@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from 'react';
 
 import { trpc } from '../../lib/trpc.js';
 import { useDismissOnEscape } from '../../lib/use-dismiss.js';
+import { useUiStore } from '../../stores/ui-store.js';
+import { playNotificationChime, useNotificationSound } from './use-notification-sound.js';
 
 type NotificationRow = Awaited<ReturnType<typeof trpc.notification.list.query>>[number];
 
@@ -72,6 +74,9 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
   useDismissOnEscape(open, () => setOpen(false));
 
   const count = unread.data?.count ?? 0;
+  useNotificationSound(count);
+  const soundEnabled = useUiStore((s) => s.notificationSoundEnabled);
+  const setSoundEnabled = useUiStore((s) => s.setNotificationSoundEnabled);
 
   return (
     <div ref={wrapRef} className="relative inline-block">
@@ -110,15 +115,32 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
               <TabButton value="unread" current={tab} onSelect={setTab} label={`未読 (${count})`} />
               <TabButton value="all" current={tab} onSelect={setTab} label="すべて" />
             </div>
-            <button
-              type="button"
-              onClick={() => markAllRead.mutate()}
-              disabled={markAllRead.isPending || count === 0}
-              data-testid="notification-mark-all-read"
-              className="text-xs text-violet-600 hover:underline disabled:opacity-40 dark:text-violet-300"
-            >
-              全て既読
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !soundEnabled;
+                  setSoundEnabled(next);
+                  if (next) playNotificationChime(0.1);
+                }}
+                data-testid="notification-sound-toggle"
+                data-enabled={soundEnabled}
+                aria-pressed={soundEnabled}
+                title={soundEnabled ? '通知音 ON（クリックで OFF）' : '通知音 OFF（クリックで ON）'}
+                className="text-xs text-zinc-500 hover:text-violet-600 dark:text-zinc-400 dark:hover:text-violet-300"
+              >
+                {soundEnabled ? '🔊' : '🔇'}
+              </button>
+              <button
+                type="button"
+                onClick={() => markAllRead.mutate()}
+                disabled={markAllRead.isPending || count === 0}
+                data-testid="notification-mark-all-read"
+                className="text-xs text-violet-600 hover:underline disabled:opacity-40 dark:text-violet-300"
+              >
+                全て既読
+              </button>
+            </div>
           </header>
 
           {list.isPending ? (

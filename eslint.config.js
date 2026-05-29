@@ -81,4 +81,13 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+
+  // Dev-only scripts (DB seeding, migration runners, helpers).
+  // 単発で叩く Node スクリプトなので console.log で十分。
+  {
+    files: ['**/scripts/**/*.{js,mjs,ts}'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 );
