@@ -47,6 +47,14 @@ function TokensRoute() {
 
 type CreatedToken = Awaited<ReturnType<typeof trpc.apiToken.create.mutate>>;
 
+type Scope = 'read' | 'write_pbi' | 'write_comment' | 'admin';
+const SCOPE_OPTIONS: Array<{ value: Scope; label: string; help: string }> = [
+  { value: 'read', label: '読み取り', help: 'PBI / SBI / コメントの参照のみ' },
+  { value: 'write_pbi', label: 'PBI 書き込み', help: 'PBI 作成・更新・ステータス変更' },
+  { value: 'write_comment', label: 'コメント書き込み', help: 'コメント投稿 / 削除 / リアクション' },
+  { value: 'admin', label: '管理者', help: '全権限。トークン発行や監査ログの参照を含む' },
+];
+
 function TokensPanel({
   workspaceId,
   workspaceName,
@@ -61,17 +69,21 @@ function TokensPanel({
   });
 
   const [label, setLabel] = useState('');
+  const [scopes, setScopes] = useState<Scope[]>(['read']);
   const [justCreated, setJustCreated] = useState<CreatedToken | null>(null);
 
   const createMut = useMutation({
     mutationFn: (lbl: string) =>
-      trpc.apiToken.create.mutate({ workspaceId, label: lbl, ttlDays: 30 }),
+      trpc.apiToken.create.mutate({ workspaceId, label: lbl, ttlDays: 30, scopes }),
     onSuccess: async (row) => {
       setJustCreated(row);
       setLabel('');
+      setScopes(['read']);
       await queryClient.invalidateQueries({ queryKey: ['apiToken', 'list', workspaceId] });
     },
   });
+  const toggleScope = (s: Scope) =>
+    setScopes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const revokeMut = useMutation({
     mutationFn: (tokenId: string) => trpc.apiToken.revoke.mutate({ tokenId }),
@@ -95,30 +107,54 @@ function TokensPanel({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!label.trim()) return;
+          if (!label.trim() || scopes.length === 0) return;
           createMut.mutate(label.trim());
         }}
-        className="mb-6 flex items-end gap-3"
+        className="mb-6 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 dark:border-zinc-800 dark:bg-zinc-900/30"
       >
-        <label className="flex-1">
-          <span className="mb-1 block text-sm font-medium">新しいトークンのラベル</span>
-          <input
-            type="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="例：自分のラップトップ用 cc"
-            data-testid="new-token-label"
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={createMut.isPending || !label.trim()}
-          data-testid="create-token-submit"
-          className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
-        >
-          {createMut.isPending ? '作成中…' : 'トークンを作成'}
-        </button>
+        <div className="flex items-end gap-3">
+          <label className="flex-1">
+            <span className="mb-1 block text-sm font-medium">新しいトークンのラベル</span>
+            <input
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="例：自分のラップトップ用 cc"
+              data-testid="new-token-label"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={createMut.isPending || !label.trim() || scopes.length === 0}
+            data-testid="create-token-submit"
+            className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+          >
+            {createMut.isPending ? '作成中…' : 'トークンを作成'}
+          </button>
+        </div>
+        <fieldset className="space-y-1 text-sm">
+          <legend className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+            権限スコープ
+          </legend>
+          {SCOPE_OPTIONS.map((opt) => (
+            <label
+              key={opt.value}
+              className="flex items-start gap-2"
+              data-testid={`scope-${opt.value}`}
+            >
+              <input
+                type="checkbox"
+                checked={scopes.includes(opt.value)}
+                onChange={() => toggleScope(opt.value)}
+              />
+              <span>
+                <span className="font-medium">{opt.label}</span>
+                <span className="ml-2 text-xs text-zinc-500">{opt.help}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </form>
 
       {justCreated ? (
@@ -162,6 +198,18 @@ function TokensPanel({
                 <div>
                   <p className="text-sm font-medium">{t.label}</p>
                   <p className="font-mono text-xs text-zinc-500">…{t.suffix}</p>
+                  {t.scopes && t.scopes.length > 0 ? (
+                    <p className="mt-1 flex flex-wrap items-center gap-1">
+                      {t.scopes.map((s) => (
+                        <span
+                          key={s}
+                          className="rounded bg-zinc-100 px-1.5 font-mono text-[10px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </p>
+                  ) : null}
                   <p className="text-xs text-zinc-500">
                     作成 {new Date(t.createdAt).toLocaleString('ja-JP')}
                     {t.expiresAt

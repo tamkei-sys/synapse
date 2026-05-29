@@ -13,10 +13,15 @@
  *               write tools to an agent (CLAUDE.md §6 "every tool
  *               invocation produces an audit log").
  */
+import { sql } from 'drizzle-orm';
 import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 import { user } from './auth.js';
 import { workspace } from './workspace.js';
+
+/** トークンに付与可能なスコープ enum。 */
+export const TOKEN_SCOPES = ['read', 'write_pbi', 'write_comment', 'admin'] as const;
+export type TokenScope = (typeof TOKEN_SCOPES)[number];
 
 export const apiToken = pgTable(
   'api_token',
@@ -34,6 +39,11 @@ export const apiToken = pgTable(
     suffix: text('suffix').notNull(),
     /** Human label shown in the settings UI. */
     label: text('label').notNull(),
+    /** どの種類の操作を許可するか。空 = 何もできない、['admin'] = 全権。 */
+    scopes: text('scopes')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),

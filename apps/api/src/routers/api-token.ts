@@ -19,6 +19,8 @@ import { generateToken, hashToken, tokenSuffix } from '../lib/api-token.js';
 import { assertCanAdmin, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
+const tokenScopeSchema = z.enum(schema.TOKEN_SCOPES);
+
 export const apiTokenRouter = router({
   list: protectedProcedure
     .input(z.object({ workspaceId: z.string().min(1) }))
@@ -29,6 +31,7 @@ export const apiTokenRouter = router({
           id: schema.apiToken.id,
           label: schema.apiToken.label,
           suffix: schema.apiToken.suffix,
+          scopes: schema.apiToken.scopes,
           createdAt: schema.apiToken.createdAt,
           expiresAt: schema.apiToken.expiresAt,
           revokedAt: schema.apiToken.revokedAt,
@@ -46,12 +49,17 @@ export const apiTokenRouter = router({
         label: z.string().trim().min(1).max(80),
         /** TTL in days; null = no expiry. Default 30 days. */
         ttlDays: z.number().int().min(1).max(365).nullable().default(30),
+        /** 細粒度の権限。最低 1 つ必要。 */
+        scopes: z.array(tokenScopeSchema).min(1).default(['read']),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       // MCP トークンは外部システムが workspace 全体を読み書きできる強い権限
       // を持つので admin 以上のロールに限定する。
       await assertCanAdmin(ctx.db, input.workspaceId, ctx.session.user.id);
+
+      // 重複を除いて昇順化（DB 内が安定する）。
+      const scopes = [...new Set(input.scopes)].sort();
 
       const plaintext = generateToken();
       const tokenHash = await hashToken(plaintext);
@@ -67,12 +75,14 @@ export const apiTokenRouter = router({
           tokenHash,
           suffix: tokenSuffix(plaintext),
           label: input.label,
+          scopes,
           expiresAt,
         })
         .returning({
           id: schema.apiToken.id,
           label: schema.apiToken.label,
           suffix: schema.apiToken.suffix,
+          scopes: schema.apiToken.scopes,
           createdAt: schema.apiToken.createdAt,
           expiresAt: schema.apiToken.expiresAt,
         });

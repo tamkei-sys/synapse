@@ -19,6 +19,7 @@ export type ResolvedToken = {
   tokenId: string;
   workspaceId: string;
   userId: string;
+  scopes: string[];
 };
 
 export async function resolveApiToken(
@@ -31,6 +32,7 @@ export async function resolveApiToken(
       id: schema.apiToken.id,
       workspaceId: schema.apiToken.workspaceId,
       userId: schema.apiToken.userId,
+      scopes: schema.apiToken.scopes,
     })
     .from(schema.apiToken)
     .where(
@@ -52,7 +54,27 @@ export async function resolveApiToken(
     .execute()
     .catch(() => undefined);
 
-  return { tokenId: row.id, workspaceId: row.workspaceId, userId: row.userId };
+  return {
+    tokenId: row.id,
+    workspaceId: row.workspaceId,
+    userId: row.userId,
+    scopes: row.scopes ?? [],
+  };
+}
+
+/**
+ * トークンが要求 scope を満たすか判定。
+ *
+ *   - admin は何でも通る
+ *   - 個別 scope は配列で渡された 1 つ以上にマッチすれば OK
+ *
+ * 互換性ノート：将来 scope の語彙が増えても unknown scope は単に弾く
+ * 方針なので、ここの実装は変えない。
+ */
+export function hasScope(token: ResolvedToken, required: string | string[]): boolean {
+  if (token.scopes.includes('admin')) return true;
+  const need = Array.isArray(required) ? required : [required];
+  return need.some((s) => token.scopes.includes(s));
 }
 
 async function sha256Hex(plaintext: string): Promise<string> {
