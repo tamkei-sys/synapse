@@ -9,6 +9,7 @@ import { auditRouter } from './audit.js';
 import { blockRouter } from './block.js';
 import { ccRouter } from './cc.js';
 import { commentRouter } from './comment.js';
+import { dbRouter } from './db.js';
 import { dependencyRouter } from './dependency.js';
 import { notificationRouter } from './notification.js';
 import { pbiRouter } from './pbi.js';
@@ -42,6 +43,7 @@ export const appRouter = router({
   comment: commentRouter,
   notification: notificationRouter,
   push: pushRouter,
+  db: dbRouter,
 });
 
 export type AppRouter = typeof appRouter;

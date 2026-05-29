@@ -29,6 +29,7 @@ import {
 } from '@synapse/blocks';
 
 import { BurndownChart } from '../features/charts/burndown-chart.js';
+import { DbView } from '../features/db/db-view.js';
 import { PageEditor } from '../features/editor/editor.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
 import { usePresence, type PresenceUser } from '../features/editor/use-presence.js';
@@ -141,6 +142,12 @@ function BlockShell({
           <p className="text-zinc-500">エディタを準備中…</p>
         )}
       </section>
+
+      {block.type === 'db' ? (
+        <section className="mb-10">
+          <DbView dbId={block.id} />
+        </section>
+      ) : null}
 
       <RelatedSection block={block} />
 

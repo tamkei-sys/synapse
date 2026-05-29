@@ -15,6 +15,7 @@ import { Route as SbiRouteImport } from './routes/sbi';
 import { Route as ProjectRouteImport } from './routes/project';
 import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
+import { Route as DbRouteImport } from './routes/db';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
 import { Route as SettingsMembersRouteImport } from './routes/settings.members';
@@ -51,6 +52,11 @@ const PbiRoute = PbiRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const DbRoute = DbRouteImport.update({
+  id: '/db',
+  path: '/db',
   getParentRoute: () => rootRouteImport,
 } as any);
 const IndexRoute = IndexRouteImport.update({
@@ -91,6 +97,7 @@ const BBlockIdRoute = BBlockIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
+  '/db': typeof DbRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
+  '/db': typeof DbRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
@@ -122,6 +130,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
+  '/db': typeof DbRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
+    | '/db'
     | '/login'
     | '/pbi'
     | '/project'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
+    | '/db'
     | '/login'
     | '/pbi'
     | '/project'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/db'
     | '/login'
     | '/pbi'
     | '/project'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
+  DbRoute: typeof DbRoute;
   LoginRoute: typeof LoginRoute;
   PbiRoute: typeof PbiRoute;
   ProjectRoute: typeof ProjectRoute;
@@ -243,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/db': {
+      id: '/db';
+      path: '/db';
+      fullPath: '/db';
+      preLoaderRoute: typeof DbRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/': {
       id: '/';
       path: '/';
@@ -297,6 +317,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DbRoute: DbRoute,
   LoginRoute: LoginRoute,
   PbiRoute: PbiRoute,
   ProjectRoute: ProjectRoute,
