@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
 
 /* Tailwind v4 uses CSS-first config. Semantic tokens are declared here so
    feature code never hard-codes a colour (per CLAUDE.md §4 "Dark mode is
@@ -34,113 +35,16 @@ body {
   }
 }
 
-/* TipTap content surface — minimal typography until @tailwindcss/typography
-   v4 stabilises. Mirrors the structure of `prose` so swapping in the
-   plugin later is a no-op.
-
-   ダークモードのスタイルはクラス (`.dark`) ではなくメディアクエリで
-   切替える。Tailwind v4 デフォルトの `dark:` バリアントと整合性が取れる。
-   将来的に手動 light/dark トグルを入れる場合は `:where(.dark, .dark *)`
-   バリアントを `@custom-variant dark` で追加すれば共存できる。 */
-.tiptap {
-  line-height: 1.65;
-  color: theme(colors.zinc.800);
-}
-@media (prefers-color-scheme: dark) {
-  .tiptap {
-    color: theme(colors.zinc.100);
-  }
-}
-.tiptap > * + * {
-  margin-top: 0.75rem;
-}
-.tiptap h1 {
-  font-size: 1.875rem;
-  font-weight: 600;
-  line-height: 1.2;
-  margin-top: 1.5rem;
-}
-.tiptap h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.25;
-  margin-top: 1.25rem;
-}
-.tiptap h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.3;
-  margin-top: 1rem;
-}
-.tiptap ul,
-.tiptap ol {
-  padding-left: 1.5rem;
-}
-.tiptap ul {
-  list-style: disc;
-}
-.tiptap ol {
-  list-style: decimal;
-}
-.tiptap blockquote {
-  border-left: 3px solid theme(colors.zinc.300);
-  padding-left: 1rem;
-  color: theme(colors.zinc.500);
-  font-style: italic;
-}
-@media (prefers-color-scheme: dark) {
-  .tiptap blockquote {
-    border-color: theme(colors.zinc.700);
-    color: theme(colors.zinc.400);
-  }
-}
-.tiptap pre {
-  background: theme(colors.zinc.900);
-  color: theme(colors.zinc.50);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.85rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-}
-@media (prefers-color-scheme: dark) {
-  .tiptap pre {
-    background: theme(colors.zinc.800);
-  }
-}
-.tiptap code {
-  background: theme(colors.zinc.100);
-  color: theme(colors.zinc.800);
-  border-radius: 0.25rem;
-  padding: 0.1rem 0.3rem;
-  font-size: 0.85em;
-}
-@media (prefers-color-scheme: dark) {
-  .tiptap code {
-    background: theme(colors.zinc.800);
-    color: theme(colors.zinc.100);
-  }
-}
-.tiptap hr {
-  border: 0;
-  border-top: 1px solid theme(colors.zinc.300);
-  margin: 1.5rem 0;
-}
-@media (prefers-color-scheme: dark) {
-  .tiptap hr {
-    border-color: theme(colors.zinc.700);
-  }
-}
-.tiptap a {
-  color: theme(colors.violet.600);
-  text-decoration: underline;
-}
-@media (prefers-color-scheme: dark) {
-  .tiptap a {
-    color: theme(colors.violet.400);
-  }
-}
-/* Placeholder rendered by @tiptap/extension-placeholder. */
+/*
+ * TipTap content surface.
+ *
+ * 見出し / コード / 引用などのタイポグラフィは @tailwindcss/typography に
+ * 全面委任（class="prose prose-zinc dark:prose-invert"）。手書きの
+ * 互換 CSS は撤去した。
+ *
+ * 唯一残しているのは @tiptap/extension-placeholder が出す空行プレース
+ * ホルダ。これは prose の管轄外なので手書きで描く。
+ */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
