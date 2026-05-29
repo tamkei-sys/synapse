@@ -36,8 +36,11 @@ import type * as Y from 'yjs';
 import { CalloutNode } from './callout-node.js';
 import { CodeBlockHighlighted } from './code-block.js';
 import { EmbedNode } from './embed-node.js';
+import { FindBar } from './find-bar.js';
+import { FindExtension } from './find.js';
 import { FormatToolbar } from './format-toolbar.js';
 import { MarkdownPasteExtension } from './markdown-paste.js';
+import { PageMentionExtension } from './page-mention.js';
 import { TocNode } from './toc-node.js';
 import { ToggleDetails, ToggleNode, ToggleSummary } from './toggle-node.js';
 import { PageRefNode } from './page-ref-node.js';
@@ -123,6 +126,8 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       SheetEmbedNode,
       PrDiffEmbedNode,
       SlashCommandExtension.configure({ commands: slashCommands }),
+      PageMentionExtension.configure({ workspaceId }),
+      FindExtension,
       MarkdownPasteExtension,
     ],
     editorProps: {
@@ -137,6 +142,7 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
 
   return (
     <div data-testid="editor-shell">
+      <FindBar editor={editor} />
       <FormatToolbar editor={editor} />
       <EditorContent editor={editor} />
     </div>

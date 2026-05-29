@@ -81,6 +81,24 @@ body {
   content: '▸ ';
 }
 
+/* ── In-page find highlight (PBI-74) ───────────────────────────────*/
+.tiptap .synapse-find-match {
+  background: theme(colors.amber.200);
+  border-radius: 2px;
+}
+.tiptap .synapse-find-current {
+  background: theme(colors.amber.400);
+  border-radius: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  .tiptap .synapse-find-match {
+    background: theme(colors.amber.700 / 50%);
+  }
+  .tiptap .synapse-find-current {
+    background: theme(colors.amber.500 / 70%);
+  }
+}
+
 /* ── Simple table (PBI-46) ─────────────────────────────────────────
    prose のテーブル装飾は効くが、編集用に枠線とセル選択を補強する。 */
 .tiptap table {

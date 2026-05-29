@@ -118,6 +118,36 @@ export const blockRouter = router({
       .orderBy(asc(schema.block.position));
   }),
 
+  /**
+   * タイトル部分一致でページを検索（@page autocomplete 用, PBI-69）。
+   * Typesense ではなく軽量に props->>'title' の ILIKE で十分（候補 8 件）。
+   */
+  searchPages: protectedProcedure
+    .input(z.object({ workspaceId: z.string().min(1), query: z.string().max(100) }))
+    .query(async ({ ctx, input }) => {
+      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      const rows = await ctx.db
+        .select({ id: schema.block.id, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.workspaceId, input.workspaceId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+            input.query.trim()
+              ? sql`${schema.block.props}->>'title' ILIKE ${'%' + input.query.trim() + '%'}`
+              : sql`true`,
+          ),
+        )
+        .orderBy(asc(schema.block.position))
+        .limit(8);
+      return rows.map((r) => ({
+        id: r.id,
+        title: (r.props as { title?: string } | null)?.title ?? '無題',
+        icon: (r.props as { icon?: string } | null)?.icon ?? null,
+      }));
+    }),
+
   /** あるページの直下子ページのみ。詳細画面で表示する用。 */
   listChildPages: protectedProcedure
     .input(z.object({ parentPageId: z.string().min(1) }))
