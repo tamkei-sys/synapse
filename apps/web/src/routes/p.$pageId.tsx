@@ -78,6 +78,7 @@ function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12">
+      <Breadcrumb pageId={pageId} />
       <nav className="mb-6 text-sm">
         <BackLink />
       </nav>
@@ -105,11 +106,48 @@ function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
       </p>
 
       {doc ? (
-        <PageEditor doc={doc} workspaceId={workspaceId} />
+        <PageEditor doc={doc} workspaceId={workspaceId} parentPageId={pageId} />
       ) : (
         <p className="text-zinc-500">エディタを準備中…</p>
       )}
+
+      <ChildPagesSection pageId={pageId} />
     </div>
+  );
+}
+
+function ChildPagesSection({ pageId }: { pageId: string }) {
+  const children = useQuery({
+    queryKey: ['block', 'listChildPages', pageId],
+    queryFn: () => trpc.block.listChildPages.query({ parentPageId: pageId }),
+  });
+  if (children.isPending) return null;
+  if (!children.data || children.data.length === 0) return null;
+  return (
+    <section className="mt-10" data-testid="child-pages-section">
+      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">
+        子ページ
+      </h2>
+      <ul className="space-y-1">
+        {children.data.map((c) => {
+          const title =
+            (c.props as { title?: string } | null | undefined)?.title ?? '無題';
+          return (
+            <li key={c.id}>
+              <Link
+                to="/p/$pageId"
+                params={{ pageId: c.id }}
+                data-testid={`child-page-${c.id}`}
+                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <span aria-hidden>📄</span>
+                <span className="font-medium">{title}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -137,6 +175,40 @@ function ConnectionBadge({ status }: { status: CollabStatus }) {
       <span className={`inline-block h-2 w-2 rounded-full ${tone}`} />
       {label}
     </span>
+  );
+}
+
+function Breadcrumb({ pageId }: { pageId: string }) {
+  // 親ページのチェーン。/p/$pageId にいるときだけ表示する。
+  const trail = useQuery({
+    queryKey: ['block', 'getPageBreadcrumb', pageId],
+    queryFn: () => trpc.block.getPageBreadcrumb.query({ pageId }),
+  });
+  if (trail.isPending || !trail.data || trail.data.length <= 1) return null;
+  // 最後の要素 = 自分なので、それより前だけリンク
+  const ancestors = trail.data.slice(0, -1);
+  return (
+    <nav
+      aria-label="パンくず"
+      data-testid="page-breadcrumb"
+      className="mb-2 flex flex-wrap items-center gap-1 text-xs text-zinc-500"
+    >
+      {ancestors.map((a, i) => (
+        <span key={a.id} className="flex items-center gap-1">
+          {i > 0 ? <span aria-hidden>›</span> : null}
+          <Link
+            to="/p/$pageId"
+            params={{ pageId: a.id }}
+            data-testid={`breadcrumb-${a.id}`}
+            className="rounded px-1 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          >
+            📄 {a.title}
+          </Link>
+        </span>
+      ))}
+      <span aria-hidden>›</span>
+      <span className="text-zinc-400">現在のページ</span>
+    </nav>
   );
 }
 

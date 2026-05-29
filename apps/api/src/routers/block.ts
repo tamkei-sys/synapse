@@ -73,6 +73,10 @@ export const blockRouter = router({
     }),
 
   /** Top-level page blocks in the workspace. */
+  /**
+   * トップレベルのページ一覧（parentId IS NULL）。
+   * Sidebar / search で使う。
+   */
   listPages: protectedProcedure.input(workspaceIdInput).query(async ({ ctx, input }) => {
     await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
 
@@ -89,6 +93,96 @@ export const blockRouter = router({
       )
       .orderBy(asc(schema.block.position));
   }),
+
+  /**
+   * 全ページ一覧 (parent 含む) — Sidebar の tree を組み立てる用。
+   * Notion 風サブページ機能 (PBI-34) で追加。
+   */
+  listAllPages: protectedProcedure.input(workspaceIdInput).query(async ({ ctx, input }) => {
+    await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+    return ctx.db
+      .select({
+        id: schema.block.id,
+        parentId: schema.block.parentId,
+        position: schema.block.position,
+        props: schema.block.props,
+      })
+      .from(schema.block)
+      .where(
+        and(
+          eq(schema.block.workspaceId, input.workspaceId),
+          eq(schema.block.type, 'page'),
+          isNull(schema.block.deletedAt),
+        ),
+      )
+      .orderBy(asc(schema.block.position));
+  }),
+
+  /** あるページの直下子ページのみ。詳細画面で表示する用。 */
+  listChildPages: protectedProcedure
+    .input(z.object({ parentPageId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const parent = (
+        await ctx.db
+          .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
+          .from(schema.block)
+          .where(eq(schema.block.id, input.parentPageId))
+          .limit(1)
+      )[0];
+      if (!parent || parent.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, parent.workspaceId, ctx.session.user.id);
+      return ctx.db
+        .select({
+          id: schema.block.id,
+          props: schema.block.props,
+          position: schema.block.position,
+        })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.parentId, input.parentPageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .orderBy(asc(schema.block.position));
+    }),
+
+  /**
+   * ルートまで遡るパンくず。/p/$pageId で「親 / さらに親 / 自分」を出すのに使う。
+   * 安全策で最大 16 段まで。循環 (本来不可能) で無限ループしないように。
+   */
+  getPageBreadcrumb: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const trail: { id: string; title: string }[] = [];
+      let current = input.pageId;
+      let workspaceId: string | null = null;
+      for (let i = 0; i < 16; i++) {
+        const row = (
+          await ctx.db
+            .select({
+              id: schema.block.id,
+              parentId: schema.block.parentId,
+              props: schema.block.props,
+              type: schema.block.type,
+              workspaceId: schema.block.workspaceId,
+            })
+            .from(schema.block)
+            .where(eq(schema.block.id, current))
+            .limit(1)
+        )[0];
+        if (!row || row.type !== 'page') break;
+        workspaceId ??= row.workspaceId;
+        const title = (row.props as { title?: string } | null)?.title ?? '無題';
+        trail.unshift({ id: row.id, title });
+        if (!row.parentId) break;
+        current = row.parentId;
+      }
+      if (!workspaceId) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, workspaceId, ctx.session.user.id);
+      return trail;
+    }),
 
   /** Fetch a page block. */
   getPage: protectedProcedure
@@ -111,16 +205,43 @@ export const blockRouter = router({
       return { page };
     }),
 
-  /** Create a new page seeded with an empty TipTap doc. */
+  /**
+   * Create a new page seeded with an empty TipTap doc.
+   *
+   * `parentPageId` を渡すとサブページとして作成（PBI-34）。Notion 風に
+   * ドキュメントの中から派生ドキュメントを生やす導線で使う。親が
+   * 同一 workspace の page 型でないと FORBIDDEN にする。
+   */
   createPage: protectedProcedure
     .input(
       z.object({
         workspaceId: z.string().min(1),
         title: z.string().trim().min(1).max(200).default('Untitled'),
+        parentPageId: z.string().min(1).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
+
+      // 親ページがあるなら同一 WS + page 型を確認。
+      if (input.parentPageId) {
+        const parent = (
+          await ctx.db
+            .select({
+              workspaceId: schema.block.workspaceId,
+              type: schema.block.type,
+            })
+            .from(schema.block)
+            .where(eq(schema.block.id, input.parentPageId))
+            .limit(1)
+        )[0];
+        if (!parent || parent.type !== 'page') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'parent page not found' });
+        }
+        if (parent.workspaceId !== input.workspaceId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'cross-workspace parent forbidden' });
+        }
+      }
 
       const pageId = ulid();
       const [page] = await ctx.db
@@ -128,7 +249,7 @@ export const blockRouter = router({
         .values({
           id: pageId,
           workspaceId: input.workspaceId,
-          parentId: null,
+          parentId: input.parentPageId ?? null,
           type: 'page',
           position: pageId,
           props: { title: input.title, doc: EMPTY_DOC },

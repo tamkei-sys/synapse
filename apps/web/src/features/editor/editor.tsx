@@ -28,6 +28,8 @@ import type * as Y from 'yjs';
 
 import { FormatToolbar } from './format-toolbar.js';
 import { MarkdownPasteExtension } from './markdown-paste.js';
+import { PageRefNode } from './page-ref-node.js';
+import { makePageSlashCommand } from './page-slash.js';
 import { PbiRefNode } from './pbi-ref-node.js';
 import { makePbiSlashCommand } from './pbi-slash.js';
 import { PrDiffEmbedNode } from './pr-diff-node.js';
@@ -42,9 +44,14 @@ import { makeSprintSlashCommand } from './sprint-slash.js';
 type EditorProps = {
   doc: Y.Doc;
   workspaceId: string;
+  /**
+   * 親ページの block id。/page スラッシュコマンドが「ここの子」として
+   * サブページを作るのに使う。 undefined ならトップレベル page を作る。
+   */
+  parentPageId?: string;
 };
 
-export function PageEditor({ doc, workspaceId }: EditorProps) {
+export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
   // Per-workspace closure for the /pbi command. Stable across renders as
   // long as the route's workspaceId doesn't change.
   const slashCommands = useMemo(
@@ -55,8 +62,9 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
       makePbiSlashCommand(workspaceId),
       makeSheetSlashCommand(workspaceId),
       makePrSlashCommand(),
+      makePageSlashCommand(workspaceId, parentPageId),
     ],
-    [workspaceId],
+    [workspaceId, parentPageId],
   );
 
   const editor = useEditor({
@@ -83,6 +91,7 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
       }),
       Collaboration.configure({ document: doc }),
       PbiRefNode,
+      PageRefNode,
       SheetEmbedNode,
       PrDiffEmbedNode,
       SlashCommandExtension.configure({ commands: slashCommands }),
