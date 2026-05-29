@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { PageEditor } from '../features/editor/editor.js';
 import { EmojiPicker } from '../features/editor/emoji-picker.js';
+import { uploadImage } from '../features/editor/image-upload.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
@@ -12,7 +13,7 @@ export const Route = createFileRoute('/p/$pageId')({
   component: PageView,
 });
 
-type PageProps = { title?: string; icon?: string };
+type PageProps = { title?: string; icon?: string; cover?: string };
 
 function PageView() {
   const { pageId } = Route.useParams();
@@ -46,6 +47,7 @@ function PageView() {
       workspaceId={page.workspaceId}
       initialTitle={props.title ?? '無題'}
       initialIcon={props.icon ?? ''}
+      initialCover={props.cover ?? ''}
       token={token}
     />
   );
@@ -56,16 +58,50 @@ type ShellProps = {
   workspaceId: string;
   initialTitle: string;
   initialIcon: string;
+  initialCover: string;
   token: string | undefined;
 };
 
-function PageShell({ pageId, workspaceId, initialTitle, initialIcon, token }: ShellProps) {
+function PageShell({
+  pageId,
+  workspaceId,
+  initialTitle,
+  initialIcon,
+  initialCover,
+  token,
+}: ShellProps) {
   const { doc, status } = useCollabDoc(`page:${pageId}`, token);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(initialTitle);
   const [titleSavedAt, setTitleSavedAt] = useState<Date | null>(null);
   const [icon, setIcon] = useState(initialIcon);
+  const [cover, setCover] = useState(initialCover);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  const setPageCover = useMutation({
+    mutationFn: (next: string) => trpc.block.setPageCover.mutate({ pageId, cover: next }),
+  });
+  const pickCover = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      void uploadImage(file).then((url) => {
+        if (url) {
+          setCover(url);
+          setPageCover.mutate(url);
+        }
+      });
+    };
+    input.click();
+  };
+  const removeCover = () => {
+    setCover('');
+    setPageCover.mutate('');
+  };
+  useEffect(() => setCover(initialCover), [initialCover]);
 
   const setPageIcon = useMutation({
     mutationFn: (next: string) => trpc.block.setPageIcon.mutate({ pageId, icon: next }),
@@ -104,6 +140,38 @@ function PageShell({ pageId, workspaceId, initialTitle, initialIcon, token }: Sh
 
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12">
+      {cover ? (
+        <div className="group relative -mx-6 -mt-12 mb-6 h-40 overflow-hidden" data-testid="page-cover">
+          <img src={cover} alt="" className="h-full w-full object-cover" />
+          <div className="absolute right-3 top-3 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              type="button"
+              onClick={pickCover}
+              data-testid="page-cover-change"
+              className="rounded bg-white/90 px-2 py-1 text-xs shadow hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900"
+            >
+              変更
+            </button>
+            <button
+              type="button"
+              onClick={removeCover}
+              data-testid="page-cover-remove"
+              className="rounded bg-white/90 px-2 py-1 text-xs shadow hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={pickCover}
+          data-testid="page-cover-add"
+          className="mb-2 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+        >
+          🖼️ カバー画像を追加
+        </button>
+      )}
       <Breadcrumb pageId={pageId} />
       <nav className="mb-6 flex items-center justify-between text-sm">
         <BackLink />

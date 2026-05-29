@@ -468,4 +468,42 @@ export const blockRouter = router({
         .where(eq(schema.block.id, input.pageId));
       return { ok: true };
     }),
+
+  /**
+   * ページのカバー画像 URL を設定 (PBI-52)。空文字で解除。
+   * dev は data-URL、本番は R2 公開 URL を保存する想定。
+   * data-URL は肥大化しうるので 3MB 上限。
+   */
+  setPageCover: protectedProcedure
+    .input(
+      z.object({
+        pageId: z.string().min(1),
+        cover: z.string().max(3_500_000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+      const currentProps = (existing.props ?? {}) as Record<string, unknown>;
+      const nextProps = { ...currentProps };
+      if (input.cover) nextProps['cover'] = input.cover;
+      else delete nextProps['cover'];
+      await ctx.db
+        .update(schema.block)
+        .set({ props: nextProps, updatedAt: new Date() })
+        .where(eq(schema.block.id, input.pageId));
+      return { ok: true };
+    }),
 });

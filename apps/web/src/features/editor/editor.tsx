@@ -18,6 +18,7 @@
 import { Color } from '@tiptap/extension-color';
 import Collaboration from '@tiptap/extension-collaboration';
 import Highlight from '@tiptap/extension-highlight';
+import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Table } from '@tiptap/extension-table';
@@ -42,6 +43,8 @@ import { InlineMathNode, MathBlockNode } from './math-node.js';
 import { FindBar } from './find-bar.js';
 import { FindExtension } from './find.js';
 import { FormatToolbar } from './format-toolbar.js';
+import { ImageDropPasteExtension } from './image-upload.js';
+import { makeImageSlashCommand } from './image-slash.js';
 import { MarkdownPasteExtension } from './markdown-paste.js';
 import { PageMentionExtension } from './page-mention.js';
 import { TocNode } from './toc-node.js';
@@ -82,6 +85,7 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       makePrSlashCommand(),
       makePageSlashCommand(workspaceId, parentPageId),
       makeAiSlashCommand(workspaceId),
+      makeImageSlashCommand(),
     ],
     [workspaceId, parentPageId],
   );
@@ -111,6 +115,8 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Image.configure({ inline: false, HTMLAttributes: { class: 'rounded-md' } }),
+      ImageDropPasteExtension,
       CalloutNode,
       ToggleNode,
       ToggleSummary,
