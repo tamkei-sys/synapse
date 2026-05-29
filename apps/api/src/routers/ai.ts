@@ -34,6 +34,32 @@ export const aiRouter = router({
     }),
 
   /**
+   * エディタ向け汎用 AI 変換 (PBI-75/76/77/78)。
+   *   - write     : instruction から文章を生成（選択不要、続き書き等）
+   *   - summarize : text を 3〜5 行に要約
+   *   - translate : text を targetLang（既定 en）に翻訳
+   *   - rewrite   : text を instruction の方針で書き換え（箇条書き↔散文 等）
+   *
+   * ANTHROPIC_API_KEY 未設定なら ask() が stub を返す（dev でも動線確認可）。
+   */
+  transform: protectedProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        mode: z.enum(['write', 'summarize', 'translate', 'rewrite']),
+        text: z.string().max(8_000).default(''),
+        instruction: z.string().max(2_000).optional(),
+        targetLang: z.string().max(40).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
+      const { system, prompt } = buildTransformPrompt(input);
+      const result = await ask(ctx.env, prompt, { maxTokens: 1024, system });
+      return result;
+    }),
+
+  /**
    * 大和心 "PBIの起票" port. Given a free-text information source and
    * an optional parent project, synthesise:
    *   - 1 PBI (title, status='backlog', priority='should',
@@ -229,6 +255,45 @@ export const aiRouter = router({
 });
 
 // ---- helpers --------------------------------------------------------------
+
+function buildTransformPrompt(input: {
+  mode: 'write' | 'summarize' | 'translate' | 'rewrite';
+  text: string;
+  instruction?: string;
+  targetLang?: string;
+}): { system: string; prompt: string } {
+  const system =
+    'あなたは優秀な文章アシスタントです。出力は本文のみを返し、前置き・後書き・' +
+    'マークダウンのコードフェンスは付けないこと。入力の言語に追従する（翻訳を除く）。';
+  switch (input.mode) {
+    case 'write':
+      return {
+        system,
+        prompt: `次の指示に従って文章を書いてください。\n指示: ${input.instruction ?? '続きを書く'}\n${
+          input.text ? `\n参考テキスト:\n${input.text}` : ''
+        }`,
+      };
+    case 'summarize':
+      return {
+        system,
+        prompt: `次のテキストを 3〜5 行で要約してください。\n\n${input.text}`,
+      };
+    case 'translate':
+      return {
+        system,
+        prompt: `次のテキストを ${input.targetLang ?? '英語'} に翻訳してください。\n\n${input.text}`,
+      };
+    case 'rewrite':
+      return {
+        system,
+        prompt: `次のテキストを「${
+          input.instruction ?? '読みやすく自然に'
+        }」という方針で書き換えてください。\n\n${input.text}`,
+      };
+    default:
+      return { system, prompt: input.text };
+  }
+}
 
 function buildSynthesizePbiPrompt(source: string): string {
   return [

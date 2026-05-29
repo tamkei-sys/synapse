@@ -15,13 +15,15 @@ import { type Editor } from '@tiptap/core';
 import { BubbleMenu } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 
+import { trpc } from '../../lib/trpc.js';
 import { markdownToHtml, tiptapJsonToMarkdown } from './markdown.js';
 
 type Props = {
   editor: Editor | null;
+  workspaceId?: string;
 };
 
-export function FormatToolbar({ editor }: Props) {
+export function FormatToolbar({ editor, workspaceId }: Props) {
   const [copied, setCopied] = useState<null | 'md' | 'html'>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -296,6 +298,7 @@ export function FormatToolbar({ editor }: Props) {
           >
             🔗
           </BubbleButton>
+          {workspaceId ? <AiBubbleMenu editor={editor} workspaceId={workspaceId} /> : null}
         </div>
       </BubbleMenu>
     </>
@@ -524,6 +527,98 @@ function TableControls({ editor }: { editor: Editor }) {
         </ToolbarButton>
       </Group>
     </>
+  );
+}
+
+/** 選択テキストに対する AI 操作 (PBI-76/77/78)。 */
+function AiBubbleMenu({ editor, workspaceId }: { editor: Editor; workspaceId: string }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  const run = async (mode: 'summarize' | 'translate' | 'rewrite') => {
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, '\n').trim();
+    if (!text) {
+      setOpen(false);
+      return;
+    }
+    const instruction =
+      mode === 'rewrite'
+        ? (window.prompt('書き換えの方針（例: 箇条書きに / もっと丁寧に）') ?? undefined)
+        : undefined;
+    if (mode === 'rewrite' && !instruction) {
+      setOpen(false);
+      return;
+    }
+    const targetLang =
+      mode === 'translate'
+        ? (window.prompt('翻訳先の言語', '英語') ?? undefined)
+        : undefined;
+    setBusy(true);
+    try {
+      const res = await trpc.ai.transform.mutate({
+        workspaceId,
+        mode,
+        text,
+        ...(instruction ? { instruction } : {}),
+        ...(targetLang ? { targetLang } : {}),
+      });
+      editor.chain().focus().deleteSelection().insertContent(res.text).run();
+    } catch {
+      // 失敗時は何もしない（選択は保持）。
+    } finally {
+      setBusy(false);
+      setOpen(false);
+    }
+  };
+
+  return (
+    <span ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={busy}
+        data-testid="bubble-ai"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="min-w-7 rounded px-2 py-1 text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      >
+        {busy ? '…' : '✨AI'}
+      </button>
+      {open ? (
+        <div
+          data-testid="bubble-ai-menu"
+          className="absolute left-0 top-full z-40 mt-1 w-32 rounded-md border border-zinc-200 bg-white p-1 text-left text-xs shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          {(
+            [
+              ['summarize', '要約'],
+              ['translate', '翻訳'],
+              ['rewrite', '書き換え'],
+            ] as const
+          ).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => void run(mode)}
+              data-testid={`bubble-ai-${mode}`}
+              className="block w-full rounded px-2 py-1 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </span>
   );
 }
 

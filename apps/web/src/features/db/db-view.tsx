@@ -21,7 +21,7 @@ type DbRow = GetResult['rows'][number];
 
 export function DbView({ dbId }: { dbId: string }) {
   const qc = useQueryClient();
-  const [view, setView] = useState<'table' | 'board' | 'gallery'>('table');
+  const [view, setView] = useState<'table' | 'board' | 'gallery' | 'calendar'>('table');
   const { rules, setRules, sort, setSort } = useDbFilterSort();
   const query = useQuery({
     queryKey: ['db', 'get', dbId],
@@ -58,13 +58,18 @@ export function DbView({ dbId }: { dbId: string }) {
 
   const data: GetResult = query.data;
   const visibleRows = applyFilterSort<DbRow>(data.rows, data.props.columns, rules, sort);
-  const VIEW_LABEL = { table: 'テーブル', board: 'ボード', gallery: 'ギャラリー' } as const;
+  const VIEW_LABEL = {
+    table: 'テーブル',
+    board: 'ボード',
+    gallery: 'ギャラリー',
+    calendar: 'カレンダー',
+  } as const;
 
   return (
     <div className="space-y-3" data-testid={`db-view-${dbId}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1" role="tablist" aria-label="DB ビュー">
-          {(['table', 'board', 'gallery'] as const).map((v) => (
+          {(['table', 'board', 'gallery', 'calendar'] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -104,6 +109,8 @@ export function DbView({ dbId }: { dbId: string }) {
         />
       ) : view === 'gallery' ? (
         <GalleryView columns={data.props.columns} rows={visibleRows} />
+      ) : view === 'calendar' ? (
+        <CalendarView columns={data.props.columns} rows={visibleRows} />
       ) : (
       <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
         <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
@@ -570,6 +577,183 @@ function GalleryView({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// ── Calendar ビュー (PBI-60) ────────────────────────────────────────
+
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function CalendarView({
+  columns,
+  rows,
+}: {
+  columns: readonly DbColumn[];
+  rows: readonly DbRow[];
+}) {
+  const dateCols = columns.filter((c) => c.kind === 'date');
+  const [dateColId, setDateColId] = useState<string>(dateCols[0]?.id ?? '');
+  const dateCol = dateCols.find((c) => c.id === dateColId) ?? dateCols[0];
+  const titleCol = titleColumn(columns);
+
+  // 表示中の年月。初期値は「今日」。
+  const now = new Date();
+  const [cursor, setCursor] = useState<{ y: number; m: number }>({
+    y: now.getFullYear(),
+    m: now.getMonth(), // 0-11
+  });
+
+  if (!dateCol) {
+    return (
+      <p
+        data-testid="calendar-no-date"
+        className="rounded-md border border-dashed border-zinc-300 px-3 py-6 text-center text-xs text-zinc-500 dark:border-zinc-700"
+      >
+        カレンダー表示には date 列が必要です。「+ 列」で date 列を追加してください。
+      </p>
+    );
+  }
+
+  // 日付 → その日の行。
+  const byDate = new Map<string, DbRow[]>();
+  for (const r of rows) {
+    const v = r.props.values[dateCol.id];
+    if (typeof v === 'string' && v) {
+      const list = byDate.get(v) ?? [];
+      list.push(r);
+      byDate.set(v, list);
+    }
+  }
+
+  // 月グリッド（6 週 × 7 日）。先頭は月初の週の日曜から。
+  const first = new Date(cursor.y, cursor.m, 1);
+  const startOffset = first.getDay(); // 0=日
+  const cells: { iso: string; day: number; inMonth: boolean }[] = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(cursor.y, cursor.m, 1 - startOffset + i);
+    cells.push({
+      iso: `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`,
+      day: d.getDate(),
+      inMonth: d.getMonth() === cursor.m,
+    });
+  }
+  const todayIso = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+
+  const shift = (delta: number) => {
+    const d = new Date(cursor.y, cursor.m + delta, 1);
+    setCursor({ y: d.getFullYear(), m: d.getMonth() });
+  };
+
+  return (
+    <div className="space-y-2" data-testid="db-calendar">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => shift(-1)}
+            data-testid="calendar-prev"
+            aria-label="前の月"
+            className="rounded px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            ‹
+          </button>
+          <span className="min-w-24 text-center text-sm font-medium" data-testid="calendar-title">
+            {cursor.y}年 {cursor.m + 1}月
+          </span>
+          <button
+            type="button"
+            onClick={() => shift(1)}
+            data-testid="calendar-next"
+            aria-label="次の月"
+            className="rounded px-2 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}
+            data-testid="calendar-today"
+            className="ml-1 rounded border border-zinc-300 px-2 py-0.5 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            今日
+          </button>
+        </div>
+        {dateCols.length > 1 ? (
+          <select
+            value={dateCol.id}
+            onChange={(e) => setDateColId(e.currentTarget.value)}
+            data-testid="calendar-date-col"
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+          >
+            {dateCols.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-7 overflow-hidden rounded-lg border border-zinc-200 text-xs dark:border-zinc-800">
+        {WEEKDAYS.map((w, i) => (
+          <div
+            key={w}
+            className={`border-b border-zinc-200 bg-zinc-50/60 px-1 py-1 text-center font-medium dark:border-zinc-800 dark:bg-zinc-900/40 ${
+              i === 0 ? 'text-red-500' : i === 6 ? 'text-sky-500' : 'text-zinc-500'
+            }`}
+          >
+            {w}
+          </div>
+        ))}
+        {cells.map((cell, i) => {
+          const dayRows = byDate.get(cell.iso) ?? [];
+          return (
+            <div
+              key={`${cell.iso}-${i}`}
+              data-testid={`calendar-day-${cell.iso}`}
+              className={`min-h-20 border-b border-r border-zinc-100 p-1 dark:border-zinc-800/60 ${
+                cell.inMonth ? '' : 'bg-zinc-50/40 text-zinc-400 dark:bg-zinc-900/20'
+              }`}
+            >
+              <div
+                className={`mb-0.5 text-right ${
+                  cell.iso === todayIso
+                    ? 'font-bold text-violet-600 dark:text-violet-300'
+                    : ''
+                }`}
+              >
+                {cell.day}
+              </div>
+              <div className="space-y-0.5">
+                {dayRows.slice(0, 3).map((r) => {
+                  const title =
+                    titleCol && typeof r.props.values[titleCol.id] === 'string'
+                      ? String(r.props.values[titleCol.id])
+                      : '(無題)';
+                  return (
+                    <div
+                      key={r.id}
+                      data-testid={`calendar-event-${r.id}`}
+                      className="truncate rounded bg-violet-100 px-1 text-[10px] text-violet-900 dark:bg-violet-900/40 dark:text-violet-100"
+                      title={title}
+                    >
+                      {title}
+                    </div>
+                  );
+                })}
+                {dayRows.length > 3 ? (
+                  <div className="text-[10px] text-zinc-400">+{dayRows.length - 3}</div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

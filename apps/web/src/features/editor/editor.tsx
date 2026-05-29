@@ -33,6 +33,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { useMemo } from 'react';
 import type * as Y from 'yjs';
 
+import { makeAiSlashCommand } from './ai-slash.js';
 import { CalloutNode } from './callout-node.js';
 import { CodeBlockHighlighted } from './code-block.js';
 import { DateMentionNode } from './date-mention-node.js';
@@ -80,6 +81,7 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       makeSheetSlashCommand(workspaceId),
       makePrSlashCommand(),
       makePageSlashCommand(workspaceId, parentPageId),
+      makeAiSlashCommand(workspaceId),
     ],
     [workspaceId, parentPageId],
   );
@@ -148,7 +150,7 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
   return (
     <div data-testid="editor-shell">
       <FindBar editor={editor} />
-      <FormatToolbar editor={editor} />
+      <FormatToolbar editor={editor} workspaceId={workspaceId} />
       <EditorContent editor={editor} />
     </div>
   );

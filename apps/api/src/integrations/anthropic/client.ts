@@ -23,7 +23,14 @@ export type AskResult = {
   stub: boolean;
 };
 
-export async function ask(env: Env, prompt: string): Promise<AskResult> {
+export type AskOptions = {
+  /** 出力トークン上限。既定 256（=ASK 用）。文章生成系は大きめに。 */
+  maxTokens?: number;
+  /** 任意の system プロンプト。 */
+  system?: string;
+};
+
+export async function ask(env: Env, prompt: string, opts: AskOptions = {}): Promise<AskResult> {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     const trimmed = prompt.trim().slice(0, 80);
@@ -32,7 +39,8 @@ export async function ask(env: Env, prompt: string): Promise<AskResult> {
 
   const body = {
     model: CLAUDE_MODELS.haiku,
-    max_tokens: 256,
+    max_tokens: opts.maxTokens ?? 256,
+    ...(opts.system ? { system: opts.system } : {}),
     messages: [{ role: 'user', content: prompt }],
   };
 
