@@ -1,5 +1,6 @@
 // @ts-check
 import js from '@eslint/js';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
@@ -88,6 +89,19 @@ export default tseslint.config(
     files: ['**/scripts/**/*.{js,mjs,ts}'],
     rules: {
       'no-console': 'off',
+    },
+  },
+
+  // React Hooks: Rules of Hooks をリント時に強制する。
+  // useState / useEffect / useQuery 等を条件分岐や early return の後ろで
+  // 呼ぶと「render ごとに hook 数が変わる」バグになり、本番でクラッシュする。
+  // sprint.tsx / pbi.tsx 系で 1 回踏んだので CI で再発を止める。
+  {
+    files: ['apps/web/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 );

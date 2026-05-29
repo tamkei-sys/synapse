@@ -18,6 +18,8 @@ function TokensRoute() {
     enabled: !!session.data,
   });
 
+  // Hooks は条件分岐 / early return より前にまとめて呼ぶ（Rules of Hooks）。
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (session.isPending || workspaces.isPending) {
     return <Centered>読み込み中…</Centered>;
   }
@@ -30,8 +32,6 @@ function TokensRoute() {
       </Centered>
     );
   }
-
-  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace) {
     return (
       <Centered>
