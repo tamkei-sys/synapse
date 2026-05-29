@@ -213,6 +213,8 @@ export const pbiRouter = router({
           projectId: z.string().nullable().optional(),
           /** `null` clears the sprint link. */
           sprintId: z.string().nullable().optional(),
+          /** Replace the assignee set entirely. `[]` clears it. */
+          assigneeIds: z.array(z.string()).max(16).optional(),
         }),
       }),
     )
@@ -248,6 +250,10 @@ export const pbiRouter = router({
         merged['projectId'] = input.patch.projectId;
       if (input.patch.sprintId === null) delete merged['sprintId'];
       else if (typeof input.patch.sprintId === 'string') merged['sprintId'] = input.patch.sprintId;
+      if (input.patch.assigneeIds !== undefined) {
+        if (input.patch.assigneeIds.length === 0) delete merged['assigneeIds'];
+        else merged['assigneeIds'] = input.patch.assigneeIds;
+      }
 
       const validated = pbiPropsSchema.parse(merged);
 

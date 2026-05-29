@@ -38,6 +38,7 @@ type SbiPropsRead = {
   startedAt?: string;
   pbiId: string;
   number?: number;
+  assigneeId?: string;
 };
 
 function readSbiProps(row: SbiRow): SbiPropsRead {
@@ -50,7 +51,33 @@ function readSbiProps(row: SbiRow): SbiPropsRead {
     ...(p.startedAt ? { startedAt: p.startedAt } : {}),
     pbiId: p.pbiId ?? '',
     ...(typeof p.number === 'number' ? { number: p.number } : {}),
+    ...(p.assigneeId ? { assigneeId: p.assigneeId } : {}),
   };
+}
+
+function SbiAssigneeChip({ workspaceId, userId }: { workspaceId: string; userId: string }) {
+  const members = useQuery({
+    queryKey: ['workspace', 'listMembers', workspaceId],
+    queryFn: () => trpc.workspace.listMembers.query({ workspaceId }),
+  });
+  const m = members.data?.find((x) => x.userId === userId);
+  const name = m?.name ?? m?.email ?? '?';
+  const initial = name.trim().slice(0, 1).toUpperCase() || '?';
+  return m?.image ? (
+    <img
+      src={m.image}
+      alt={name}
+      title={name}
+      className="inline-block h-5 w-5 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
+    />
+  ) : (
+    <span
+      title={name}
+      className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[9px] font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200"
+    >
+      {initial}
+    </span>
+  );
 }
 
 function SbiRoute() {
@@ -209,6 +236,9 @@ function SbiPanel({ workspaceId, workspaceName }: { workspaceId: string; workspa
                             >
                               停滞
                             </span>
+                          ) : null}
+                          {p.assigneeId ? (
+                            <SbiAssigneeChip workspaceId={workspaceId} userId={p.assigneeId} />
                           ) : null}
                         </div>
                         <div className="mt-2 flex justify-end">

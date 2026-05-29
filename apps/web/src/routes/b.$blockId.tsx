@@ -283,6 +283,7 @@ function PbiHeader({ block }: { block: BlockRow }) {
     storyPoints?: number;
     projectId?: string;
     sprintId?: string;
+    assigneeIds?: string[];
   };
   const [title, setTitle] = useState(p.title ?? '無題 PBI');
   useEffect(() => setTitle(p.title ?? '無題 PBI'), [p.title]);
@@ -318,6 +319,11 @@ function PbiHeader({ block }: { block: BlockRow }) {
         {typeof p.estimate === 'number' ? (
           <span className="font-mono text-xs text-zinc-500">見積 {p.estimate}sp</span>
         ) : null}
+        <AssigneePicker
+          workspaceId={block.workspaceId}
+          selected={p.assigneeIds ?? []}
+          onChange={(ids) => update.mutate({ assigneeIds: ids })}
+        />
         {p.projectId ? <ParentLink type="project" id={p.projectId} /> : null}
         {p.sprintId ? <ParentLink type="sprint" id={p.sprintId} /> : null}
       </div>
@@ -333,6 +339,7 @@ function SbiHeader({ block }: { block: BlockRow }) {
     estimateHours?: number;
     actualHours?: number;
     pbiId?: string;
+    assigneeId?: string;
   };
   const [title, setTitle] = useState(p.title ?? '無題 SBI');
   useEffect(() => setTitle(p.title ?? '無題 SBI'), [p.title]);
@@ -367,6 +374,12 @@ function SbiHeader({ block }: { block: BlockRow }) {
         {typeof p.actualHours === 'number' ? (
           <span className="font-mono text-xs text-zinc-500">実績 {p.actualHours}h</span>
         ) : null}
+        <AssigneePicker
+          workspaceId={block.workspaceId}
+          selected={p.assigneeId ? [p.assigneeId] : []}
+          single
+          onChange={(ids) => update.mutate({ assigneeId: ids[0] ?? undefined })}
+        />
         {p.pbiId ? <ParentLink type="pbi" id={p.pbiId} /> : null}
       </div>
     </>
@@ -542,6 +555,143 @@ function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
 }
 
 // ── 共通子コンポーネント ─────────────────────────────────────
+
+// ── アサイン者 ───────────────────────────────────────────
+
+type Member = Awaited<ReturnType<typeof trpc.workspace.listMembers.query>>[number];
+
+function AssigneePicker({
+  workspaceId,
+  selected,
+  single,
+  onChange,
+}: {
+  workspaceId: string;
+  selected: string[];
+  /** 単一選択にする（SBI 用）。省略時は複数選択（PBI 用）。 */
+  single?: boolean;
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const members = useQuery({
+    queryKey: ['workspace', 'listMembers', workspaceId],
+    queryFn: () => trpc.workspace.listMembers.query({ workspaceId }),
+  });
+  const byId = new Map<string, Member>();
+  for (const m of members.data ?? []) byId.set(m.userId, m);
+
+  const toggle = (userId: string) => {
+    if (single) {
+      onChange(selected.includes(userId) ? [] : [userId]);
+      setOpen(false);
+      return;
+    }
+    const next = selected.includes(userId)
+      ? selected.filter((x) => x !== userId)
+      : [...selected, userId];
+    onChange(next);
+  };
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="assignee-picker"
+        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-0.5 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+      >
+        <span className="text-zinc-500">担当</span>
+        {selected.length === 0 ? (
+          <span className="text-zinc-400">未割当</span>
+        ) : (
+          <span className="flex -space-x-1.5">
+            {selected.slice(0, 3).map((id) => {
+              const m = byId.get(id);
+              return (
+                <MemberAvatar
+                  key={id}
+                  name={m?.name ?? m?.email ?? '?'}
+                  image={m?.image ?? null}
+                  size={20}
+                />
+              );
+            })}
+            {selected.length > 3 ? (
+              <span className="ml-1 text-[10px] text-zinc-500">+{selected.length - 3}</span>
+            ) : null}
+          </span>
+        )}
+      </button>
+      {open ? (
+        <div className="absolute left-0 z-10 mt-1 w-56 rounded-md border border-zinc-200 bg-white p-1 shadow-md dark:border-zinc-700 dark:bg-zinc-900">
+          {(members.data ?? []).map((m) => {
+            const active = selected.includes(m.userId);
+            return (
+              <button
+                key={m.userId}
+                type="button"
+                onClick={() => toggle(m.userId)}
+                data-testid={`assignee-option-${m.userId}`}
+                className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm ${
+                  active
+                    ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/40 dark:text-violet-100'
+                    : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <MemberAvatar name={m.name ?? m.email} image={m.image ?? null} size={20} />
+                <span className="min-w-0 flex-1 truncate">{m.name ?? m.email}</span>
+                {active ? <span className="text-xs">✓</span> : null}
+              </button>
+            );
+          })}
+          {selected.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                onChange([]);
+                setOpen(false);
+              }}
+              className="mt-1 w-full rounded px-2 py-1 text-left text-xs text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/30"
+            >
+              全員解除
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MemberAvatar({
+  name,
+  image,
+  size = 24,
+}: {
+  name: string;
+  image: string | null;
+  size?: number;
+}) {
+  const style = { width: size, height: size, fontSize: Math.round(size * 0.45) };
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={name}
+        style={style}
+        className="inline-block rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
+      />
+    );
+  }
+  const initial = name.trim().slice(0, 1).toUpperCase() || '?';
+  return (
+    <span
+      style={style}
+      className="inline-flex items-center justify-center rounded-full bg-violet-100 font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200"
+    >
+      {initial}
+    </span>
+  );
+}
 
 function ParentLink({ type, id }: { type: 'project' | 'sprint' | 'pbi'; id: string }) {
   const q = useQuery({

@@ -283,6 +283,7 @@ type PbiPropsRead = {
   number?: number;
   projectId?: string;
   sprintId?: string;
+  assigneeIds?: string[];
   github?: PbiGithubLink;
   ci?: PbiCiStatus;
 };
@@ -298,9 +299,50 @@ function readPbiProps(row: PbiRow): PbiPropsRead {
     ...(typeof p.number === 'number' ? { number: p.number } : {}),
     ...(p.projectId ? { projectId: p.projectId } : {}),
     ...(p.sprintId ? { sprintId: p.sprintId } : {}),
+    ...(p.assigneeIds && p.assigneeIds.length > 0 ? { assigneeIds: p.assigneeIds } : {}),
     ...(p.github ? { github: p.github } : {}),
     ...(p.ci ? { ci: p.ci } : {}),
   };
+}
+
+/** 軽量アバター列。/pbi /sbi の一覧で使う。 */
+function AssigneeChips({ workspaceId, ids }: { workspaceId: string; ids: string[] }) {
+  const members = useQuery({
+    queryKey: ['workspace', 'listMembers', workspaceId],
+    queryFn: () => trpc.workspace.listMembers.query({ workspaceId }),
+    enabled: ids.length > 0,
+  });
+  if (ids.length === 0) return null;
+  const byId = new Map((members.data ?? []).map((m) => [m.userId, m] as const));
+  return (
+    <span data-testid="assignee-chips" className="flex -space-x-1.5">
+      {ids.slice(0, 3).map((id) => {
+        const m = byId.get(id);
+        const name = m?.name ?? m?.email ?? '?';
+        const initial = name.trim().slice(0, 1).toUpperCase() || '?';
+        return m?.image ? (
+          <img
+            key={id}
+            src={m.image}
+            alt={name}
+            title={name}
+            className="inline-block h-5 w-5 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
+          />
+        ) : (
+          <span
+            key={id}
+            title={name}
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-[9px] font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200"
+          >
+            {initial}
+          </span>
+        );
+      })}
+      {ids.length > 3 ? (
+        <span className="ml-1 text-[10px] text-zinc-500">+{ids.length - 3}</span>
+      ) : null}
+    </span>
+  );
 }
 
 function CiBadge({ pbiId, ci }: { pbiId: string; ci: PbiCiStatus }) {
@@ -438,6 +480,9 @@ function BacklogTable({ items, workspaceId }: { items: PbiRow[]; workspaceId: st
               {p.sprintId ? (
                 <ParentBadge kind="sprint" id={p.sprintId} workspaceId={workspaceId} />
               ) : null}
+              {p.assigneeIds && p.assigneeIds.length > 0 ? (
+                <AssigneeChips workspaceId={workspaceId} ids={p.assigneeIds} />
+              ) : null}
               {p.github ? <GithubBadge pbiId={row.id} link={p.github} /> : null}
               {p.ci ? <CiBadge pbiId={row.id} ci={p.ci} /> : null}
             </div>
@@ -511,6 +556,9 @@ function KanbanBoard({ items, workspaceId }: { items: PbiRow[]; workspaceId: str
                       </span>
                       {typeof p.estimate === 'number' ? (
                         <span className="font-mono text-[10px] text-zinc-500">{p.estimate} sp</span>
+                      ) : null}
+                      {p.assigneeIds && p.assigneeIds.length > 0 ? (
+                        <AssigneeChips workspaceId={workspaceId} ids={p.assigneeIds} />
                       ) : null}
                     </div>
                     <StatusButton
