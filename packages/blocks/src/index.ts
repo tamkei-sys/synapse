@@ -6,6 +6,7 @@ export * from './sprint.js';
 export * from './pbi.js';
 export * from './sbi.js';
 export * from './sheet.js';
+export * from './comment.js';
 
 export type BlockType =
   | 'page'
@@ -20,7 +21,8 @@ export type BlockType =
   | 'sheet_cell'
   | 'table_row'
   | 'embed'
-  | 'code';
+  | 'code'
+  | 'comment';
 
 export type Block = {
   id: string;

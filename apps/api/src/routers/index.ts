@@ -8,6 +8,7 @@ import { apiTokenRouter } from './api-token.js';
 import { auditRouter } from './audit.js';
 import { blockRouter } from './block.js';
 import { ccRouter } from './cc.js';
+import { commentRouter } from './comment.js';
 import { dependencyRouter } from './dependency.js';
 import { pbiRouter } from './pbi.js';
 import { projectRouter } from './project.js';
@@ -36,6 +37,7 @@ export const appRouter = router({
   ai: aiRouter,
   cc: ccRouter,
   audit: auditRouter,
+  comment: commentRouter,
 });
 
 export type AppRouter = typeof appRouter;

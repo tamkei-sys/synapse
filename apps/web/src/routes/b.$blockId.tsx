@@ -142,6 +142,8 @@ function BlockShell({
       </section>
 
       <RelatedSection block={block} />
+
+      <CommentSection block={block} selfUserId={self?.id ?? null} />
     </div>
   );
 }
@@ -574,6 +576,131 @@ function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
 }
 
 // ── 共通子コンポーネント ─────────────────────────────────────
+
+// ── コメント ────────────────────────────────────────────
+
+function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: string | null }) {
+  const qc = useQueryClient();
+  const list = useQuery({
+    queryKey: ['comment', 'list', block.id],
+    queryFn: () => trpc.comment.list.query({ blockId: block.id }),
+    refetchInterval: 5_000,
+  });
+  const [body, setBody] = useState('');
+  const create = useMutation({
+    mutationFn: (text: string) => trpc.comment.create.mutate({ blockId: block.id, body: text }),
+    onSuccess: async () => {
+      setBody('');
+      await qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] });
+    },
+  });
+  const remove = useMutation({
+    mutationFn: (commentId: string) => trpc.comment.delete.mutate({ commentId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] }),
+  });
+
+  return (
+    <section className="mt-10">
+      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">
+        コメント
+        {list.data ? <span className="ml-2 text-zinc-400">({list.data.length})</span> : null}
+      </h2>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!body.trim()) return;
+          create.mutate(body.trim());
+        }}
+        data-testid="new-comment-form"
+        className="mb-4 flex items-start gap-2"
+      >
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="コメントを書く…（@userId でメンション）"
+          data-testid="new-comment-body"
+          rows={3}
+          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+        />
+        <button
+          type="submit"
+          disabled={create.isPending || !body.trim()}
+          data-testid="new-comment-submit"
+          className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+        >
+          {create.isPending ? '送信中…' : '投稿'}
+        </button>
+      </form>
+
+      {list.isPending ? (
+        <p className="text-sm text-zinc-500">読み込み中…</p>
+      ) : list.data && list.data.length > 0 ? (
+        <ul data-testid="comment-list" className="space-y-3">
+          {list.data.map((row) => {
+            const p = (row.props ?? {}) as { body?: string; mentions?: string[] };
+            const isAuthor = row.createdBy === selfUserId;
+            const name = row.authorName ?? row.authorEmail ?? '?';
+            return (
+              <li
+                key={row.id}
+                data-testid={`comment-${row.id}`}
+                className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+              >
+                <div className="mb-1 flex items-center gap-2">
+                  <CommentAvatar name={name} image={row.authorImage} />
+                  <span className="text-sm font-medium">{name}</span>
+                  <span className="text-xs text-zinc-500">
+                    {new Date(row.createdAt).toLocaleString('ja-JP')}
+                  </span>
+                  {isAuthor ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm('このコメントを削除しますか？')) remove.mutate(row.id);
+                      }}
+                      disabled={remove.isPending}
+                      data-testid={`comment-delete-${row.id}`}
+                      className="ml-auto text-xs text-red-600 hover:underline disabled:opacity-60 dark:text-red-300"
+                    >
+                      削除
+                    </button>
+                  ) : null}
+                </div>
+                <p className="whitespace-pre-wrap text-sm">{p.body ?? ''}</p>
+                {p.mentions && p.mentions.length > 0 ? (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    メンション：{p.mentions.map((u) => `@${u}`).join(' ')}
+                  </p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <EmptyHint>まだコメントはありません。最初のひとことを書きましょう。</EmptyHint>
+      )}
+    </section>
+  );
+}
+
+function CommentAvatar({ name, image }: { name: string; image: string | null }) {
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={name}
+        className="inline-block h-6 w-6 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
+      />
+    );
+  }
+  const initial = name.trim().slice(0, 1).toUpperCase() || '?';
+  return (
+    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-xs font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">
+      {initial}
+    </span>
+  );
+}
 
 // ── アサイン者 ───────────────────────────────────────────
 
