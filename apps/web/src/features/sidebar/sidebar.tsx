@@ -90,6 +90,8 @@ export function Sidebar() {
           </NavLink>
         </NavSection>
 
+        <FavoritesSection workspaceId={current.id} onNavigate={closeMobile} />
+
         <NavSection title={t('nav.section.management')}>
           <NavLink to="/project" icon="📁" onNavigate={closeMobile}>
             {t('nav.projects')}
@@ -206,6 +208,51 @@ function getTitle(p: unknown): string {
   return '無題';
 }
 
+function getIcon(p: unknown): string {
+  if (p && typeof p === 'object' && 'icon' in p) {
+    const v = (p as { icon?: string }).icon;
+    if (typeof v === 'string' && v) return v;
+  }
+  return '📄';
+}
+
+function FavoritesSection({
+  workspaceId,
+  onNavigate,
+}: {
+  workspaceId: string;
+  onNavigate?: () => void;
+}) {
+  const favs = useQuery({
+    queryKey: ['favorite', 'listMine', workspaceId],
+    queryFn: () => trpc.favorite.listMine.query({ workspaceId }),
+  });
+  if (!favs.data || favs.data.length === 0) return null;
+  return (
+    <div>
+      <p className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+        お気に入り
+      </p>
+      <ul className="space-y-0.5">
+        {favs.data.map((f) => (
+          <li key={f.pageId}>
+            <Link
+              to="/p/$pageId"
+              params={{ pageId: f.pageId }}
+              data-testid={`sidebar-fav-${f.pageId}`}
+              onClick={onNavigate}
+              className="flex min-h-9 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <span className="w-4 text-center text-xs">{f.icon || '⭐'}</span>
+              <span className="min-w-0 truncate text-sm">{f.title}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function PagesSection({
   workspaceId,
   onNavigate,
@@ -305,7 +352,7 @@ function PageTreeItem({
           onClick={onNavigate}
           className="flex min-h-9 flex-1 items-center gap-2 rounded-md px-1 py-1.5"
         >
-          <span className="w-4 text-center text-xs">📄</span>
+          <span className="w-4 text-center text-xs">{getIcon(node.props)}</span>
           <span className="min-w-0 truncate text-sm">{getTitle(node.props)}</span>
         </Link>
       </div>

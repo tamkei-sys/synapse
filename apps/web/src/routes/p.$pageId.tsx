@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import { PageEditor } from '../features/editor/editor.js';
+import { EmojiPicker } from '../features/editor/emoji-picker.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
@@ -11,7 +12,7 @@ export const Route = createFileRoute('/p/$pageId')({
   component: PageView,
 });
 
-type PageProps = { title?: string };
+type PageProps = { title?: string; icon?: string };
 
 function PageView() {
   const { pageId } = Route.useParams();
@@ -44,6 +45,7 @@ function PageView() {
       pageId={page.id}
       workspaceId={page.workspaceId}
       initialTitle={props.title ?? '無題'}
+      initialIcon={props.icon ?? ''}
       token={token}
     />
   );
@@ -53,14 +55,38 @@ type ShellProps = {
   pageId: string;
   workspaceId: string;
   initialTitle: string;
+  initialIcon: string;
   token: string | undefined;
 };
 
-function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
+function PageShell({ pageId, workspaceId, initialTitle, initialIcon, token }: ShellProps) {
   const { doc, status } = useCollabDoc(`page:${pageId}`, token);
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(initialTitle);
   const [titleSavedAt, setTitleSavedAt] = useState<Date | null>(null);
+  const [icon, setIcon] = useState(initialIcon);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const setPageIcon = useMutation({
+    mutationFn: (next: string) => trpc.block.setPageIcon.mutate({ pageId, icon: next }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['block', 'listAllPages'] });
+      void queryClient.invalidateQueries({ queryKey: ['favorite'] });
+    },
+  });
+
+  const fav = useQuery({
+    queryKey: ['favorite', 'isFavorite', pageId],
+    queryFn: () => trpc.favorite.isFavorite.query({ pageId }),
+  });
+  const toggleFav = useMutation({
+    mutationFn: () => trpc.favorite.toggle.mutate({ pageId }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['favorite'] });
+    },
+  });
+
+  useEffect(() => setIcon(initialIcon), [initialIcon]);
 
   // Title still lives in `block.props.title`; the editor body is owned by
   // Yjs. Persist title via the existing tRPC endpoint on blur.
@@ -79,22 +105,57 @@ function PageShell({ pageId, workspaceId, initialTitle, token }: ShellProps) {
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-12">
       <Breadcrumb pageId={pageId} />
-      <nav className="mb-6 text-sm">
+      <nav className="mb-6 flex items-center justify-between text-sm">
         <BackLink />
+        <button
+          type="button"
+          onClick={() => toggleFav.mutate()}
+          disabled={toggleFav.isPending}
+          data-testid="page-favorite-toggle"
+          data-favorited={fav.data?.favorited ? 'true' : 'false'}
+          aria-pressed={fav.data?.favorited ?? false}
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          title={fav.data?.favorited ? 'お気に入りから外す' : 'お気に入りに追加'}
+        >
+          <span className={fav.data?.favorited ? 'text-amber-500' : ''}>
+            {fav.data?.favorited ? '★' : '☆'}
+          </span>
+          <span className="text-xs">お気に入り</span>
+        </button>
       </nav>
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={() => {
-          if (title.trim().length > 0 && title !== initialTitle) {
-            updateTitle.mutate(title.trim());
-          }
-        }}
-        data-testid="page-title-input"
-        className="mb-2 w-full bg-transparent text-3xl font-semibold tracking-tight focus:outline-none"
-        placeholder="無題"
-      />
+      <div className="relative mb-2 flex items-start gap-2">
+        <button
+          type="button"
+          onClick={() => setPickerOpen((v) => !v)}
+          data-testid="page-icon-button"
+          aria-label="ページアイコン"
+          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-3xl hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          {icon || '📄'}
+        </button>
+        {pickerOpen ? (
+          <EmojiPicker
+            onPick={(e) => {
+              setIcon(e);
+              setPageIcon.mutate(e);
+            }}
+            onClose={() => setPickerOpen(false)}
+          />
+        ) : null}
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            if (title.trim().length > 0 && title !== initialTitle) {
+              updateTitle.mutate(title.trim());
+            }
+          }}
+          data-testid="page-title-input"
+          className="w-full bg-transparent text-3xl font-semibold tracking-tight focus:outline-none"
+          placeholder="無題"
+        />
+      </div>
       <p className="mb-8 flex items-center gap-3 font-mono text-xs text-zinc-400">
         <span data-testid="page-id">{pageId}</span>
         <ConnectionBadge status={status} />

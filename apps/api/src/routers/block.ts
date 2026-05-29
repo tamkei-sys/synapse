@@ -401,4 +401,41 @@ export const blockRouter = router({
       await indexAfterWrite(ctx.env, updated);
       return updated;
     }),
+
+  /**
+   * ページの絵文字アイコンを設定 (PBI-51)。空文字でアイコン解除。
+   * props.icon に保存する。
+   */
+  setPageIcon: protectedProcedure
+    .input(
+      z.object({
+        pageId: z.string().min(1),
+        icon: z.string().max(16), // 絵文字 1 個（サロゲートペア考慮で 16 まで許容）
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+      const currentProps = (existing.props ?? {}) as Record<string, unknown>;
+      const nextProps = { ...currentProps };
+      if (input.icon) nextProps['icon'] = input.icon;
+      else delete nextProps['icon'];
+      await ctx.db
+        .update(schema.block)
+        .set({ props: nextProps, updatedAt: new Date() })
+        .where(eq(schema.block.id, input.pageId));
+      return { ok: true };
+    }),
 });
