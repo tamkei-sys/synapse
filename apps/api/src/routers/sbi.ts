@@ -14,7 +14,7 @@ import { sbiPropsSchema, sbiStatusSchema } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
 import { allocateHumanId } from '../lib/human-id.js';
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const sbiRouter = router({
@@ -87,7 +87,7 @@ export const sbiRouter = router({
         )
         .limit(1);
       if (!pbi) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, pbi.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, pbi.workspaceId, ctx.session.user.id);
 
       const id = ulid();
       const { number } = await allocateHumanId(ctx.db, pbi.workspaceId, 'sbi');
@@ -135,7 +135,7 @@ export const sbiRouter = router({
         )
         .limit(1);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
       const merged = { ...current, ...input.patch };
@@ -177,7 +177,7 @@ export const sbiRouter = router({
         )
         .limit(1);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
       const merged: Record<string, unknown> = { ...current, status: input.status };

@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { db as schema } from '@synapse/schema';
 
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const dependencyRouter = router({
@@ -69,7 +69,7 @@ export const dependencyRouter = router({
       if (!a || !b || a.workspaceId !== b.workspaceId) {
         throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cross-workspace dependency.' });
       }
-      await assertWorkspaceMember(ctx.db, a.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, a.workspaceId, ctx.session.user.id);
 
       await ctx.db
         .insert(schema.blockDependency)
@@ -91,7 +91,7 @@ export const dependencyRouter = router({
         .where(eq(schema.block.id, input.blockId))
         .limit(1);
       if (!block) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, block.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, block.workspaceId, ctx.session.user.id);
       await ctx.db
         .delete(schema.blockDependency)
         .where(

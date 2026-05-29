@@ -25,7 +25,7 @@ import type { Database } from '../db.js';
 import { pushPbiToGithub } from '../integrations/github/outbound.js';
 import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { allocateHumanId } from '../lib/human-id.js';
 import { protectedProcedure, router } from '../trpc.js';
 
@@ -159,7 +159,7 @@ export const pbiRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
       const id = ulid();
       const { number } = await allocateHumanId(ctx.db, input.workspaceId, 'pbi');
       // Defer to Zod for default-filling — priority etc. have defaults.
@@ -230,7 +230,7 @@ export const pbiRouter = router({
         .limit(1);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
       // Honour explicit `null` as "clear this field"; numeric / string
@@ -323,7 +323,7 @@ async function mergeLinkAndUpdate(
     )
     .limit(1);
   if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
-  await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+  await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
   const current = (existing.props ?? {}) as Record<string, unknown>;
   const link = nextLink(current['github'] as PbiGithubLinkLike | undefined);

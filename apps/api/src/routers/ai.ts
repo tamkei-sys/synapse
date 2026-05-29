@@ -16,7 +16,7 @@ import { db as schema } from '@synapse/schema';
 
 import { ask } from '../integrations/anthropic/client.js';
 import { allocateHumanId } from '../lib/human-id.js';
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanWrite } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const aiRouter = router({
@@ -28,7 +28,7 @@ export const aiRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
       const result = await ask(ctx.env, input.prompt);
       return result;
     }),
@@ -55,7 +55,7 @@ export const aiRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
 
       const prompt = buildSynthesizePbiPrompt(input.informationSource);
       const result = await ask(ctx.env, prompt);
@@ -140,7 +140,7 @@ export const aiRouter = router({
         )
         .limit(1);
       if (!sprint) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, sprint.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, sprint.workspaceId, ctx.session.user.id);
 
       // Pull PBIs whose props.sprintId points at this sprint.
       const allPbis = await ctx.db

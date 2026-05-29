@@ -21,7 +21,7 @@ import { db as schema } from '@synapse/schema';
 import type { Env } from '../env.js';
 import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { EMPTY_DOC } from '../lib/page-doc.js';
 import { protectedProcedure, router } from '../trpc.js';
 
@@ -120,7 +120,7 @@ export const blockRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
 
       const pageId = ulid();
       const [page] = await ctx.db
@@ -150,7 +150,7 @@ export const blockRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
       const id = ulid();
       const props = sheetPropsSchema.parse({
         ...(input.rows !== undefined ? { rows: input.rows } : {}),
@@ -215,7 +215,7 @@ export const blockRouter = router({
         )
         .limit(1);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
       const validated = sheetPropsSchema.parse({ ...current, cells: input.cells });
@@ -264,7 +264,7 @@ export const blockRouter = router({
         .limit(1);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const currentProps = (existing.props ?? {}) as Record<string, unknown>;
       const [updated] = await ctx.db

@@ -17,7 +17,7 @@ import { z } from 'zod';
 import { db as schema } from '@synapse/schema';
 
 import { startStubSession } from '../integrations/cc/sandbox-stub.js';
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const ccRouter = router({
@@ -36,7 +36,7 @@ export const ccRouter = router({
         )
         .limit(1);
       if (!pbi) throw new TRPCError({ code: 'NOT_FOUND' });
-      await assertWorkspaceMember(ctx.db, pbi.workspaceId, ctx.session.user.id);
+      await assertCanWrite(ctx.db, pbi.workspaceId, ctx.session.user.id);
 
       const id = ulid();
       const [row] = await ctx.db

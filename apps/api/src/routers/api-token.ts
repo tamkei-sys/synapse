@@ -16,7 +16,7 @@ import { z } from 'zod';
 import { db as schema } from '@synapse/schema';
 
 import { generateToken, hashToken, tokenSuffix } from '../lib/api-token.js';
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanAdmin, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const apiTokenRouter = router({
@@ -49,7 +49,9 @@ export const apiTokenRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      // MCP トークンは外部システムが workspace 全体を読み書きできる強い権限
+      // を持つので admin 以上のロールに限定する。
+      await assertCanAdmin(ctx.db, input.workspaceId, ctx.session.user.id);
 
       const plaintext = generateToken();
       const tokenHash = await hashToken(plaintext);
@@ -90,7 +92,7 @@ export const apiTokenRouter = router({
         .limit(1);
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
 
-      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      await assertCanAdmin(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const [updated] = await ctx.db
         .update(schema.apiToken)

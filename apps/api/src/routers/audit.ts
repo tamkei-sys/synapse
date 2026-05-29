@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { db as schema } from '@synapse/schema';
 
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertCanAdmin } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const auditRouter = router({
@@ -23,7 +23,9 @@ export const auditRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+      // 監査ログには他メンバーの操作が含まれる。読み出しは admin 以上に
+      // 限定し、一般メンバーには露出しない。
+      await assertCanAdmin(ctx.db, input.workspaceId, ctx.session.user.id);
       return ctx.db
         .select({
           id: schema.auditLog.id,
