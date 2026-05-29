@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
+import { Route as TrashRouteImport } from './routes/trash';
 import { Route as SprintRouteImport } from './routes/sprint';
 import { Route as SignupRouteImport } from './routes/signup';
 import { Route as SbiRouteImport } from './routes/sbi';
@@ -25,6 +26,11 @@ import { Route as PPageIdRouteImport } from './routes/p.$pageId';
 import { Route as InviteTokenRouteImport } from './routes/invite.$token';
 import { Route as BBlockIdRouteImport } from './routes/b.$blockId';
 
+const TrashRoute = TrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SprintRoute = SprintRouteImport.update({
   id: '/sprint',
   path: '/sprint',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/trash': typeof TrashRoute;
   '/b/$blockId': typeof BBlockIdRoute;
   '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/trash': typeof TrashRoute;
   '/b/$blockId': typeof BBlockIdRoute;
   '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/trash': typeof TrashRoute;
   '/b/$blockId': typeof BBlockIdRoute;
   '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/trash'
     | '/b/$blockId'
     | '/invite/$token'
     | '/p/$pageId'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/trash'
     | '/b/$blockId'
     | '/invite/$token'
     | '/p/$pageId'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/trash'
     | '/b/$blockId'
     | '/invite/$token'
     | '/p/$pageId'
@@ -216,6 +228,7 @@ export interface RootRouteChildren {
   SbiRoute: typeof SbiRoute;
   SignupRoute: typeof SignupRoute;
   SprintRoute: typeof SprintRoute;
+  TrashRoute: typeof TrashRoute;
   BBlockIdRoute: typeof BBlockIdRoute;
   InviteTokenRoute: typeof InviteTokenRoute;
   PPageIdRoute: typeof PPageIdRoute;
@@ -227,6 +240,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trash': {
+      id: '/trash';
+      path: '/trash';
+      fullPath: '/trash';
+      preLoaderRoute: typeof TrashRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/sprint': {
       id: '/sprint';
       path: '/sprint';
@@ -344,6 +364,7 @@ const rootRouteChildren: RootRouteChildren = {
   SbiRoute: SbiRoute,
   SignupRoute: SignupRoute,
   SprintRoute: SprintRoute,
+  TrashRoute: TrashRoute,
   BBlockIdRoute: BBlockIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   PPageIdRoute: PPageIdRoute,

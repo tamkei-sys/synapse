@@ -11,7 +11,7 @@
  * time; fractional indexing can slot in later without a schema change.
  */
 import { TRPCError } from '@trpc/server';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -384,6 +384,170 @@ export const blockRouter = router({
         i += 1;
       }
       return { ok: true };
+    }),
+
+  /**
+   * ページをゴミ箱へ (PBI-57)。soft-delete。自分 + 子孫ページに
+   * deletedAt を立てる。サブツリーごと一覧から消えるようにするため。
+   */
+  deletePage: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const page = (
+        await ctx.db
+          .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
+          .from(schema.block)
+          .where(and(eq(schema.block.id, input.pageId), isNull(schema.block.deletedAt)))
+          .limit(1)
+      )[0];
+      if (!page || page.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, page.workspaceId, ctx.session.user.id);
+
+      // 子孫ページを BFS で収集（最大 64 段の安全弁）。
+      const ids = [input.pageId];
+      let frontier = [input.pageId];
+      for (let depth = 0; depth < 64 && frontier.length > 0; depth++) {
+        const children = await ctx.db
+          .select({ id: schema.block.id })
+          .from(schema.block)
+          .where(
+            and(
+              inArray(schema.block.parentId, frontier),
+              eq(schema.block.type, 'page'),
+              isNull(schema.block.deletedAt),
+            ),
+          );
+        frontier = children.map((c) => c.id);
+        ids.push(...frontier);
+      }
+      await ctx.db
+        .update(schema.block)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(inArray(schema.block.id, ids));
+      return { ok: true, count: ids.length };
+    }),
+
+  /** ゴミ箱のページ一覧 (PBI-57)。deletedAt が立っている page。 */
+  listTrash: protectedProcedure.input(workspaceIdInput).query(async ({ ctx, input }) => {
+    await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+    const rows = await ctx.db
+      .select({
+        id: schema.block.id,
+        props: schema.block.props,
+        deletedAt: schema.block.deletedAt,
+      })
+      .from(schema.block)
+      .where(
+        and(
+          eq(schema.block.workspaceId, input.workspaceId),
+          eq(schema.block.type, 'page'),
+          isNotNull(schema.block.deletedAt),
+        ),
+      )
+      .orderBy(sql`${schema.block.deletedAt} desc`)
+      .limit(200);
+    return rows.map((r) => ({
+      id: r.id,
+      title: (r.props as { title?: string } | null)?.title ?? '無題',
+      icon: (r.props as { icon?: string } | null)?.icon ?? null,
+      deletedAt: r.deletedAt,
+    }));
+  }),
+
+  /**
+   * ゴミ箱から復元 (PBI-57)。自分 + 子孫ページの deletedAt を外す。
+   * 親が削除済みのままなら、宙に浮かないようルート直下へ戻す。
+   */
+  restorePage: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const page = (
+        await ctx.db
+          .select({
+            workspaceId: schema.block.workspaceId,
+            type: schema.block.type,
+            parentId: schema.block.parentId,
+          })
+          .from(schema.block)
+          .where(and(eq(schema.block.id, input.pageId), isNotNull(schema.block.deletedAt)))
+          .limit(1)
+      )[0];
+      if (!page || page.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, page.workspaceId, ctx.session.user.id);
+
+      const ids = [input.pageId];
+      let frontier = [input.pageId];
+      for (let depth = 0; depth < 64 && frontier.length > 0; depth++) {
+        const children = await ctx.db
+          .select({ id: schema.block.id })
+          .from(schema.block)
+          .where(
+            and(
+              inArray(schema.block.parentId, frontier),
+              eq(schema.block.type, 'page'),
+              isNotNull(schema.block.deletedAt),
+            ),
+          );
+        frontier = children.map((c) => c.id);
+        ids.push(...frontier);
+      }
+
+      // 親が削除済み（= 一緒に復元されない）なら detach。
+      let detach = false;
+      if (page.parentId) {
+        const parent = (
+          await ctx.db
+            .select({ deletedAt: schema.block.deletedAt })
+            .from(schema.block)
+            .where(eq(schema.block.id, page.parentId))
+            .limit(1)
+        )[0];
+        if (!parent || parent.deletedAt !== null) detach = true;
+      }
+      await ctx.db
+        .update(schema.block)
+        .set({ deletedAt: null, updatedAt: new Date() })
+        .where(inArray(schema.block.id, ids));
+      if (detach) {
+        await ctx.db
+          .update(schema.block)
+          .set({ parentId: null, updatedAt: new Date() })
+          .where(eq(schema.block.id, input.pageId));
+      }
+      return { ok: true, count: ids.length };
+    }),
+
+  /**
+   * ゴミ箱から完全に削除 (PBI-57)。物理削除。**取り返しがつかない**ので
+   * 既に soft-delete 済み（ゴミ箱内）のページだけを対象にする。自分 + 子孫を
+   * block テーブルから消す。UI 側で確認フローを必須とする。
+   */
+  purgePage: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const page = (
+        await ctx.db
+          .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
+          .from(schema.block)
+          .where(and(eq(schema.block.id, input.pageId), isNotNull(schema.block.deletedAt)))
+          .limit(1)
+      )[0];
+      // ゴミ箱に無いページは purge 不可（誤爆防止）。
+      if (!page || page.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, page.workspaceId, ctx.session.user.id);
+
+      const ids = [input.pageId];
+      let frontier = [input.pageId];
+      for (let depth = 0; depth < 64 && frontier.length > 0; depth++) {
+        const children = await ctx.db
+          .select({ id: schema.block.id })
+          .from(schema.block)
+          .where(and(inArray(schema.block.parentId, frontier), eq(schema.block.type, 'page')));
+        frontier = children.map((c) => c.id);
+        ids.push(...frontier);
+      }
+      await ctx.db.delete(schema.block).where(inArray(schema.block.id, ids));
+      return { ok: true, count: ids.length };
     }),
 
   /** Create a new sheet block (top-level, embeddable). */

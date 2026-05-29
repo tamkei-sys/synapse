@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import { PageEditor } from '../features/editor/editor.js';
@@ -72,6 +72,16 @@ function PageShell({
 }: ShellProps) {
   const { doc, status } = useCollabDoc(`page:${pageId}`, token);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const deletePage = useMutation({
+    mutationFn: () => trpc.block.deletePage.mutate({ pageId }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['block', 'listAllPages'] });
+      await queryClient.invalidateQueries({ queryKey: ['favorite'] });
+      await navigate({ to: '/' });
+    },
+  });
   const [title, setTitle] = useState(initialTitle);
   const [titleSavedAt, setTitleSavedAt] = useState<Date | null>(null);
   const [icon, setIcon] = useState(initialIcon);
@@ -175,21 +185,38 @@ function PageShell({
       <Breadcrumb pageId={pageId} />
       <nav className="mb-6 flex items-center justify-between text-sm">
         <BackLink />
-        <button
-          type="button"
-          onClick={() => toggleFav.mutate()}
-          disabled={toggleFav.isPending}
-          data-testid="page-favorite-toggle"
-          data-favorited={fav.data?.favorited ? 'true' : 'false'}
-          aria-pressed={fav.data?.favorited ?? false}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          title={fav.data?.favorited ? 'お気に入りから外す' : 'お気に入りに追加'}
-        >
-          <span className={fav.data?.favorited ? 'text-amber-500' : ''}>
-            {fav.data?.favorited ? '★' : '☆'}
-          </span>
-          <span className="text-xs">お気に入り</span>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => toggleFav.mutate()}
+            disabled={toggleFav.isPending}
+            data-testid="page-favorite-toggle"
+            data-favorited={fav.data?.favorited ? 'true' : 'false'}
+            aria-pressed={fav.data?.favorited ?? false}
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            title={fav.data?.favorited ? 'お気に入りから外す' : 'お気に入りに追加'}
+          >
+            <span className={fav.data?.favorited ? 'text-amber-500' : ''}>
+              {fav.data?.favorited ? '★' : '☆'}
+            </span>
+            <span className="text-xs">お気に入り</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('このページ（とサブページ）をゴミ箱へ移動しますか？')) {
+                deletePage.mutate();
+              }
+            }}
+            disabled={deletePage.isPending}
+            data-testid="page-delete"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/40"
+            title="ゴミ箱へ移動"
+          >
+            <span>🗑️</span>
+            <span className="text-xs">ゴミ箱</span>
+          </button>
+        </div>
       </nav>
       <div className="relative mb-2 flex items-start gap-2">
         <button
