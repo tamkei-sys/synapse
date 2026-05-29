@@ -120,6 +120,27 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     keywords: ['toc', '目次', 'もくじ', 'outline', 'table of contents'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).setTocBlock().run(),
   },
+  {
+    id: 'date',
+    title: '日付',
+    description: '日付メンション（相対表記）を挿入',
+    keywords: ['date', '日付', 'today', '今日', 'カレンダー'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertDateMention('').run(),
+  },
+  {
+    id: 'math-block',
+    title: '数式ブロック',
+    description: 'KaTeX で display 数式',
+    keywords: ['math', '数式', 'katex', 'latex', 'tex', 'equation'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertMathBlock('').run(),
+  },
+  {
+    id: 'inline-math',
+    title: 'インライン数式',
+    description: '文中の KaTeX 数式',
+    keywords: ['imath', 'inline math', 'インライン数式', 'katex', 'latex'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertInlineMath('').run(),
+  },
 ];
 
 /** Generic filter that works against any command list (built-in or user). */

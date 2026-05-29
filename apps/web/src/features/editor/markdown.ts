@@ -165,6 +165,8 @@ function renderBlock(node: Node, depth = 0): string {
       return '<!-- 目次 -->';
     case 'table':
       return renderTable(node);
+    case 'mathBlock':
+      return `$$\n${node.attrs?.['latex'] ?? ''}\n$$`;
     default:
       // 未対応はテキスト抽出だけ
       return renderInline(node.content);
@@ -221,6 +223,8 @@ function renderInline(content: Node[] | undefined): string {
         return `[PBI-ref ${node.attrs?.['blockId'] ?? ''}](/b/${node.attrs?.['blockId'] ?? ''})`;
       if (node.type === 'pageRef')
         return `[${node.attrs?.['title'] ?? 'page'}](/p/${node.attrs?.['pageId'] ?? ''})`;
+      if (node.type === 'dateMention') return `📅 ${node.attrs?.['date'] ?? ''}`;
+      if (node.type === 'inlineMath') return `$${node.attrs?.['latex'] ?? ''}$`;
       return renderInline(node.content);
     })
     .join('');

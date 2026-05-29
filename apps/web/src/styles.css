@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
+/* KaTeX 数式スタイル (PBI-38) */
+@import 'katex/dist/katex.min.css';
 
 /* Tailwind v4 uses CSS-first config. Semantic tokens are declared here so
    feature code never hard-codes a colour (per CLAUDE.md §4 "Dark mode is
