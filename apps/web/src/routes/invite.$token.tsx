@@ -9,11 +9,12 @@
  * （受諾済みは弾く）で運用する。共有先がそのまま他人に再送するリスクは
  * 既知（ヒューマンなチェック）。
  */
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { useSession } from '../lib/auth-client.js';
+import { useStoredWorkspaceId } from '../lib/current-workspace.js';
 import { formatDate } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
@@ -32,6 +33,8 @@ function InviteAcceptRoute() {
   const { token } = Route.useParams();
   const navigate = useNavigate();
   const session = useSession();
+  const qc = useQueryClient();
+  const [, setStoredWorkspaceId] = useStoredWorkspaceId();
 
   // 未ログインなら /login へ。戻り先は invite ページに固定。
   useEffect(() => {
@@ -49,7 +52,11 @@ function InviteAcceptRoute() {
 
   const accept = useMutation({
     mutationFn: () => trpc.workspace.acceptInvitation.mutate({ token }),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      // 参加したワークスペースを current にして listMine を refetch、
+      // サイドバーが即時表示されるようにする。
+      setStoredWorkspaceId(result.workspaceId);
+      await qc.invalidateQueries({ queryKey: ['workspace', 'listMine'] });
       await navigate({ to: '/' });
     },
   });
