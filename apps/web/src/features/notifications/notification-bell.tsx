@@ -11,6 +11,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { trpc } from '../../lib/trpc.js';
+import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 
 type NotificationRow = Awaited<ReturnType<typeof trpc.notification.list.query>>[number];
 
@@ -68,6 +69,7 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
+  useDismissOnEscape(open, () => setOpen(false));
 
   const count = unread.data?.count ?? 0;
 
@@ -79,7 +81,9 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
         data-testid="notification-bell"
         data-unread={count}
         className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-300 bg-white hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
-        aria-label="通知"
+        aria-label={count > 0 ? `通知（未読 ${count} 件）` : '通知'}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <span className="text-base">🔔</span>
         {count > 0 ? (

@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useSwitchWorkspace } from '../../lib/current-workspace.js';
 import { trpc } from '../../lib/trpc.js';
+import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 
 type Workspace = Awaited<ReturnType<typeof trpc.workspace.listMine.query>>[number];
 
@@ -43,6 +44,7 @@ export function WorkspaceSwitcher({ current }: { current: Workspace }) {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
+  useDismissOnEscape(open, () => setOpen(false));
 
   return (
     <div ref={wrapRef} className="relative">
@@ -50,6 +52,9 @@ export function WorkspaceSwitcher({ current }: { current: Workspace }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         data-testid="workspace-switcher"
+        aria-label="ワークスペース切替"
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800"
       >
         <span className="flex min-w-0 items-center gap-2">

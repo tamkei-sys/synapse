@@ -15,6 +15,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { signOut, useSession } from '../../lib/auth-client.js';
+import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 
 export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom' }) {
   const session = useSession();
@@ -33,6 +34,7 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
+  useDismissOnEscape(open, () => setOpen(false));
 
   if (!session.data) return null;
 
@@ -62,6 +64,8 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
         onClick={() => setOpen((v) => !v)}
         data-testid="user-menu-button"
         aria-label="ユーザーメニュー"
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
       >
         {user.image ? (

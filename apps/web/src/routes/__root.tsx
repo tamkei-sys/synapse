@@ -27,8 +27,16 @@ function RootLayout() {
 
   return (
     <div className="flex min-h-full">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-40 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow-md focus:dark:bg-zinc-900"
+      >
+        メインコンテンツへスキップ
+      </a>
       {sidebarVisible ? <Sidebar /> : null}
-      <div
+      <main
+        id="main-content"
+        role="main"
         className={`flex min-h-full min-w-0 flex-1 flex-col ${sidebarVisible ? 'md:ml-60' : ''}`}
       >
         {/* サイドバーが描画されないケース（未ログイン / ワークスペース未作成）
@@ -40,7 +48,7 @@ function RootLayout() {
           </div>
         ) : null}
         <Outlet />
-      </div>
+      </main>
       <CommandPalette />
     </div>
   );
