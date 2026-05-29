@@ -14,11 +14,19 @@ import { trpc } from '../../lib/trpc.js';
 
 type NotificationRow = Awaited<ReturnType<typeof trpc.notification.list.query>>[number];
 
+type Tab = 'unread' | 'all';
+
 export function NotificationBell({ workspaceId }: { workspaceId: string }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>('unread');
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  // 開閉のたびにタブを「未読」に戻す（永続化はしない）。
+  useEffect(() => {
+    if (open) setTab('unread');
+  }, [open]);
 
   const unread = useQuery({
     queryKey: ['notification', 'unreadCount', workspaceId],
@@ -27,8 +35,13 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
   });
 
   const list = useQuery({
-    queryKey: ['notification', 'list', workspaceId],
-    queryFn: () => trpc.notification.list.query({ workspaceId, limit: 30 }),
+    queryKey: ['notification', 'list', workspaceId, tab],
+    queryFn: () =>
+      trpc.notification.list.query({
+        workspaceId,
+        limit: 30,
+        unreadOnly: tab === 'unread',
+      }),
     enabled: open,
   });
 
@@ -85,7 +98,14 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
           className="absolute right-0 z-20 mt-2 w-96 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >
           <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-700">
-            <span className="text-sm font-medium">通知</span>
+            <div
+              className="flex items-center gap-2 text-sm"
+              role="tablist"
+              aria-label="通知フィルタ"
+            >
+              <TabButton value="unread" current={tab} onSelect={setTab} label={`未読 (${count})`} />
+              <TabButton value="all" current={tab} onSelect={setTab} label="すべて" />
+            </div>
             <button
               type="button"
               onClick={() => markAllRead.mutate()}
@@ -116,11 +136,43 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
               ))}
             </ul>
           ) : (
-            <p className="px-4 py-6 text-center text-sm text-zinc-500">通知はまだありません。</p>
+            <p className="px-4 py-6 text-center text-sm text-zinc-500">
+              {tab === 'unread' ? '未読の通知はありません。' : '通知はまだありません。'}
+            </p>
           )}
         </div>
       ) : null}
     </div>
+  );
+}
+
+function TabButton({
+  value,
+  current,
+  onSelect,
+  label,
+}: {
+  value: Tab;
+  current: Tab;
+  onSelect: (next: Tab) => void;
+  label: string;
+}) {
+  const active = current === value;
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      data-testid={`notification-tab-${value}`}
+      onClick={() => onSelect(value)}
+      className={`rounded px-2 py-0.5 text-xs ${
+        active
+          ? 'bg-violet-100 font-medium text-violet-900 dark:bg-violet-900/40 dark:text-violet-100'
+          : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
