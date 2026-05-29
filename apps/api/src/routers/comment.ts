@@ -107,6 +107,8 @@ export const commentRouter = router({
       z.object({
         blockId: z.string().min(1),
         body: z.string().trim().min(1).max(4_000),
+        /** ルートに付ける場合は省略。リプライ時のみ親 comment id を渡す。 */
+        parentCommentId: z.string().min(1).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -118,10 +120,44 @@ export const commentRouter = router({
       if (!parent) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, parent.workspaceId, ctx.session.user.id);
 
+      // 親 comment の所属検証。同 Block 配下 + 未削除 + 1 段（孫返信は親に
+      // 寄せる：親自身が parentCommentId を持っているなら、それを使う）。
+      let resolvedParentCommentId: string | undefined;
+      let parentAuthorId: string | undefined;
+      if (input.parentCommentId) {
+        const [pc] = await ctx.db
+          .select({
+            id: schema.block.id,
+            parentBlockId: schema.block.parentId,
+            createdBy: schema.block.createdBy,
+            props: schema.block.props,
+          })
+          .from(schema.block)
+          .where(
+            and(
+              eq(schema.block.id, input.parentCommentId),
+              eq(schema.block.type, 'comment'),
+              isNull(schema.block.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (!pc || pc.parentBlockId !== input.blockId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '親コメントが見つからないか、別 Block に属しています。',
+          });
+        }
+        const pcProps = (pc.props ?? {}) as { parentCommentId?: string };
+        // 親が既にリプライなら、その親（ルート）にぶら下げる（1 段に正規化）。
+        resolvedParentCommentId = pcProps.parentCommentId ?? pc.id;
+        parentAuthorId = pc.createdBy;
+      }
+
       const mentions = extractMentions(input.body);
       const props = commentPropsSchema.parse({
         body: input.body,
         ...(mentions.length > 0 ? { mentions } : {}),
+        ...(resolvedParentCommentId ? { parentCommentId: resolvedParentCommentId } : {}),
       });
 
       const id = ulid();
@@ -155,6 +191,26 @@ export const commentRouter = router({
           console.warn('[comment] mention fan-out failed:', err);
         }
       }
+
+      // リプライの場合、親 author にも通知（自分宛は除外）。
+      if (parentAuthorId && parentAuthorId !== ctx.session.user.id) {
+        try {
+          const snippet = input.body.slice(0, 140);
+          await ctx.db.insert(schema.notification).values({
+            id: ulid(),
+            workspaceId: parent.workspaceId,
+            recipientId: parentAuthorId,
+            actorUserId: ctx.session.user.id,
+            kind: 'comment_reply',
+            blockId: input.blockId,
+            commentId: id,
+            body: `${ctx.session.user.name ?? ctx.session.user.email} さんがあなたのコメントに返信：${snippet}`,
+          });
+        } catch (err) {
+          console.warn('[comment] reply fan-out failed:', err);
+        }
+      }
+
       return row;
     }),
 

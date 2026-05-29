@@ -14,6 +14,14 @@ import { z } from 'zod';
 export const commentPropsSchema = z.object({
   body: z.string().trim().min(1).max(4_000),
   mentions: z.array(z.string()).max(32).optional(),
+  /**
+   * 親コメントの id（同 Block 配下のコメント）。
+   *
+   * v1 では 1 階層のみサポート：ルートコメント（parentCommentId = undefined）
+   * とその直下のリプライ（parentCommentId = ルートの id）。孫リプライは
+   * 親のルートに付け替える方針（多段化は v2）。
+   */
+  parentCommentId: z.string().optional(),
 });
 
 export type CommentProps = z.infer<typeof commentPropsSchema>;

@@ -579,6 +579,8 @@ function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
 
 // ── コメント ────────────────────────────────────────────
 
+type CommentRow = Awaited<ReturnType<typeof trpc.comment.list.query>>[number];
+
 function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: string | null }) {
   const qc = useQueryClient();
   const list = useQuery({
@@ -603,10 +605,33 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
       await qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] });
     },
   });
+  const reply = useMutation({
+    mutationFn: (args: { body: string; parentCommentId: string }) =>
+      trpc.comment.create.mutate({
+        blockId: block.id,
+        body: args.body,
+        parentCommentId: args.parentCommentId,
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] }),
+  });
   const remove = useMutation({
     mutationFn: (commentId: string) => trpc.comment.delete.mutate({ commentId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] }),
   });
+
+  // ルートと子に分類
+  const roots: CommentRow[] = [];
+  const childrenByParent = new Map<string, CommentRow[]>();
+  for (const row of list.data ?? []) {
+    const p = (row.props ?? {}) as { parentCommentId?: string };
+    if (p.parentCommentId) {
+      const arr = childrenByParent.get(p.parentCommentId) ?? [];
+      arr.push(row);
+      childrenByParent.set(p.parentCommentId, arr);
+    } else {
+      roots.push(row);
+    }
+  }
 
   return (
     <section className="mt-10">
@@ -642,53 +667,168 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
 
       {list.isPending ? (
         <p className="text-sm text-zinc-500">読み込み中…</p>
-      ) : list.data && list.data.length > 0 ? (
+      ) : roots.length > 0 ? (
         <ul data-testid="comment-list" className="space-y-3">
-          {list.data.map((row) => {
-            const p = (row.props ?? {}) as { body?: string; mentions?: string[] };
-            const isAuthor = row.createdBy === selfUserId;
-            const name = row.authorName ?? row.authorEmail ?? '?';
+          {roots.map((row) => (
+            <CommentItem
+              key={row.id}
+              row={row}
+              replies={childrenByParent.get(row.id) ?? []}
+              members={members.data ?? []}
+              nameMap={nameMap}
+              selfUserId={selfUserId}
+              onDelete={(id) => {
+                if (window.confirm('このコメントを削除しますか？')) remove.mutate(id);
+              }}
+              onReply={(text, parentCommentId) => reply.mutate({ body: text, parentCommentId })}
+              replyPending={reply.isPending}
+              removePending={remove.isPending}
+            />
+          ))}
+        </ul>
+      ) : (
+        <EmptyHint>まだコメントはありません。最初のひとことを書きましょう。</EmptyHint>
+      )}
+    </section>
+  );
+}
+
+function CommentItem({
+  row,
+  replies,
+  members,
+  nameMap,
+  selfUserId,
+  onDelete,
+  onReply,
+  replyPending,
+  removePending,
+}: {
+  row: CommentRow;
+  replies: CommentRow[];
+  members: MemberRow[];
+  nameMap: Map<string, string>;
+  selfUserId: string | null;
+  onDelete: (commentId: string) => void;
+  onReply: (body: string, parentCommentId: string) => void;
+  replyPending: boolean;
+  removePending: boolean;
+}) {
+  const p = (row.props ?? {}) as { body?: string; mentions?: string[] };
+  const isAuthor = row.createdBy === selfUserId;
+  const name = row.authorName ?? row.authorEmail ?? '?';
+  const [replying, setReplying] = useState(false);
+  const [replyBody, setReplyBody] = useState('');
+
+  return (
+    <li
+      data-testid={`comment-${row.id}`}
+      className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+    >
+      <div className="mb-1 flex items-center gap-2">
+        <CommentAvatar name={name} image={row.authorImage} />
+        <span className="text-sm font-medium">{name}</span>
+        <span className="text-xs text-zinc-500">
+          {new Date(row.createdAt).toLocaleString('ja-JP')}
+        </span>
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setReplying((v) => !v)}
+            data-testid={`comment-reply-toggle-${row.id}`}
+            className="text-xs text-violet-600 hover:underline dark:text-violet-300"
+          >
+            {replying ? 'キャンセル' : '返信'}
+          </button>
+          {isAuthor ? (
+            <button
+              type="button"
+              onClick={() => onDelete(row.id)}
+              disabled={removePending}
+              data-testid={`comment-delete-${row.id}`}
+              className="text-xs text-red-600 hover:underline disabled:opacity-60 dark:text-red-300"
+            >
+              削除
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <CommentBody body={p.body ?? ''} nameMap={nameMap} />
+      {p.mentions && p.mentions.length > 0 ? (
+        <p className="mt-1 text-xs text-zinc-500">
+          メンション：{p.mentions.map((u) => `@${nameMap.get(u) ?? u}`).join(' ')}
+        </p>
+      ) : null}
+
+      {replying ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!replyBody.trim()) return;
+            onReply(replyBody.trim(), row.id);
+            setReplyBody('');
+            setReplying(false);
+          }}
+          data-testid={`comment-reply-form-${row.id}`}
+          className="mt-2 flex items-start gap-2"
+        >
+          <MentionTextarea
+            value={replyBody}
+            onChange={setReplyBody}
+            members={members}
+            placeholder="返信を書く…（@ でメンバー候補）"
+          />
+          <button
+            type="submit"
+            disabled={replyPending || !replyBody.trim()}
+            data-testid={`comment-reply-submit-${row.id}`}
+            className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+          >
+            {replyPending ? '送信中…' : '返信'}
+          </button>
+        </form>
+      ) : null}
+
+      {replies.length > 0 ? (
+        <ul
+          data-testid={`comment-replies-${row.id}`}
+          className="mt-3 space-y-2 border-l-2 border-zinc-200 pl-4 dark:border-zinc-700"
+        >
+          {replies.map((r) => {
+            const rp = (r.props ?? {}) as { body?: string; mentions?: string[] };
+            const replyIsAuthor = r.createdBy === selfUserId;
+            const replyName = r.authorName ?? r.authorEmail ?? '?';
             return (
               <li
-                key={row.id}
-                data-testid={`comment-${row.id}`}
-                className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900"
+                key={r.id}
+                data-testid={`comment-${r.id}`}
+                className="rounded-md bg-zinc-50 p-2 dark:bg-zinc-800/50"
               >
                 <div className="mb-1 flex items-center gap-2">
-                  <CommentAvatar name={name} image={row.authorImage} />
-                  <span className="text-sm font-medium">{name}</span>
+                  <CommentAvatar name={replyName} image={r.authorImage} />
+                  <span className="text-sm font-medium">{replyName}</span>
                   <span className="text-xs text-zinc-500">
-                    {new Date(row.createdAt).toLocaleString('ja-JP')}
+                    {new Date(r.createdAt).toLocaleString('ja-JP')}
                   </span>
-                  {isAuthor ? (
+                  {replyIsAuthor ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (window.confirm('このコメントを削除しますか？')) remove.mutate(row.id);
-                      }}
-                      disabled={remove.isPending}
-                      data-testid={`comment-delete-${row.id}`}
+                      onClick={() => onDelete(r.id)}
+                      disabled={removePending}
+                      data-testid={`comment-delete-${r.id}`}
                       className="ml-auto text-xs text-red-600 hover:underline disabled:opacity-60 dark:text-red-300"
                     >
                       削除
                     </button>
                   ) : null}
                 </div>
-                <CommentBody body={p.body ?? ''} nameMap={nameMap} />
-                {p.mentions && p.mentions.length > 0 ? (
-                  <p className="mt-1 text-xs text-zinc-500">
-                    メンション：
-                    {p.mentions.map((u) => `@${nameMap.get(u) ?? u}`).join(' ')}
-                  </p>
-                ) : null}
+                <CommentBody body={rp.body ?? ''} nameMap={nameMap} />
               </li>
             );
           })}
         </ul>
-      ) : (
-        <EmptyHint>まだコメントはありません。最初のひとことを書きましょう。</EmptyHint>
-      )}
-    </section>
+      ) : null}
+    </li>
   );
 }
 
