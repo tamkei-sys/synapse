@@ -2,10 +2,13 @@ import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { Outlet, createRootRouteWithContext } from '@tanstack/react-router';
 
 import { UserMenu } from '../features/account/user-menu.js';
+import { NotificationBell } from '../features/notifications/notification-bell.js';
 import { CommandPalette } from '../features/search/command-palette.js';
 import { Sidebar } from '../features/sidebar/sidebar.js';
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { trpc } from '../lib/trpc.js';
+import { useUiStore } from '../stores/ui-store.js';
 
 type RouterContext = {
   queryClient: QueryClient;
@@ -22,8 +25,10 @@ function RootLayout() {
     queryFn: () => trpc.workspace.listMine.query(),
     enabled: !!session.data,
   });
-  const hasWorkspace = (workspaces.data?.length ?? 0) > 0;
+  const current = useCurrentWorkspaceFromList(workspaces.data);
+  const hasWorkspace = !!current;
   const sidebarVisible = !!session.data && hasWorkspace;
+  const toggleMobileSidebar = useUiStore((s) => s.toggleMobileSidebar);
 
   return (
     <div className="flex min-h-full">
@@ -39,6 +44,29 @@ function RootLayout() {
         role="main"
         className={`flex min-h-full min-w-0 flex-1 flex-col ${sidebarVisible ? 'md:ml-60' : ''}`}
       >
+        {/* モバイル top bar — サイドバーがあるケースだけ表示。md 以上では非表示。
+            ハンバーガー + 通知ベル + UserMenu を載せて、サイドバー無しでも
+            主要動作にたどり着けるようにする。 */}
+        {sidebarVisible && current ? (
+          <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-zinc-200 bg-white/95 px-3 py-2 backdrop-blur md:hidden dark:border-zinc-800 dark:bg-zinc-950/95">
+            <button
+              type="button"
+              onClick={toggleMobileSidebar}
+              data-testid="mobile-sidebar-toggle"
+              aria-label="サイドバーを開く"
+              className="flex h-11 w-11 items-center justify-center rounded-md border border-zinc-300 bg-white text-lg hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+            >
+              ☰
+            </button>
+            <span className="truncate text-sm font-medium" data-testid="mobile-topbar-workspace">
+              {current.name}
+            </span>
+            <div className="flex items-center gap-2">
+              <NotificationBell workspaceId={current.id} />
+              <UserMenu />
+            </div>
+          </div>
+        ) : null}
         {/* サイドバーが描画されないケース（未ログイン / ワークスペース未作成）
             だけ、UserMenu を右上に出す。サイドバーがあるときはサイドバー下端に
             UserMenu が常駐するので二重表示を避ける。 */}

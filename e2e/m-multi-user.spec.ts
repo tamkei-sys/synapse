@@ -92,7 +92,9 @@ test('M-N-R: invite → comment with mention → notification → reaction', asy
 
   // -- B: 未読通知が現れる ------------------------------------------------
   await pageB.reload(); // polling を待つより手動 reload で確実
-  const bell = pageB.getByTestId('notification-bell');
+  // モバイル top bar にも NotificationBell があるので、サイドバー（aside）
+  // 内の 1 個に絞る。
+  const bell = pageB.locator('aside').getByTestId('notification-bell');
   await expect(bell.getByTestId('notification-bell-badge')).toHaveText(/[1-9]/, {
     timeout: 15_000,
   });

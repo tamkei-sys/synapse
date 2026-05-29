@@ -80,7 +80,7 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
         onClick={() => setOpen((v) => !v)}
         data-testid="notification-bell"
         data-unread={count}
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-zinc-300 bg-white hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-md border border-zinc-300 bg-white hover:bg-zinc-100 md:h-9 md:w-9 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
         aria-label={count > 0 ? `通知（未読 ${count} 件）` : '通知'}
         aria-haspopup="menu"
         aria-expanded={open}

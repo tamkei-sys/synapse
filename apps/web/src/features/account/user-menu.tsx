@@ -66,7 +66,7 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
         aria-label="ユーザーメニュー"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 md:h-9 md:w-9 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
       >
         {user.image ? (
           <img src={user.image} alt={display} className="h-full w-full rounded-full object-cover" />
