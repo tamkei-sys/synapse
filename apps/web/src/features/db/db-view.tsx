@@ -14,12 +14,15 @@ import { useMemo, useState } from 'react';
 import type { DbCellValue, DbColumn, DbColumnKind } from '@synapse/blocks';
 
 import { trpc } from '../../lib/trpc.js';
+import { applyFilterSort, DbControls, useDbFilterSort } from './db-filter.js';
 
 type GetResult = Awaited<ReturnType<typeof trpc.db.get.query>>;
+type DbRow = GetResult['rows'][number];
 
 export function DbView({ dbId }: { dbId: string }) {
   const qc = useQueryClient();
-  const [view, setView] = useState<'table' | 'board'>('table');
+  const [view, setView] = useState<'table' | 'board' | 'gallery'>('table');
+  const { rules, setRules, sort, setSort } = useDbFilterSort();
   const query = useQuery({
     queryKey: ['db', 'get', dbId],
     queryFn: () => trpc.db.get.query({ dbId }),
@@ -54,12 +57,14 @@ export function DbView({ dbId }: { dbId: string }) {
     return <p className="text-sm text-red-500">読み込みに失敗しました。</p>;
 
   const data: GetResult = query.data;
+  const visibleRows = applyFilterSort<DbRow>(data.rows, data.props.columns, rules, sort);
+  const VIEW_LABEL = { table: 'テーブル', board: 'ボード', gallery: 'ギャラリー' } as const;
 
   return (
     <div className="space-y-3" data-testid={`db-view-${dbId}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1" role="tablist" aria-label="DB ビュー">
-          {(['table', 'board'] as const).map((v) => (
+          {(['table', 'board', 'gallery'] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -73,21 +78,32 @@ export function DbView({ dbId }: { dbId: string }) {
                   : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
-              {v === 'table' ? 'テーブル' : 'ボード'}
+              {VIEW_LABEL[v]}
             </button>
           ))}
         </div>
         <span className="text-xs text-zinc-500" data-testid="db-row-count">
-          {data.rows.length} 行 / {data.props.columns.length} 列
+          {visibleRows.length}/{data.rows.length} 行 / {data.props.columns.length} 列
         </span>
       </div>
 
+      <DbControls
+        columns={data.props.columns}
+        rules={rules}
+        setRules={setRules}
+        sort={sort}
+        setSort={setSort}
+      />
+
       {view === 'board' ? (
         <BoardView
-          data={data}
+          columns={data.props.columns}
+          rows={visibleRows}
           onSetCell={(rowId, columnId, value) => updateCell.mutate({ rowId, columnId, value })}
           onAddCard={(values) => addRow.mutate(values)}
         />
+      ) : view === 'gallery' ? (
+        <GalleryView columns={data.props.columns} rows={visibleRows} />
       ) : (
       <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
         <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
@@ -108,7 +124,7 @@ export function DbView({ dbId }: { dbId: string }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {data.rows.map((row) => (
+            {visibleRows.map((row) => (
               <tr
                 key={row.id}
                 data-testid={`db-row-${row.id}`}
@@ -142,13 +158,13 @@ export function DbView({ dbId }: { dbId: string }) {
                 </td>
               </tr>
             ))}
-            {data.rows.length === 0 ? (
+            {visibleRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={data.props.columns.length + 1}
                   className="px-3 py-6 text-center text-xs text-zinc-500"
                 >
-                  まだ行がありません
+                  {data.rows.length === 0 ? 'まだ行がありません' : '条件に一致する行がありません'}
                 </td>
               </tr>
             ) : null}
@@ -376,21 +392,20 @@ function titleColumn(cols: readonly DbColumn[]): DbColumn | undefined {
 }
 
 function BoardView({
-  data,
+  columns,
+  rows,
   onSetCell,
   onAddCard,
 }: {
-  data: GetResult;
+  columns: readonly DbColumn[];
+  rows: readonly DbRow[];
   onSetCell: (rowId: string, columnId: string, value: DbCellValue) => void;
   onAddCard: (values: Record<string, DbCellValue>) => void;
 }) {
-  const selectCols = useMemo(
-    () => data.props.columns.filter((c) => c.kind === 'select'),
-    [data.props.columns],
-  );
+  const selectCols = useMemo(() => columns.filter((c) => c.kind === 'select'), [columns]);
   const [groupColId, setGroupColId] = useState<string>(selectCols[0]?.id ?? '');
   const groupCol = selectCols.find((c) => c.id === groupColId) ?? selectCols[0];
-  const titleCol = titleColumn(data.props.columns);
+  const titleCol = titleColumn(columns);
 
   if (!groupCol) {
     return (
@@ -407,7 +422,7 @@ function BoardView({
   const buckets = [...(groupCol.options ?? []), UNSET];
 
   const rowsFor = (bucket: string) =>
-    data.rows.filter((r) => {
+    rows.filter((r) => {
       const v = r.props.values[groupCol.id];
       if (bucket === UNSET) return v === undefined || v === null || v === '';
       return v === bucket;
@@ -491,6 +506,70 @@ function BoardView({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ── Gallery ビュー (PBI-59) ─────────────────────────────────────────
+
+function formatCellShort(col: DbColumn, value: DbCellValue): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (col.kind === 'checkbox') return value === true ? '✓' : '—';
+  return String(value);
+}
+
+function GalleryView({
+  columns,
+  rows,
+}: {
+  columns: readonly DbColumn[];
+  rows: readonly DbRow[];
+}) {
+  const titleCol = titleColumn(columns);
+  // タイトル列以外を最大 4 つカードに出す。
+  const fieldCols = columns.filter((c) => c.id !== titleCol?.id).slice(0, 4);
+
+  if (rows.length === 0) {
+    return (
+      <p
+        data-testid="gallery-empty"
+        className="rounded-md border border-dashed border-zinc-300 px-3 py-6 text-center text-xs text-zinc-500 dark:border-zinc-700"
+      >
+        表示する行がありません
+      </p>
+    );
+  }
+
+  return (
+    <div
+      data-testid="db-gallery"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+    >
+      {rows.map((row) => {
+        const title =
+          titleCol && typeof row.props.values[titleCol.id] === 'string'
+            ? String(row.props.values[titleCol.id])
+            : '(無題)';
+        return (
+          <div
+            key={row.id}
+            data-testid={`gallery-card-${row.id}`}
+            className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <p className="mb-2 truncate font-medium">{title}</p>
+            <dl className="space-y-1 text-xs">
+              {fieldCols.map((col) => (
+                <div key={col.id} className="flex justify-between gap-2">
+                  <dt className="shrink-0 text-zinc-400">{col.name}</dt>
+                  <dd className="min-w-0 truncate text-right">
+                    {formatCellShort(col, row.props.values[col.id] ?? null)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        );
+      })}
     </div>
   );
 }
