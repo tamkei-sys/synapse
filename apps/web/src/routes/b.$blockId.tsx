@@ -634,6 +634,11 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] }),
   });
+  const react = useMutation({
+    mutationFn: (args: { commentId: string; emoji: (typeof REACTION_EMOJIS)[number] }) =>
+      trpc.comment.toggleReaction.mutate({ commentId: args.commentId, emoji: args.emoji }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] }),
+  });
   const remove = useMutation({
     mutationFn: (commentId: string) => trpc.comment.delete.mutate({ commentId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', block.id] }),
@@ -701,6 +706,7 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
                 if (window.confirm('このコメントを削除しますか？')) remove.mutate(id);
               }}
               onReply={(text, parentCommentId) => reply.mutate({ body: text, parentCommentId })}
+              onReact={(commentId, emoji) => react.mutate({ commentId, emoji })}
               replyPending={reply.isPending}
               removePending={remove.isPending}
             />
@@ -713,6 +719,8 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
   );
 }
 
+const REACTION_EMOJIS: readonly ['👍', '🎉', '👀', '✅', '🤔'] = ['👍', '🎉', '👀', '✅', '🤔'];
+
 function CommentItem({
   row,
   replies,
@@ -721,6 +729,7 @@ function CommentItem({
   selfUserId,
   onDelete,
   onReply,
+  onReact,
   replyPending,
   removePending,
 }: {
@@ -731,6 +740,7 @@ function CommentItem({
   selfUserId: string | null;
   onDelete: (commentId: string) => void;
   onReply: (body: string, parentCommentId: string) => void;
+  onReact: (commentId: string, emoji: (typeof REACTION_EMOJIS)[number]) => void;
   replyPending: boolean;
   removePending: boolean;
 }) {
@@ -739,6 +749,8 @@ function CommentItem({
   const name = row.authorName ?? row.authorEmail ?? '?';
   const [replying, setReplying] = useState(false);
   const [replyBody, setReplyBody] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const reactions = row.reactions ?? [];
 
   return (
     <li
@@ -779,6 +791,58 @@ function CommentItem({
           メンション：{p.mentions.map((u) => `@${nameMap.get(u) ?? u}`).join(' ')}
         </p>
       ) : null}
+
+      <div className="mt-2 flex flex-wrap items-center gap-1">
+        {reactions.map((r) => (
+          <button
+            key={r.emoji}
+            type="button"
+            onClick={() => onReact(row.id, r.emoji as (typeof REACTION_EMOJIS)[number])}
+            data-testid={`reaction-${row.id}-${r.emoji}`}
+            data-active={r.byMe}
+            className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
+              r.byMe
+                ? 'border-violet-400 bg-violet-100 text-violet-900 dark:border-violet-500 dark:bg-violet-900/40 dark:text-violet-100'
+                : 'border-zinc-300 bg-white hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <span>{r.emoji}</span>
+            <span className="font-mono">{r.count}</span>
+          </button>
+        ))}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setPickerOpen((v) => !v)}
+            data-testid={`reaction-picker-${row.id}`}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-zinc-300 text-xs text-zinc-500 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            title="リアクション"
+          >
+            ＋
+          </button>
+          {pickerOpen ? (
+            <div
+              data-testid={`reaction-picker-menu-${row.id}`}
+              className="absolute left-0 top-full z-20 mt-1 flex gap-1 rounded-md border border-zinc-200 bg-white p-1 shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => {
+                    onReact(row.id, emoji);
+                    setPickerOpen(false);
+                  }}
+                  data-testid={`reaction-pick-${row.id}-${emoji}`}
+                  className="rounded px-1.5 py-0.5 text-base hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       {replying ? (
         <form

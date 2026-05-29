@@ -6,12 +6,15 @@
  * クエリで賄えるが、可読性のため専用 router を用意した。
  */
 import { TRPCError } from '@trpc/server';
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, count, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
 import { commentPropsSchema, extractMentions } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
+
+const REACTION_EMOJIS = ['👍', '🎉', '👀', '✅', '🤔'] as const;
+const reactionEmojiSchema = z.enum(REACTION_EMOJIS);
 
 import type { Database } from '../db.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
@@ -99,7 +102,75 @@ export const commentRouter = router({
           ),
         )
         .orderBy(asc(schema.block.createdAt));
-      return rows;
+
+      const commentIds = rows.map((r) => r.id);
+      const reactionsByComment = new Map<
+        string,
+        { emoji: string; count: number; byMe: boolean }[]
+      >();
+      if (commentIds.length > 0) {
+        const me = ctx.session.user.id;
+        const agg = await ctx.db
+          .select({
+            commentId: schema.commentReaction.commentId,
+            emoji: schema.commentReaction.emoji,
+            count: count(),
+            byMe: sql<boolean>`bool_or(${schema.commentReaction.userId} = ${me})`,
+          })
+          .from(schema.commentReaction)
+          .where(inArray(schema.commentReaction.commentId, commentIds))
+          .groupBy(schema.commentReaction.commentId, schema.commentReaction.emoji);
+        for (const a of agg) {
+          const arr = reactionsByComment.get(a.commentId) ?? [];
+          arr.push({ emoji: a.emoji, count: Number(a.count), byMe: a.byMe });
+          reactionsByComment.set(a.commentId, arr);
+        }
+      }
+
+      return rows.map((r) => ({ ...r, reactions: reactionsByComment.get(r.id) ?? [] }));
+    }),
+
+  /**
+   * リアクションの toggle。既に同 (comment, user, emoji) があれば外し、無ければ
+   * 立てる。emoji は固定 5 種（👍🎉👀✅🤔）。
+   */
+  toggleReaction: protectedProcedure
+    .input(z.object({ commentId: z.string().min(1), emoji: reactionEmojiSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const [comment] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.commentId),
+            eq(schema.block.type, 'comment'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!comment) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, comment.workspaceId, ctx.session.user.id);
+
+      const where = and(
+        eq(schema.commentReaction.commentId, input.commentId),
+        eq(schema.commentReaction.userId, ctx.session.user.id),
+        eq(schema.commentReaction.emoji, input.emoji),
+      );
+      const existing = await ctx.db
+        .select({ emoji: schema.commentReaction.emoji })
+        .from(schema.commentReaction)
+        .where(where)
+        .limit(1);
+      if (existing.length > 0) {
+        await ctx.db.delete(schema.commentReaction).where(where);
+        return { active: false };
+      }
+      await ctx.db.insert(schema.commentReaction).values({
+        commentId: input.commentId,
+        userId: ctx.session.user.id,
+        emoji: input.emoji,
+      });
+      return { active: true };
     }),
 
   create: protectedProcedure
