@@ -88,6 +88,38 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     keywords: ['toggle', 'トグル', '折りたたみ', 'fold', 'collapse', 'details'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).setToggle().run(),
   },
+  {
+    id: 'table',
+    title: 'テーブル',
+    description: '3×3 の表を挿入',
+    keywords: ['table', '表', 'テーブル', 'grid'],
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .run(),
+  },
+  {
+    id: 'embed',
+    title: '埋め込み',
+    description: 'YouTube / Figma / Loom などを iframe 埋め込み',
+    keywords: ['embed', '埋め込み', 'iframe', 'youtube', 'figma', 'loom'],
+    run: (editor, range) => {
+      editor.chain().focus().deleteRange(range).run();
+      const url = window.prompt('埋め込む URL', 'https://');
+      if (!url) return;
+      editor.chain().focus().setEmbed(url).run();
+    },
+  },
+  {
+    id: 'toc',
+    title: '目次',
+    description: '見出しから自動生成される目次',
+    keywords: ['toc', '目次', 'もくじ', 'outline', 'table of contents'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setTocBlock().run(),
+  },
 ];
 
 /** Generic filter that works against any command list (built-in or user). */

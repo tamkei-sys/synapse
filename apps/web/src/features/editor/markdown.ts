@@ -159,10 +159,45 @@ function renderBlock(node: Node, depth = 0): string {
       return `[PR ${node.attrs?.['prUrl'] ?? ''}](${node.attrs?.['prUrl'] ?? ''})`;
     case 'pageRef':
       return `[${node.attrs?.['title'] ?? 'page'}](/p/${node.attrs?.['pageId'] ?? ''})`;
+    case 'embed':
+      return `[embed](${node.attrs?.['src'] ?? ''})`;
+    case 'tocBlock':
+      return '<!-- 目次 -->';
+    case 'table':
+      return renderTable(node);
     default:
       // 未対応はテキスト抽出だけ
       return renderInline(node.content);
   }
+}
+
+/** TipTap table → GFM table。セル内は inline テキストだけ取り出す。 */
+function renderTable(node: Node): string {
+  const rows = node.content ?? [];
+  if (rows.length === 0) return '';
+  const grid: string[][] = rows.map((row) =>
+    (row.content ?? []).map((cell) => {
+      // cell の中の段落テキストを 1 行に潰す（GFM セルは改行不可）。
+      const text = (cell.content ?? [])
+        .map((c) => renderInline(c.content))
+        .join(' ')
+        .replace(/\n/g, ' ')
+        .replace(/\|/g, '\\|')
+        .trim();
+      return text;
+    }),
+  );
+  const colCount = Math.max(...grid.map((r) => r.length));
+  const pad = (r: string[]) => {
+    const out = [...r];
+    while (out.length < colCount) out.push('');
+    return out;
+  };
+  const header = pad(grid[0] ?? []);
+  const sep = Array.from({ length: colCount }, () => '---');
+  const bodyRows = grid.slice(1).map((r) => pad(r));
+  const line = (cells: string[]) => `| ${cells.join(' | ')} |`;
+  return [line(header), line(sep), ...bodyRows.map(line)].join('\n');
 }
 
 function renderListItem(li: Node, depth: number, prefix: string): string {

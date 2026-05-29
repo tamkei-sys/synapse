@@ -180,6 +180,7 @@ export function FormatToolbar({ editor }: Props) {
         </Group>
         <Divider />
         <ColorMenu editor={editor} />
+        {editor.isActive('table') ? <TableControls editor={editor} /> : null}
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -456,6 +457,73 @@ function ColorMenu({ editor }: { editor: Editor }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** 表の中にカーソルがあるときだけ出す行列操作 (PBI-46)。 */
+function TableControls({ editor }: { editor: Editor }) {
+  return (
+    <>
+      <Divider />
+      <Group>
+        <ToolbarButton
+          label="列を左に追加"
+          testid="table-add-col-before"
+          active={false}
+          onClick={() => editor.chain().focus().addColumnBefore().run()}
+        >
+          ←|
+        </ToolbarButton>
+        <ToolbarButton
+          label="列を右に追加"
+          testid="table-add-col-after"
+          active={false}
+          onClick={() => editor.chain().focus().addColumnAfter().run()}
+        >
+          |→
+        </ToolbarButton>
+        <ToolbarButton
+          label="行を上に追加"
+          testid="table-add-row-before"
+          active={false}
+          onClick={() => editor.chain().focus().addRowBefore().run()}
+        >
+          ↑—
+        </ToolbarButton>
+        <ToolbarButton
+          label="行を下に追加"
+          testid="table-add-row-after"
+          active={false}
+          onClick={() => editor.chain().focus().addRowAfter().run()}
+        >
+          —↓
+        </ToolbarButton>
+        <ToolbarButton
+          label="列を削除"
+          testid="table-del-col"
+          active={false}
+          onClick={() => editor.chain().focus().deleteColumn().run()}
+        >
+          ✕|
+        </ToolbarButton>
+        <ToolbarButton
+          label="行を削除"
+          testid="table-del-row"
+          active={false}
+          onClick={() => editor.chain().focus().deleteRow().run()}
+        >
+          ✕—
+        </ToolbarButton>
+        <ToolbarButton
+          label="表を削除"
+          testid="table-del"
+          active={false}
+          onClick={() => editor.chain().focus().deleteTable().run()}
+        >
+          🗑
+        </ToolbarButton>
+      </Group>
+    </>
   );
 }
 

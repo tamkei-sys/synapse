@@ -20,6 +20,10 @@ import Collaboration from '@tiptap/extension-collaboration';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Table } from '@tiptap/extension-table';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableRow } from '@tiptap/extension-table-row';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import TextStyle from '@tiptap/extension-text-style';
@@ -31,8 +35,10 @@ import type * as Y from 'yjs';
 
 import { CalloutNode } from './callout-node.js';
 import { CodeBlockHighlighted } from './code-block.js';
+import { EmbedNode } from './embed-node.js';
 import { FormatToolbar } from './format-toolbar.js';
 import { MarkdownPasteExtension } from './markdown-paste.js';
+import { TocNode } from './toc-node.js';
 import { ToggleDetails, ToggleNode, ToggleSummary } from './toggle-node.js';
 import { PageRefNode } from './page-ref-node.js';
 import { makePageSlashCommand } from './page-slash.js';
@@ -102,6 +108,12 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       ToggleNode,
       ToggleSummary,
       ToggleDetails,
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      EmbedNode,
+      TocNode,
       Placeholder.configure({
         placeholder: 'ここに入力 — 「/」でコマンドメニュー',
       }),
