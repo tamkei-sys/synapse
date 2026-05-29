@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login';
 import { Route as DbRouteImport } from './routes/db';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications';
 import { Route as SettingsMembersRouteImport } from './routes/settings.members';
 import { Route as SettingsAuditLogRouteImport } from './routes/settings.audit-log';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
@@ -69,6 +70,11 @@ const SettingsTokensRoute = SettingsTokensRouteImport.update({
   path: '/settings/tokens',
   getParentRoute: () => rootRouteImport,
 } as any);
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings/notifications',
+  path: '/settings/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SettingsMembersRoute = SettingsMembersRouteImport.update({
   id: '/settings/members',
   path: '/settings/members',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/members': typeof SettingsMembersRoute;
+  '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesByTo {
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/members': typeof SettingsMembersRoute;
+  '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesById {
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/members': typeof SettingsMembersRoute;
+  '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRouteTypes {
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/members'
+    | '/settings/notifications'
     | '/settings/tokens';
   fileRoutesByTo: FileRoutesByTo;
   to:
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/members'
+    | '/settings/notifications'
     | '/settings/tokens';
   id:
     | '__root__'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/members'
+    | '/settings/notifications'
     | '/settings/tokens';
   fileRoutesById: FileRoutesById;
 }
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   PPageIdRoute: typeof PPageIdRoute;
   SettingsAuditLogRoute: typeof SettingsAuditLogRoute;
   SettingsMembersRoute: typeof SettingsMembersRoute;
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute;
   SettingsTokensRoute: typeof SettingsTokensRoute;
 }
 
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsTokensRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/settings/notifications': {
+      id: '/settings/notifications';
+      path: '/settings/notifications';
+      fullPath: '/settings/notifications';
+      preLoaderRoute: typeof SettingsNotificationsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/settings/members': {
       id: '/settings/members';
       path: '/settings/members';
@@ -329,6 +349,7 @@ const rootRouteChildren: RootRouteChildren = {
   PPageIdRoute: PPageIdRoute,
   SettingsAuditLogRoute: SettingsAuditLogRoute,
   SettingsMembersRoute: SettingsMembersRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsTokensRoute: SettingsTokensRoute,
 };
 export const routeTree = rootRouteImport

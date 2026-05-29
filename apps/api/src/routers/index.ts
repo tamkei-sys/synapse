@@ -13,6 +13,7 @@ import { commentRouter } from './comment.js';
 import { dbRouter } from './db.js';
 import { dependencyRouter } from './dependency.js';
 import { notificationRouter } from './notification.js';
+import { notificationChannelRouter } from './notification-channel.js';
 import { pbiRouter } from './pbi.js';
 import { projectRouter } from './project.js';
 import { pushRouter } from './push.js';
@@ -51,6 +52,7 @@ export const appRouter = router({
   audit: auditRouter,
   comment: commentRouter,
   notification: notificationRouter,
+  notificationChannel: notificationChannelRouter,
   push: pushRouter,
   db: dbRouter,
 });

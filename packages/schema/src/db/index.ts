@@ -17,3 +17,4 @@ export * from './dependency.js';
 export * from './notification.js';
 export * from './reaction.js';
 export * from './push-subscription.js';
+export * from './notification-channel.js';

@@ -78,6 +78,13 @@
       "when": 1780033000000,
       "tag": "0010_push_subscription",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780036000000,
+      "tag": "0011_notification_channel",
+      "breakpoints": true
     }
   ]
 }

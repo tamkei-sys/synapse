@@ -18,6 +18,7 @@ const reactionEmojiSchema = z.enum(REACTION_EMOJIS);
 
 import type { Database } from '../db.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
+import { deliverNotification } from '../lib/notify-deliver.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 /**
@@ -246,6 +247,7 @@ export const commentRouter = router({
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
+      const actorName = ctx.session.user.name ?? ctx.session.user.email;
       // 通知 fan-out は best-effort。失敗してもコメント投稿自体は成功扱い。
       if (mentions.length > 0) {
         try {
@@ -254,13 +256,24 @@ export const commentRouter = router({
             blockId: input.blockId,
             commentId: id,
             actorUserId: ctx.session.user.id,
-            actorName: ctx.session.user.name ?? ctx.session.user.email,
+            actorName,
             mentions,
             body: input.body,
           });
         } catch (err) {
           console.warn('[comment] mention fan-out failed:', err);
         }
+        // 外部チャネル（Slack 等）への配信は after-response で。
+        ctx.waitUntil(
+          deliverNotification(ctx.db, ctx.env, {
+            workspaceId: parent.workspaceId,
+            kind: 'mention',
+            recipientUserId: '',
+            actorName,
+            body: input.body.slice(0, 280),
+            url: `${ctx.env.WEB_ORIGIN}/b/${input.blockId}`,
+          }),
+        );
       }
 
       // リプライの場合、親 author にも通知（自分宛は除外）。
@@ -275,11 +288,21 @@ export const commentRouter = router({
             kind: 'comment_reply',
             blockId: input.blockId,
             commentId: id,
-            body: `${ctx.session.user.name ?? ctx.session.user.email} さんがあなたのコメントに返信：${snippet}`,
+            body: `${actorName} さんがあなたのコメントに返信：${snippet}`,
           });
         } catch (err) {
           console.warn('[comment] reply fan-out failed:', err);
         }
+        ctx.waitUntil(
+          deliverNotification(ctx.db, ctx.env, {
+            workspaceId: parent.workspaceId,
+            kind: 'comment_reply',
+            recipientUserId: parentAuthorId,
+            actorName,
+            body: input.body.slice(0, 280),
+            url: `${ctx.env.WEB_ORIGIN}/b/${input.blockId}`,
+          }),
+        );
       }
 
       return row;
