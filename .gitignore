@@ -64,3 +64,6 @@ yarn-debug.log*
 # Demo screenshots (not part of source tree)
 demo-*.png
 sidebar-after.png
+
+# scheduler lock
+.claude/scheduled_tasks.lock
