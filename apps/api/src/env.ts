@@ -46,6 +46,26 @@ export type Env = {
    */
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
+
+  // ---- cc Container (PBI-19) --------------------------------------------
+  /**
+   * Cloudflare Container DO binding for the cc-container image.
+   * Set in wrangler.toml as `containers.binding = CC_CONTAINER`.
+   * Local dev は undefined のままで OK（stub にフォールバック）。
+   */
+  CC_CONTAINER?: {
+    idFromName(name: string): { fetch: (req: Request) => Promise<Response> };
+  };
+  /**
+   * SYNAPSE が cc コンテナに渡す callback トークンの署名鍵。
+   * 短期トークン (≤ 30 min) を発行するための HS256 secret。
+   */
+  CC_SESSION_TOKEN_SECRET?: string;
+  /**
+   * cc コンテナが SYNAPSE API を叩く外向き URL（自分自身）。
+   * 通常は env.WEB_ORIGIN ではなく BETTER_AUTH_URL と一致する API ホスト。
+   */
+  CC_API_BASE?: string;
 };
 
 export type AppBindings = {
