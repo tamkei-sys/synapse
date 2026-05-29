@@ -30,6 +30,7 @@ import {
 
 import { PageEditor } from '../features/editor/editor.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
+import { usePresence, type PresenceUser } from '../features/editor/use-presence.js';
 import { useSession } from '../lib/auth-client.js';
 import {
   blockHumanPrefix,
@@ -77,12 +78,29 @@ function BlockDetailRoute() {
     );
   }
 
-  return <BlockShell block={block.data} token={token} />;
+  const self: PresenceUser | null = session.data
+    ? {
+        id: session.data.user.id,
+        name: session.data.user.name ?? session.data.user.email,
+        email: session.data.user.email,
+        image: session.data.user.image ?? null,
+      }
+    : null;
+  return <BlockShell block={block.data} token={token} self={self} />;
 }
 
-function BlockShell({ block, token }: { block: BlockRow; token: string | undefined }) {
+function BlockShell({
+  block,
+  token,
+  self,
+}: {
+  block: BlockRow;
+  token: string | undefined;
+  self: PresenceUser | null;
+}) {
   const docName = `block:${block.id}`;
-  const { doc, status } = useCollabDoc(docName, token);
+  const { doc, provider, status } = useCollabDoc(docName, token);
+  const peers = usePresence(provider, self);
   const props = (block.props ?? {}) as Record<string, unknown>;
   const number = typeof props['number'] === 'number' ? (props['number'] as number) : undefined;
   const prefix = blockHumanPrefix[block.type] ?? block.type.toUpperCase();
@@ -105,6 +123,7 @@ function BlockShell({ block, token }: { block: BlockRow; token: string | undefin
           <span>·</span>
           <span data-testid="block-human-id">{humanId}</span>
           <ConnectionBadge status={status} />
+          <PresenceBar peers={peers} />
         </div>
         <BlockHeader block={block} />
       </header>
@@ -763,6 +782,47 @@ function PrioritySelect({ value, onChange }: { value: Priority; onChange: (v: Pr
         </option>
       ))}
     </select>
+  );
+}
+
+function PresenceBar({ peers }: { peers: PresenceUser[] }) {
+  if (peers.length === 0) return null;
+  return (
+    <span
+      data-testid="presence-bar"
+      data-peer-count={peers.length}
+      className="ml-2 inline-flex items-center gap-1"
+    >
+      <span className="text-zinc-400">同時編集</span>
+      <span className="flex -space-x-1.5">
+        {peers.slice(0, 5).map((u) => {
+          const initial = u.name.trim().slice(0, 1).toUpperCase() || '?';
+          const style = { background: u.color ?? '#8b5cf6' };
+          return u.image ? (
+            <img
+              key={u.id}
+              src={u.image}
+              alt={u.name}
+              title={u.name}
+              style={{ outlineColor: u.color ?? '#8b5cf6' }}
+              className="inline-block h-5 w-5 rounded-full object-cover outline outline-2 outline-offset-1"
+            />
+          ) : (
+            <span
+              key={u.id}
+              title={u.name}
+              style={style}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium text-white"
+            >
+              {initial}
+            </span>
+          );
+        })}
+        {peers.length > 5 ? (
+          <span className="ml-1 text-[10px] text-zinc-500">+{peers.length - 5}</span>
+        ) : null}
+      </span>
+    </span>
   );
 }
 
