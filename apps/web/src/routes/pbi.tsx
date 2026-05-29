@@ -25,6 +25,7 @@ import {
 } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import {
   blockHumanPrefix,
   pbiStatusLabel,
@@ -58,7 +59,7 @@ function PbiBoardRoute() {
       </Centered>
     );
 
-  const workspace = workspaces.data?.[0];
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace)
     return (
       <Centered>

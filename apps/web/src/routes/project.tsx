@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { PRIORITIES, PROJECT_STATUSES, type Priority, type ProjectStatus } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import {
   formatDate,
   priorityLabel,
@@ -62,7 +63,7 @@ function ProjectRoute() {
         </Link>
       </Centered>
     );
-  const workspace = workspaces.data?.[0];
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace)
     return (
       <Centered>

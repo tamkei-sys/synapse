@@ -20,6 +20,7 @@ import {
 } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { sbiStatusLabel, statusTone } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
@@ -96,7 +97,7 @@ function SbiRoute() {
         </Link>
       </Centered>
     );
-  const workspace = workspaces.data?.[0];
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace)
     return (
       <Centered>

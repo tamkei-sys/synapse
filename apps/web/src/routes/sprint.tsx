@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { SPRINT_STATUSES, type SprintStatus } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { formatDate, sprintStatusLabel, statusTone } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
@@ -56,7 +57,7 @@ function SprintRoute() {
         </Link>
       </Centered>
     );
-  const workspace = workspaces.data?.[0];
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace)
     return (
       <Centered>

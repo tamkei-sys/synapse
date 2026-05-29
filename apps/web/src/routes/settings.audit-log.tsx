@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/settings/audit-log')({
@@ -24,7 +25,7 @@ function AuditRoute() {
         </Link>
       </Centered>
     );
-  const workspace = workspaces.data?.[0];
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace)
     return (
       <Centered>

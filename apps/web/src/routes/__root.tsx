@@ -2,8 +2,8 @@ import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { Outlet, createRootRouteWithContext } from '@tanstack/react-router';
 
 import { UserMenu } from '../features/account/user-menu.js';
-import { NotificationBell } from '../features/notifications/notification-bell.js';
 import { CommandPalette } from '../features/search/command-palette.js';
+import { Sidebar } from '../features/sidebar/sidebar.js';
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
 
@@ -16,41 +16,32 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootLayout() {
-  return (
-    <div className="flex min-h-full flex-col">
-      <GlobalChrome />
-      <Outlet />
-      <CommandPalette />
-    </div>
-  );
-}
-
-/**
- * 全ルート共通の右上装飾。
- *
- * 認証済みのユーザーには常にユーザーメニュー（ログアウト動線）を出し、
- * ワークスペースが 1 つ以上あれば通知ベルも並べる。/login や /signup
- * のように未ログイン専用ページでは何も描画しない。
- */
-function GlobalChrome() {
   const session = useSession();
   const workspaces = useQuery({
     queryKey: ['workspace', 'listMine'],
     queryFn: () => trpc.workspace.listMine.query(),
     enabled: !!session.data,
   });
-  if (!session.data) return null;
-  const workspace = workspaces.data?.[0];
+  const hasWorkspace = (workspaces.data?.length ?? 0) > 0;
+  const sidebarVisible = !!session.data && hasWorkspace;
+
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-30 flex items-center gap-2">
-      {workspace ? (
-        <div className="pointer-events-auto">
-          <NotificationBell workspaceId={workspace.id} />
-        </div>
-      ) : null}
-      <div className="pointer-events-auto">
-        <UserMenu />
+    <div className="flex min-h-full">
+      {sidebarVisible ? <Sidebar /> : null}
+      <div
+        className={`flex min-h-full min-w-0 flex-1 flex-col ${sidebarVisible ? 'md:ml-60' : ''}`}
+      >
+        {/* サイドバーが描画されないケース（未ログイン / ワークスペース未作成）
+            だけ、UserMenu を右上に出す。サイドバーがあるときはサイドバー下端に
+            UserMenu が常駐するので二重表示を避ける。 */}
+        {session.data && !hasWorkspace ? (
+          <div className="fixed right-4 top-4 z-30">
+            <UserMenu />
+          </div>
+        ) : null}
+        <Outlet />
       </div>
+      <CommandPalette />
     </div>
   );
 }

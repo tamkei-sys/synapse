@@ -10,6 +10,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useSession } from '../lib/auth-client.js';
+import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/')({
@@ -63,6 +64,7 @@ function AuthenticatedHome() {
     queryKey: ['workspace', 'listMine'],
     queryFn: () => trpc.workspace.listMine.query(),
   });
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
 
   if (workspaces.isPending) {
     return <Centered>ワークスペースを読み込み中…</Centered>;
@@ -76,7 +78,6 @@ function AuthenticatedHome() {
     return <CreateWorkspaceForm />;
   }
 
-  const workspace = workspaces.data[0];
   if (!workspace) {
     return <Centered>ワークスペースが見つかりません。</Centered>;
   }
@@ -178,66 +179,15 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             <code className="font-mono">{workspace.slug}</code> · ログイン中：{email}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to="/project"
-            data-testid="open-projects"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            プロジェクト
-          </Link>
-          <Link
-            to="/sprint"
-            data-testid="open-sprints"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            スプリント
-          </Link>
-          <Link
-            to="/pbi"
-            data-testid="open-pbi-board"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            PBI
-          </Link>
-          <Link
-            to="/sbi"
-            data-testid="open-sbi-board"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            SBI
-          </Link>
-          <Link
-            to="/settings/members"
-            data-testid="open-members-settings"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            メンバー
-          </Link>
-          <Link
-            to="/settings/tokens"
-            data-testid="open-tokens-settings"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            トークン
-          </Link>
-          <Link
-            to="/settings/audit-log"
-            data-testid="open-audit-log"
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            監査ログ
-          </Link>
-          <button
-            type="button"
-            onClick={() => createPage.mutate()}
-            disabled={createPage.isPending}
-            data-testid="new-page-button"
-            className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
-          >
-            {createPage.isPending ? '作成中…' : '+ 新規ページ'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => createPage.mutate()}
+          disabled={createPage.isPending}
+          data-testid="new-page-button"
+          className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+        >
+          {createPage.isPending ? '作成中…' : '+ 新規ページ'}
+        </button>
       </header>
 
       <section>
