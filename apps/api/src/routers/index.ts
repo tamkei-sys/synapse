@@ -10,6 +10,7 @@ import { blockRouter } from './block.js';
 import { ccRouter } from './cc.js';
 import { commentRouter } from './comment.js';
 import { dependencyRouter } from './dependency.js';
+import { notificationRouter } from './notification.js';
 import { pbiRouter } from './pbi.js';
 import { projectRouter } from './project.js';
 import { sbiRouter } from './sbi.js';
@@ -38,6 +39,7 @@ export const appRouter = router({
   cc: ccRouter,
   audit: auditRouter,
   comment: commentRouter,
+  notification: notificationRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -6,15 +6,64 @@
  * クエリで賄えるが、可読性のため専用 router を用意した。
  */
 import { TRPCError } from '@trpc/server';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
 import { commentPropsSchema, extractMentions } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
+import type { Database } from '../db.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
+
+/**
+ * メンション → 通知の fan-out。
+ *
+ * - `extractMentions` で拾った userId のうち、ワークスペース member の
+ *   ものだけを対象にする（権限漏洩を防ぐ）。
+ * - 投稿者自身を mention した分はスキップ（自分への通知は意味ない）。
+ * - 1 SQL でフィルタしてから insert。
+ */
+async function fanoutMentionNotifications(
+  db: Database,
+  args: {
+    workspaceId: string;
+    blockId: string;
+    commentId: string;
+    actorUserId: string;
+    actorName: string;
+    mentions: string[];
+    body: string;
+  },
+): Promise<void> {
+  if (args.mentions.length === 0) return;
+
+  const targets = await db
+    .select({ userId: schema.workspaceMember.userId })
+    .from(schema.workspaceMember)
+    .where(
+      and(
+        eq(schema.workspaceMember.workspaceId, args.workspaceId),
+        inArray(schema.workspaceMember.userId, args.mentions),
+      ),
+    );
+  const recipients = targets.map((t) => t.userId).filter((id) => id !== args.actorUserId);
+  if (recipients.length === 0) return;
+
+  const snippet = args.body.slice(0, 140);
+  const rows = recipients.map((recipientId) => ({
+    id: ulid(),
+    workspaceId: args.workspaceId,
+    recipientId,
+    actorUserId: args.actorUserId,
+    kind: 'mention',
+    blockId: args.blockId,
+    commentId: args.commentId,
+    body: `${args.actorName} さんからメンション：${snippet}`,
+  }));
+  await db.insert(schema.notification).values(rows);
+}
 
 export const commentRouter = router({
   list: protectedProcedure
@@ -89,6 +138,23 @@ export const commentRouter = router({
         })
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+
+      // 通知 fan-out は best-effort。失敗してもコメント投稿自体は成功扱い。
+      if (mentions.length > 0) {
+        try {
+          await fanoutMentionNotifications(ctx.db, {
+            workspaceId: parent.workspaceId,
+            blockId: input.blockId,
+            commentId: id,
+            actorUserId: ctx.session.user.id,
+            actorName: ctx.session.user.name ?? ctx.session.user.email,
+            mentions,
+            body: input.body,
+          });
+        } catch (err) {
+          console.warn('[comment] mention fan-out failed:', err);
+        }
+      }
       return row;
     }),
 

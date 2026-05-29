@@ -586,6 +586,15 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
     queryFn: () => trpc.comment.list.query({ blockId: block.id }),
     refetchInterval: 5_000,
   });
+  // メンション名前解決用。/b/$blockId 内で他箇所のリクエストとキャッシュ共有。
+  const members = useQuery({
+    queryKey: ['workspace', 'listMembers', block.workspaceId],
+    queryFn: () => trpc.workspace.listMembers.query({ workspaceId: block.workspaceId }),
+  });
+  const nameMap = new Map<string, string>();
+  for (const m of members.data ?? []) {
+    nameMap.set(m.userId, m.name ?? m.email);
+  }
   const [body, setBody] = useState('');
   const create = useMutation({
     mutationFn: (text: string) => trpc.comment.create.mutate({ blockId: block.id, body: text }),
@@ -667,10 +676,11 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
                     </button>
                   ) : null}
                 </div>
-                <p className="whitespace-pre-wrap text-sm">{p.body ?? ''}</p>
+                <CommentBody body={p.body ?? ''} nameMap={nameMap} />
                 {p.mentions && p.mentions.length > 0 ? (
                   <p className="mt-1 text-xs text-zinc-500">
-                    メンション：{p.mentions.map((u) => `@${u}`).join(' ')}
+                    メンション：
+                    {p.mentions.map((u) => `@${nameMap.get(u) ?? u}`).join(' ')}
                   </p>
                 ) : null}
               </li>
@@ -682,6 +692,39 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
       )}
     </section>
   );
+}
+
+/**
+ * コメント本文の描画。`@user-id` をワークスペースメンバー名に解決して
+ * `@田村圭` のような chip 風表記にする。未知の id は素のテキストに戻す。
+ */
+function CommentBody({ body, nameMap }: { body: string; nameMap: Map<string, string> }) {
+  const parts: React.ReactNode[] = [];
+  const pattern = /@([A-Za-z0-9_-]{6,32})/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = pattern.exec(body))) {
+    if (m.index > last) parts.push(body.slice(last, m.index));
+    const id = m[1] ?? '';
+    const name = nameMap.get(id);
+    if (name) {
+      parts.push(
+        <span
+          key={`mention-${i++}`}
+          data-testid="mention-resolved"
+          className="rounded bg-violet-100 px-1 font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200"
+        >
+          @{name}
+        </span>,
+      );
+    } else {
+      parts.push(`@${id}`);
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < body.length) parts.push(body.slice(last));
+  return <p className="whitespace-pre-wrap text-sm">{parts}</p>;
 }
 
 function CommentAvatar({ name, image }: { name: string; image: string | null }) {
