@@ -78,7 +78,7 @@ export function Sidebar() {
       </NavSection>
 
       <div className="mt-auto flex items-center justify-end rounded-md bg-white/40 px-2 py-1.5 dark:bg-zinc-900/40">
-        <UserMenu />
+        <UserMenu placement="top" />
       </div>
     </aside>
   );

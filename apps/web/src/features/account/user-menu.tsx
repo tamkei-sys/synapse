@@ -1,10 +1,14 @@
 /**
- * 右上のユーザーメニュー。
+ * ユーザーメニュー（アバター + dropdown）。
  *
- * - アバター（自分のイニシャル or 画像）をクリックで dropdown を開く
+ * - アバター（イニシャル or 画像）クリックで dropdown を開く
  * - dropdown は 名前 + email + 「ログアウト」ボタン
  * - ログアウト時は signOut → React Query キャッシュを全部捨てて `/` に navigate
  *   して、未ログインのトップに戻す
+ *
+ * `placement` は dropdown の出し方。
+ *   - 'bottom' (default): ボタンの下に下げる（画面右上の使い方）
+ *   - 'top':              ボタンの上に上げる（サイドバー下端で画面外に出ないように）
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -12,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { signOut, useSession } from '../../lib/auth-client.js';
 
-export function UserMenu() {
+export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom' }) {
   const session = useSession();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -72,7 +76,10 @@ export function UserMenu() {
       {open ? (
         <div
           data-testid="user-menu-dropdown"
-          className="absolute right-0 z-30 mt-2 w-64 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          data-placement={placement}
+          className={`absolute right-0 z-30 w-64 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900 ${
+            placement === 'top' ? 'bottom-full mb-2' : 'mt-2'
+          }`}
         >
           <header className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
             <p className="truncate text-sm font-medium">{display}</p>
