@@ -23,7 +23,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 
 import { useCurrentWorkspaceFromList } from '../../lib/current-workspace.js';
 import { useT } from '../../lib/i18n.js';
@@ -32,6 +32,7 @@ import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 import { useUiStore } from '../../stores/ui-store.js';
 import { UserMenu } from '../account/user-menu.js';
 import { NotificationBell } from '../notifications/notification-bell.js';
+import { SortablePageTree } from './page-tree.js';
 import { WorkspaceSwitcher } from './workspace-switcher.js';
 
 export function Sidebar() {
@@ -177,45 +178,6 @@ function NavLink({
   );
 }
 
-type PageRow = {
-  id: string;
-  parentId: string | null;
-  position: string;
-  props: unknown;
-};
-
-type PageNode = PageRow & { children: PageNode[] };
-
-function buildPageTree(rows: readonly PageRow[]): PageNode[] {
-  const byId = new Map<string, PageNode>();
-  const roots: PageNode[] = [];
-  for (const r of rows) byId.set(r.id, { ...r, children: [] });
-  for (const r of rows) {
-    const node = byId.get(r.id)!;
-    if (r.parentId && byId.has(r.parentId)) {
-      byId.get(r.parentId)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  }
-  return roots;
-}
-
-function getTitle(p: unknown): string {
-  if (p && typeof p === 'object' && 'title' in p) {
-    return String((p as { title?: string }).title ?? '無題');
-  }
-  return '無題';
-}
-
-function getIcon(p: unknown): string {
-  if (p && typeof p === 'object' && 'icon' in p) {
-    const v = (p as { icon?: string }).icon;
-    if (typeof v === 'string' && v) return v;
-  }
-  return '📄';
-}
-
 function FavoritesSection({
   workspaceId,
   onNavigate,
@@ -281,7 +243,14 @@ function PagesSection({
     },
   });
 
-  const tree = useMemo(() => buildPageTree(pages.data ?? []), [pages.data]);
+  const movePage = useMutation({
+    mutationFn: (input: {
+      pageId: string;
+      newParentId: string | null;
+      orderedSiblingIds: string[];
+    }) => trpc.block.movePage.mutate(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'listAllPages', workspaceId] }),
+  });
 
   return (
     <div>
@@ -301,68 +270,19 @@ function PagesSection({
           +
         </button>
       </div>
-      <ul className="space-y-0.5">
-        {tree.slice(0, 30).map((p) => (
-          <PageTreeItem key={p.id} node={p} depth={0} onNavigate={onNavigate} />
-        ))}
-        {pages.data && pages.data.length === 0 ? (
-          <li className="px-2 text-xs text-zinc-500">{t('nav.emptyPages')}</li>
-        ) : null}
-      </ul>
-    </div>
-  );
-}
-
-function PageTreeItem({
-  node,
-  depth,
-  onNavigate,
-}: {
-  node: PageNode;
-  depth: number;
-  onNavigate?: () => void;
-}) {
-  // 親は閉じれば子が隠れる。デフォルト開く深さは 1 (Notion 同様)。
-  const [open, setOpen] = useState(depth < 1);
-  const hasChildren = node.children.length > 0;
-  return (
-    <li>
-      <div
-        className="group flex items-center gap-0.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800"
-        style={{ paddingLeft: depth * 8 }}
-      >
-        {hasChildren ? (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            data-testid={`sidebar-tree-toggle-${node.id}`}
-            aria-label={open ? '折りたたむ' : '展開する'}
-            aria-expanded={open}
-            className="flex h-5 w-5 shrink-0 items-center justify-center text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-          >
-            {open ? '▾' : '▸'}
-          </button>
-        ) : (
-          <span className="h-5 w-5 shrink-0" aria-hidden />
-        )}
-        <Link
-          to="/p/$pageId"
-          params={{ pageId: node.id }}
-          data-testid={`sidebar-page-${node.id}`}
-          onClick={onNavigate}
-          className="flex min-h-9 flex-1 items-center gap-2 rounded-md px-1 py-1.5"
-        >
-          <span className="w-4 text-center text-xs">{getIcon(node.props)}</span>
-          <span className="min-w-0 truncate text-sm">{getTitle(node.props)}</span>
-        </Link>
-      </div>
-      {open && hasChildren ? (
+      {pages.data && pages.data.length === 0 ? (
         <ul className="space-y-0.5">
-          {node.children.map((c) => (
-            <PageTreeItem key={c.id} node={c} depth={depth + 1} onNavigate={onNavigate} />
-          ))}
+          <li className="px-2 text-xs text-zinc-500">{t('nav.emptyPages')}</li>
         </ul>
-      ) : null}
-    </li>
+      ) : (
+        <SortablePageTree
+          pages={pages.data ?? []}
+          onNavigate={onNavigate}
+          onMove={(pageId, newParentId, orderedSiblingIds) =>
+            movePage.mutate({ pageId, newParentId, orderedSiblingIds })
+          }
+        />
+      )}
+    </div>
   );
 }

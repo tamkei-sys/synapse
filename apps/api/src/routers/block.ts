@@ -291,6 +291,101 @@ export const blockRouter = router({
       return page;
     }),
 
+  /**
+   * ページの親付け替え + 兄弟内の並べ替え (PBI-72)。
+   *
+   * Sidebar のツリー DnD から呼ぶ。`newParentId` に移動先の親（ルート直下なら
+   * null）、`orderedSiblingIds` に移動後の同階層の並び（pageId を含む）を渡す。
+   * position は 6 桁ゼロ詰めで振り直す（行並べ替え PBI-71 と同方式）。
+   *
+   * 循環防止: 自分自身、または自分の子孫を新しい親にはできない。
+   */
+  movePage: protectedProcedure
+    .input(
+      z.object({
+        pageId: z.string().min(1),
+        newParentId: z.string().min(1).nullable(),
+        orderedSiblingIds: z.array(z.string().min(1)).min(1).max(2000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const page = (
+        await ctx.db
+          .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
+          .from(schema.block)
+          .where(eq(schema.block.id, input.pageId))
+          .limit(1)
+      )[0];
+      if (!page || page.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, page.workspaceId, ctx.session.user.id);
+
+      if (input.newParentId) {
+        if (input.newParentId === input.pageId) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'cannot parent a page to itself' });
+        }
+        // 移動先の親が同一 WS の page かを確認 + 祖先を遡って循環を検出。
+        let cursor: string | null = input.newParentId;
+        let guard = 0;
+        while (cursor && guard < 64) {
+          const currentId: string = cursor;
+          const node:
+            | { parentId: string | null; workspaceId: string; type: string }
+            | undefined = (
+            await ctx.db
+              .select({
+                parentId: schema.block.parentId,
+                workspaceId: schema.block.workspaceId,
+                type: schema.block.type,
+              })
+              .from(schema.block)
+              .where(eq(schema.block.id, currentId))
+              .limit(1)
+          )[0];
+          if (!node || node.type !== 'page') {
+            throw new TRPCError({ code: 'NOT_FOUND', message: 'new parent not found' });
+          }
+          if (node.workspaceId !== page.workspaceId) {
+            throw new TRPCError({ code: 'FORBIDDEN', message: 'cross-workspace move forbidden' });
+          }
+          // 祖先のどこかに自分が現れる = newParentId が自分の子孫 → 循環。
+          if (node.parentId === input.pageId) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'cannot move into a descendant' });
+          }
+          cursor = node.parentId;
+          guard += 1;
+        }
+      }
+
+      // 親を付け替え。
+      await ctx.db
+        .update(schema.block)
+        .set({ parentId: input.newParentId, updatedAt: new Date() })
+        .where(eq(schema.block.id, input.pageId));
+
+      // 同一 workspace の page だけを対象に position を振り直す。
+      const owned = await ctx.db
+        .select({ id: schema.block.id })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.workspaceId, page.workspaceId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        );
+      const valid = new Set(owned.map((r) => r.id));
+      let i = 0;
+      for (const sibId of input.orderedSiblingIds) {
+        if (!valid.has(sibId)) continue;
+        await ctx.db
+          .update(schema.block)
+          .set({ position: String(i).padStart(6, '0'), updatedAt: new Date() })
+          .where(eq(schema.block.id, sibId));
+        i += 1;
+      }
+      return { ok: true };
+    }),
+
   /** Create a new sheet block (top-level, embeddable). */
   createSheet: protectedProcedure
     .input(
