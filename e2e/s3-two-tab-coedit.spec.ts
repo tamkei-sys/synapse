@@ -11,19 +11,22 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
 const unique = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+// 認証フォームは日本語化済み（PBI-25 / task 全 UI 日本語化）。ラベルは
+// 「お名前」「メールアドレス」「パスワード（8 文字以上）」、送信ボタンは
+// 「アカウント作成」/「ログイン」。
 async function signUp(page: Page, email: string, password: string) {
   await page.goto('/signup');
-  await page.getByLabel('Name').fill('S3 User');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: /create account/i }).click();
+  await page.getByLabel('お名前').fill('S3 User');
+  await page.getByLabel('メールアドレス').fill(email);
+  await page.getByLabel(/パスワード/).fill(password);
+  await page.getByRole('button', { name: /アカウント作成/i }).click();
 }
 
 async function signIn(page: Page, email: string, password: string) {
   await page.goto('/login');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: /sign in/i }).click();
+  await page.getByLabel('メールアドレス').fill(email);
+  await page.getByLabel('パスワード').fill(password);
+  await page.getByRole('button', { name: 'ログイン' }).click();
   // Wait for the post-sign-in redirect to land on '/'. Without this, a
   // following `goto(pageUrl)` can race the auth cookie being set, which
   // makes the next tRPC call see no session and 401 out.

@@ -69,9 +69,24 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   {
     id: 'code-block',
     title: 'コードブロック',
-    description: '等幅フォントのコード領域',
+    description: 'シンタックスハイライト付きコード領域',
     keywords: ['コード', 'code', 'snippet', 'pre'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).setCodeBlock().run(),
+  },
+  {
+    id: 'callout',
+    title: 'Callout',
+    description: '情報 / 注意 / 成功 / メモ の囲みブロック',
+    keywords: ['callout', '囲み', 'info', 'warning', 'note', '注意', 'コールアウト'],
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).setCallout('info').run(),
+  },
+  {
+    id: 'toggle',
+    title: 'トグル',
+    description: '折りたたみ可能なブロック',
+    keywords: ['toggle', 'トグル', '折りたたみ', 'fold', 'collapse', 'details'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setToggle().run(),
   },
 ];
 

@@ -15,19 +15,25 @@
  * `editor-content` data-testid stays so Playwright can target the
  * contenteditable surface unchanged from S2.
  */
+import { Color } from '@tiptap/extension-color';
 import Collaboration from '@tiptap/extension-collaboration';
+import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
+import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useMemo } from 'react';
 import type * as Y from 'yjs';
 
+import { CalloutNode } from './callout-node.js';
+import { CodeBlockHighlighted } from './code-block.js';
 import { FormatToolbar } from './format-toolbar.js';
 import { MarkdownPasteExtension } from './markdown-paste.js';
+import { ToggleDetails, ToggleNode, ToggleSummary } from './toggle-node.js';
 import { PageRefNode } from './page-ref-node.js';
 import { makePageSlashCommand } from './page-slash.js';
 import { PbiRefNode } from './pbi-ref-node.js';
@@ -72,8 +78,14 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       StarterKit.configure({
         // Yjs Collaboration provides its own undo manager.
         history: false,
+        // codeBlock は CodeBlockLowlight に差し替えるので無効化。
+        codeBlock: false,
       }),
+      CodeBlockHighlighted,
       Underline,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -86,6 +98,10 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      CalloutNode,
+      ToggleNode,
+      ToggleSummary,
+      ToggleDetails,
       Placeholder.configure({
         placeholder: 'ここに入力 — 「/」でコマンドメニュー',
       }),

@@ -57,3 +57,98 @@ body {
     color: theme(colors.zinc.500);
   }
 }
+
+/* ── Callout (PBI-37) ──────────────────────────────────────────────
+   tone ごとのアイコンを data 属性から ::before で描く。属性に絵文字を
+   埋め込まず Yjs に余計なテキストを流さないための割り切り。 */
+.tiptap [data-callout]::before {
+  content: attr(data-emoji);
+  flex: none;
+  line-height: 1.6;
+}
+
+/* ── Toggle (PBI-36) ───────────────────────────────────────────────
+   open=false のとき details を隠す。summary 先頭に ▸ / ▾ を出す。 */
+.tiptap [data-toggle][data-open='false'] [data-toggle-details] {
+  display: none;
+}
+.tiptap [data-toggle-summary]::before {
+  content: '▾ ';
+  color: theme(colors.zinc.400);
+  cursor: pointer;
+}
+.tiptap [data-toggle][data-open='false'] [data-toggle-summary]::before {
+  content: '▸ ';
+}
+
+/* ── Code block syntax highlight (PBI-44) ──────────────────────────
+   highlight.js のトークン色を semantic に。ライト/ダーク両対応。 */
+.tiptap pre.hljs,
+.tiptap pre code.hljs {
+  background: theme(colors.zinc.100);
+  color: theme(colors.zinc.800);
+}
+.tiptap .hljs-comment,
+.tiptap .hljs-quote {
+  color: theme(colors.zinc.500);
+  font-style: italic;
+}
+.tiptap .hljs-keyword,
+.tiptap .hljs-selector-tag,
+.tiptap .hljs-built_in,
+.tiptap .hljs-name {
+  color: theme(colors.violet.600);
+}
+.tiptap .hljs-string,
+.tiptap .hljs-attr,
+.tiptap .hljs-template-variable {
+  color: theme(colors.emerald.600);
+}
+.tiptap .hljs-number,
+.tiptap .hljs-literal {
+  color: theme(colors.amber.600);
+}
+.tiptap .hljs-title,
+.tiptap .hljs-function .hljs-title,
+.tiptap .hljs-type {
+  color: theme(colors.sky.600);
+}
+.tiptap .hljs-tag,
+.tiptap .hljs-attribute {
+  color: theme(colors.rose.600);
+}
+@media (prefers-color-scheme: dark) {
+  .tiptap pre.hljs,
+  .tiptap pre code.hljs {
+    background: theme(colors.zinc.900);
+    color: theme(colors.zinc.200);
+  }
+  .tiptap .hljs-comment,
+  .tiptap .hljs-quote {
+    color: theme(colors.zinc.500);
+  }
+  .tiptap .hljs-keyword,
+  .tiptap .hljs-selector-tag,
+  .tiptap .hljs-built_in,
+  .tiptap .hljs-name {
+    color: theme(colors.violet.300);
+  }
+  .tiptap .hljs-string,
+  .tiptap .hljs-attr,
+  .tiptap .hljs-template-variable {
+    color: theme(colors.emerald.300);
+  }
+  .tiptap .hljs-number,
+  .tiptap .hljs-literal {
+    color: theme(colors.amber.300);
+  }
+  .tiptap .hljs-title,
+  .tiptap .hljs-function .hljs-title,
+  .tiptap .hljs-type {
+    color: theme(colors.sky.300);
+  }
+  .tiptap .hljs-tag,
+  .tiptap .hljs-attribute {
+    color: theme(colors.rose.300);
+  }
+}

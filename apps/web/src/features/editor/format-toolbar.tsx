@@ -13,7 +13,7 @@
  */
 import { type Editor } from '@tiptap/core';
 import { BubbleMenu } from '@tiptap/react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { markdownToHtml, tiptapJsonToMarkdown } from './markdown.js';
 
@@ -178,6 +178,8 @@ export function FormatToolbar({ editor }: Props) {
             🔗
           </ToolbarButton>
         </Group>
+        <Divider />
+        <ColorMenu editor={editor} />
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -361,6 +363,99 @@ function BubbleButton({
     >
       {children}
     </button>
+  );
+}
+
+/** 文字色 / 蛍光マーカーのプリセット。値は CSS color。 */
+const TEXT_COLORS = [
+  { label: '既定', value: '' },
+  { label: '赤', value: '#dc2626' },
+  { label: '橙', value: '#ea580c' },
+  { label: '緑', value: '#16a34a' },
+  { label: '青', value: '#2563eb' },
+  { label: '紫', value: '#7c3aed' },
+  { label: '灰', value: '#71717a' },
+] as const;
+
+const HIGHLIGHT_COLORS = [
+  { label: 'なし', value: '' },
+  { label: '黄', value: '#fef08a' },
+  { label: '緑', value: '#bbf7d0' },
+  { label: '青', value: '#bfdbfe' },
+  { label: '桃', value: '#fbcfe8' },
+  { label: '橙', value: '#fed7aa' },
+] as const;
+
+function ColorMenu({ editor }: { editor: Editor }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="fmt-color"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="文字色 / マーカー"
+        className="rounded px-1.5 py-1 text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      >
+        🎨
+      </button>
+      {open ? (
+        <div
+          data-testid="fmt-color-menu"
+          className="absolute left-0 top-full z-30 mt-1 w-44 rounded-md border border-zinc-200 bg-white p-2 text-xs shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          <p className="mb-1 font-medium text-zinc-500">文字色</p>
+          <div className="mb-2 flex flex-wrap gap-1">
+            {TEXT_COLORS.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                title={c.label}
+                data-testid={`fmt-color-text-${c.label}`}
+                onClick={() => {
+                  if (c.value) editor.chain().focus().setColor(c.value).run();
+                  else editor.chain().focus().unsetColor().run();
+                }}
+                className="h-6 w-6 rounded border border-zinc-300 dark:border-zinc-600"
+                style={{ color: c.value || 'inherit' }}
+              >
+                <span className="font-bold">A</span>
+              </button>
+            ))}
+          </div>
+          <p className="mb-1 font-medium text-zinc-500">マーカー</p>
+          <div className="flex flex-wrap gap-1">
+            {HIGHLIGHT_COLORS.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                title={c.label}
+                data-testid={`fmt-color-hl-${c.label}`}
+                onClick={() => {
+                  if (c.value)
+                    editor.chain().focus().setHighlight({ color: c.value }).run();
+                  else editor.chain().focus().unsetHighlight().run();
+                }}
+                className="h-6 w-6 rounded border border-zinc-300 dark:border-zinc-600"
+                style={{ backgroundColor: c.value || 'transparent' }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

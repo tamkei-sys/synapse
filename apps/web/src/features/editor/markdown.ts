@@ -132,6 +132,24 @@ function renderBlock(node: Node, depth = 0): string {
       return '---';
     case 'hardBreak':
       return '  \n';
+    case 'callout': {
+      // Callout は GFM に無いので blockquote にダウングレード。tone を頭に出す。
+      const tone = String(node.attrs?.['tone'] ?? 'info');
+      const body = (node.content ?? [])
+        .map((c) => renderBlock(c, depth))
+        .join('\n\n');
+      return `> **[${tone}]**\n` + body.split('\n').map((l) => `> ${l}`).join('\n');
+    }
+    case 'toggle': {
+      // toggle → summary を太字行、details を本文に。
+      const summary = node.content?.[0];
+      const details = node.content?.[1];
+      const head = summary ? renderInline(summary.content) : 'トグル';
+      const body = details
+        ? (details.content ?? []).map((c) => renderBlock(c, depth)).join('\n\n')
+        : '';
+      return `**▸ ${head}**\n\n${body}`;
+    }
     // SYNAPSE 独自ノード
     case 'pbiRef':
       return `[PBI-ref ${node.attrs?.['blockId'] ?? ''}](/b/${node.attrs?.['blockId'] ?? ''})`;
