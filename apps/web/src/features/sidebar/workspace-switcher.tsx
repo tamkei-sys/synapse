@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 
 import { useSwitchWorkspace } from '../../lib/current-workspace.js';
+import { useT } from '../../lib/i18n.js';
 import { trpc } from '../../lib/trpc.js';
 import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 
@@ -19,6 +20,7 @@ export function WorkspaceSwitcher({ current }: { current: Workspace }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const switchTo = useSwitchWorkspace();
+  const t = useT();
 
   const all = useQuery({
     queryKey: ['workspace', 'listMine'],
@@ -52,7 +54,7 @@ export function WorkspaceSwitcher({ current }: { current: Workspace }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         data-testid="workspace-switcher"
-        aria-label="ワークスペース切替"
+        aria-label={t('nav.workspaceSwitch')}
         aria-haspopup="menu"
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800"

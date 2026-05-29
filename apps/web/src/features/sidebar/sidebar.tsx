@@ -26,6 +26,7 @@ import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { useCurrentWorkspaceFromList } from '../../lib/current-workspace.js';
+import { useT } from '../../lib/i18n.js';
 import { trpc } from '../../lib/trpc.js';
 import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 import { useUiStore } from '../../stores/ui-store.js';
@@ -41,6 +42,7 @@ export function Sidebar() {
   const current = useCurrentWorkspaceFromList(workspaces.data);
   const mobileOpen = useUiStore((s) => s.mobileSidebarOpen);
   const closeMobile = useUiStore((s) => s.closeMobileSidebar);
+  const t = useT();
   useDismissOnEscape(mobileOpen, closeMobile);
 
   // モバイル幅で drawer が開いている間は body スクロールを止めて、
@@ -78,42 +80,42 @@ export function Sidebar() {
         <WorkspaceSwitcher current={current} />
 
         <div className="flex items-center justify-between rounded-md bg-white/40 px-2 py-1.5 dark:bg-zinc-900/40">
-          <span className="text-xs text-zinc-500">クイック検索 ⌘K</span>
+          <span className="text-xs text-zinc-500">{t('nav.searchHint')}</span>
           <NotificationBell workspaceId={current.id} />
         </div>
 
         <NavSection>
           <NavLink to="/" exact icon="🏠" onNavigate={closeMobile}>
-            ホーム
+            {t('nav.home')}
           </NavLink>
         </NavSection>
 
-        <NavSection title="プロジェクト管理">
+        <NavSection title={t('nav.section.management')}>
           <NavLink to="/project" icon="📁" onNavigate={closeMobile}>
-            プロジェクト
+            {t('nav.projects')}
           </NavLink>
           <NavLink to="/sprint" icon="🏃" onNavigate={closeMobile}>
-            スプリント
+            {t('nav.sprints')}
           </NavLink>
           <NavLink to="/pbi" icon="✅" onNavigate={closeMobile}>
-            PBI
+            {t('nav.pbi')}
           </NavLink>
           <NavLink to="/sbi" icon="🟢" onNavigate={closeMobile}>
-            SBI
+            {t('nav.sbi')}
           </NavLink>
         </NavSection>
 
         <PagesSection workspaceId={current.id} onNavigate={closeMobile} />
 
-        <NavSection title="設定">
+        <NavSection title={t('nav.section.settings')}>
           <NavLink to="/settings/members" icon="👥" onNavigate={closeMobile}>
-            メンバー
+            {t('nav.members')}
           </NavLink>
           <NavLink to="/settings/tokens" icon="🔑" onNavigate={closeMobile}>
-            API トークン
+            {t('nav.tokens')}
           </NavLink>
           <NavLink to="/settings/audit-log" icon="📋" onNavigate={closeMobile}>
-            監査ログ
+            {t('nav.audit')}
           </NavLink>
         </NavSection>
 
@@ -182,6 +184,7 @@ function PagesSection({
 }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const t = useT();
   const pages = useQuery({
     queryKey: ['block', 'listPages', workspaceId],
     queryFn: () => trpc.block.listPages.query({ workspaceId }),
@@ -200,7 +203,7 @@ function PagesSection({
     <div>
       <div className="mb-1 flex items-center justify-between px-2">
         <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-          ページ
+          {t('nav.section.pages')}
         </span>
         <button
           type="button"
@@ -208,8 +211,8 @@ function PagesSection({
           disabled={createPage.isPending}
           data-testid="sidebar-new-page"
           className="flex h-7 w-7 items-center justify-center rounded text-base text-zinc-500 hover:bg-zinc-200 hover:text-violet-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-violet-300"
-          title="新規ページ"
-          aria-label="新規ページ"
+          title={t('nav.newPage')}
+          aria-label={t('nav.newPage')}
         >
           +
         </button>
@@ -236,7 +239,7 @@ function PagesSection({
           );
         })}
         {pages.data && pages.data.length === 0 ? (
-          <li className="px-2 text-xs text-zinc-500">まだページはありません</li>
+          <li className="px-2 text-xs text-zinc-500">{t('nav.emptyPages')}</li>
         ) : null}
       </ul>
     </div>

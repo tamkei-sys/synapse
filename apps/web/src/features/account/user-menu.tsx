@@ -15,6 +15,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { signOut, useSession } from '../../lib/auth-client.js';
+import { SUPPORTED_LOCALES, useLocale, useSetLocale, useT } from '../../lib/i18n.js';
 import { useDismissOnEscape } from '../../lib/use-dismiss.js';
 
 export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom' }) {
@@ -24,6 +25,9 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const t = useT();
+  const locale = useLocale();
+  const setLocale = useSetLocale();
 
   // dropdown 外クリックで閉じる
   useEffect(() => {
@@ -63,7 +67,7 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
         type="button"
         onClick={() => setOpen((v) => !v)}
         data-testid="user-menu-button"
-        aria-label="ユーザーメニュー"
+        aria-label={t('userMenu.label')}
         aria-haspopup="menu"
         aria-expanded={open}
         className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-300 bg-white hover:bg-zinc-100 md:h-9 md:w-9 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
@@ -89,6 +93,30 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
             <p className="truncate text-sm font-medium">{display}</p>
             <p className="truncate text-xs text-zinc-500">{user.email}</p>
           </header>
+          <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-700">
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+              {t('userMenu.language')}
+            </p>
+            <div className="flex gap-1" role="group" aria-label={t('userMenu.language')}>
+              {SUPPORTED_LOCALES.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLocale(l)}
+                  data-testid={`locale-${l}`}
+                  data-active={locale === l}
+                  aria-pressed={locale === l}
+                  className={`flex-1 rounded px-2 py-1 text-xs font-medium uppercase ${
+                    locale === l
+                      ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/40 dark:text-violet-100'
+                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'
+                  }`}
+                >
+                  {l === 'ja' ? '日本語' : 'English'}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="p-1">
             <button
               type="button"
@@ -98,7 +126,7 @@ export function UserMenu({ placement = 'bottom' }: { placement?: 'top' | 'bottom
               className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-zinc-100 disabled:opacity-60 dark:hover:bg-zinc-800"
             >
               <span>↩</span>
-              {busy ? 'ログアウト中…' : 'ログアウト'}
+              {busy ? `${t('common.signOut')}…` : t('common.signOut')}
             </button>
           </div>
         </div>
