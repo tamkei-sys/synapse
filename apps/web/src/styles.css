@@ -18,15 +18,38 @@ body,
   height: 100%;
 }
 
+/* Body のベーステキスト色。Tailwind v4 のダークモードは既定で
+   `@media (prefers-color-scheme: dark)` 駆動なので、CSS 側もそれに
+   合わせる。これがないと OS ダークモード時に body の文字色が
+   ブラウザ既定の黒のまま残り、`dark:bg-...` で塗られた暗背景に
+   黒文字が乗ってほぼ読めなくなる。 */
+body {
+  color: theme(colors.zinc.900);
+  background-color: theme(colors.zinc.50);
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    color: theme(colors.zinc.100);
+    background-color: theme(colors.zinc.950);
+  }
+}
+
 /* TipTap content surface — minimal typography until @tailwindcss/typography
    v4 stabilises. Mirrors the structure of `prose` so swapping in the
-   plugin later is a no-op. */
+   plugin later is a no-op.
+
+   ダークモードのスタイルはクラス (`.dark`) ではなくメディアクエリで
+   切替える。Tailwind v4 デフォルトの `dark:` バリアントと整合性が取れる。
+   将来的に手動 light/dark トグルを入れる場合は `:where(.dark, .dark *)`
+   バリアントを `@custom-variant dark` で追加すれば共存できる。 */
 .tiptap {
   line-height: 1.65;
   color: theme(colors.zinc.800);
 }
-.dark .tiptap {
-  color: theme(colors.zinc.100);
+@media (prefers-color-scheme: dark) {
+  .tiptap {
+    color: theme(colors.zinc.100);
+  }
 }
 .tiptap > * + * {
   margin-top: 0.75rem;
@@ -65,8 +88,11 @@ body,
   color: theme(colors.zinc.500);
   font-style: italic;
 }
-.dark .tiptap blockquote {
-  border-color: theme(colors.zinc.700);
+@media (prefers-color-scheme: dark) {
+  .tiptap blockquote {
+    border-color: theme(colors.zinc.700);
+    color: theme(colors.zinc.400);
+  }
 }
 .tiptap pre {
   background: theme(colors.zinc.900);
@@ -77,22 +103,42 @@ body,
   border-radius: 0.5rem;
   overflow-x: auto;
 }
+@media (prefers-color-scheme: dark) {
+  .tiptap pre {
+    background: theme(colors.zinc.800);
+  }
+}
 .tiptap code {
   background: theme(colors.zinc.100);
+  color: theme(colors.zinc.800);
   border-radius: 0.25rem;
   padding: 0.1rem 0.3rem;
   font-size: 0.85em;
 }
-.dark .tiptap code {
-  background: theme(colors.zinc.800);
+@media (prefers-color-scheme: dark) {
+  .tiptap code {
+    background: theme(colors.zinc.800);
+    color: theme(colors.zinc.100);
+  }
 }
 .tiptap hr {
   border: 0;
   border-top: 1px solid theme(colors.zinc.300);
   margin: 1.5rem 0;
 }
-.dark .tiptap hr {
-  border-color: theme(colors.zinc.700);
+@media (prefers-color-scheme: dark) {
+  .tiptap hr {
+    border-color: theme(colors.zinc.700);
+  }
+}
+.tiptap a {
+  color: theme(colors.violet.600);
+  text-decoration: underline;
+}
+@media (prefers-color-scheme: dark) {
+  .tiptap a {
+    color: theme(colors.violet.400);
+  }
 }
 /* Placeholder rendered by @tiptap/extension-placeholder. */
 .tiptap p.is-editor-empty:first-child::before {
@@ -101,4 +147,9 @@ body,
   color: theme(colors.zinc.400);
   pointer-events: none;
   height: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .tiptap p.is-editor-empty:first-child::before {
+    color: theme(colors.zinc.500);
+  }
 }
