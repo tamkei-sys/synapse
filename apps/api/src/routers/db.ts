@@ -13,7 +13,7 @@
  *   - cell 更新は jsonb_set ベース。複数セル一括 update は当面 N+1 で
  *     許容（行数 < 1000 想定）。
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
@@ -25,9 +25,11 @@ import {
   dbPropsSchema,
   dbRowPropsSchema,
   defaultDbColumns,
+  type DbCellValue,
   type DbColumn,
   type DbProps,
   type DbRowProps,
+  type RollupFn,
 } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
@@ -40,6 +42,44 @@ function readDbProps(props: unknown): DbProps {
 
 function readRowProps(props: unknown): DbRowProps {
   return dbRowPropsSchema.parse(props);
+}
+
+/** 参照先 DB の行から「タイトル」っぽい表示ラベルを取り出す。 */
+function rowLabel(dbProps: DbProps, values: Record<string, DbCellValue>): string {
+  const titleCol = dbProps.columns.find((c) => c.kind === 'text') ?? dbProps.columns[0];
+  const v = titleCol ? values[titleCol.id] : undefined;
+  return typeof v === 'string' && v ? v : '(無題)';
+}
+
+/** rollup の集計。relation 先の対象列の値配列 + リンク数を受けて結果を返す。 */
+function aggregateRollup(
+  fn: RollupFn,
+  targetVals: DbCellValue[],
+  linkedCount: number,
+): number | string | null {
+  if (fn === 'count') return linkedCount;
+  if (fn === 'show') {
+    const labels = targetVals
+      .filter((v) => v !== null && v !== undefined && v !== '')
+      .map((v) => (Array.isArray(v) ? v.join(', ') : String(v)));
+    return labels.length ? labels.join(', ') : null;
+  }
+  const nums = targetVals
+    .map((v) => (typeof v === 'number' ? v : Number(v)))
+    .filter((n) => Number.isFinite(n));
+  if (nums.length === 0) return fn === 'sum' ? 0 : null;
+  switch (fn) {
+    case 'sum':
+      return nums.reduce((a, b) => a + b, 0);
+    case 'avg':
+      return nums.reduce((a, b) => a + b, 0) / nums.length;
+    case 'min':
+      return Math.min(...nums);
+    case 'max':
+      return Math.max(...nums);
+    default:
+      return null;
+  }
 }
 
 export const dbRouter = router({
@@ -90,15 +130,104 @@ export const dbRouter = router({
         .from(schema.block)
         .where(and(eq(schema.block.parentId, head.id), eq(schema.block.type, 'db_row')))
         .orderBy(schema.block.position);
+      const mappedRows = rows.map((r) => ({
+        id: r.id,
+        position: r.position,
+        props: readRowProps(r.props),
+      }));
+
+      // ── relation 解決 + rollup 集計 (PBI-63 / PBI-64) ──────────────
+      const relationCols = dbProps.columns.filter(
+        (c) => c.kind === 'relation' && c.relationDbId,
+      );
+      const rollupCols = dbProps.columns.filter((c) => c.kind === 'rollup');
+
+      const targetDbIds = new Set<string>();
+      for (const c of relationCols) if (c.relationDbId) targetDbIds.add(c.relationDbId);
+
+      type TargetRow = { id: string; values: Record<string, DbCellValue> };
+      const targetRowsByDb = new Map<string, TargetRow[]>();
+      const targetRowById = new Map<string, TargetRow>();
+      const targetHeadById = new Map<string, DbProps>();
+
+      if (targetDbIds.size > 0) {
+        const heads = await ctx.db
+          .select()
+          .from(schema.block)
+          .where(and(inArray(schema.block.id, [...targetDbIds]), eq(schema.block.type, 'db')));
+        for (const h of heads) {
+          // 別 workspace の DB は参照しない（テナント越え防止）。
+          if (h.workspaceId !== head.workspaceId) continue;
+          targetHeadById.set(h.id, readDbProps(h.props));
+        }
+        const validIds = [...targetHeadById.keys()];
+        if (validIds.length > 0) {
+          const trows = await ctx.db
+            .select()
+            .from(schema.block)
+            .where(
+              and(inArray(schema.block.parentId, validIds), eq(schema.block.type, 'db_row')),
+            )
+            .orderBy(schema.block.position);
+          for (const r of trows) {
+            const rp = readRowProps(r.props);
+            const tr: TargetRow = { id: r.id, values: rp.values };
+            targetRowById.set(r.id, tr);
+            const list = targetRowsByDb.get(rp.dbId) ?? [];
+            list.push(tr);
+            targetRowsByDb.set(rp.dbId, list);
+          }
+        }
+      }
+
+      // 列 id → {targetDbId, options}（チップ表示 + ピッカー用）。
+      const relations: Record<
+        string,
+        { targetDbId: string; options: { id: string; label: string }[] }
+      > = {};
+      for (const c of relationCols) {
+        const tdb = c.relationDbId;
+        if (!tdb) continue;
+        const tProps = targetHeadById.get(tdb);
+        const options = (targetRowsByDb.get(tdb) ?? []).map((tr) => ({
+          id: tr.id,
+          label: tProps ? rowLabel(tProps, tr.values) : '(無題)',
+        }));
+        relations[c.id] = { targetDbId: tdb, options };
+      }
+
+      // 行 id → 列 id → 集計値（rollup は派生なので保存しない）。
+      const rollups: Record<string, Record<string, number | string | null>> = {};
+      if (rollupCols.length > 0) {
+        for (const r of mappedRows) {
+          const perRow: Record<string, number | string | null> = {};
+          for (const rc of rollupCols) {
+            const relCol = dbProps.columns.find(
+              (c) => c.id === rc.rollupRelationColumnId && c.kind === 'relation',
+            );
+            if (!relCol || !rc.rollupTargetColumnId || !rc.rollupFn) {
+              perRow[rc.id] = null;
+              continue;
+            }
+            const linked = r.props.values[relCol.id];
+            const ids = Array.isArray(linked) ? linked : [];
+            const targetColId = rc.rollupTargetColumnId;
+            const targetVals = ids
+              .map((id) => targetRowById.get(id)?.values[targetColId])
+              .filter((v): v is DbCellValue => v !== undefined);
+            perRow[rc.id] = aggregateRollup(rc.rollupFn, targetVals, ids.length);
+          }
+          rollups[r.id] = perRow;
+        }
+      }
+
       return {
         id: head.id,
         workspaceId: head.workspaceId,
         props: dbProps,
-        rows: rows.map((r) => ({
-          id: r.id,
-          position: r.position,
-          props: readRowProps(r.props),
-        })),
+        rows: mappedRows,
+        relations,
+        rollups,
       };
     }),
 

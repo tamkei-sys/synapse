@@ -12,13 +12,30 @@
  * ビュー（Table / Board / Gallery / Calendar）は MVP では Table のみ。
  * 後続 PBI で view 定義を `props.views = [{ kind, ... }]` に持たせる予定。
  *
- * 列タイプは text / number / checkbox / select / date を MVP。
- * relation や rollup は SP の都合で先送り（ADR と共に別 PBI で）。
+ * 列タイプは text / number / checkbox / select / date が MVP。
+ * relation（別 DB の行への参照）と rollup（relation を辿った集計）は
+ * PBI-63 / PBI-64 で追加した。
+ *   - relation: props に relationDbId（参照先 db ブロック id）。
+ *     セル値は参照先 db_row の id 配列（string[]）。
+ *   - rollup: 派生列。保存しない。props に rollupRelationColumnId
+ *     （同 DB の relation 列 id）/ rollupTargetColumnId（参照先の列 id）/
+ *     rollupFn。値は API の db.get が計算して返す。
  */
 import { z } from 'zod';
 
-export const DB_COLUMN_KINDS = ['text', 'number', 'checkbox', 'select', 'date'] as const;
+export const DB_COLUMN_KINDS = [
+  'text',
+  'number',
+  'checkbox',
+  'select',
+  'date',
+  'relation',
+  'rollup',
+] as const;
 export type DbColumnKind = (typeof DB_COLUMN_KINDS)[number];
+
+export const ROLLUP_FNS = ['count', 'sum', 'avg', 'min', 'max', 'show'] as const;
+export type RollupFn = (typeof ROLLUP_FNS)[number];
 
 export const dbColumnSchema = z
   .object({
@@ -27,8 +44,45 @@ export const dbColumnSchema = z
     kind: z.enum(DB_COLUMN_KINDS),
     /** kind='select' のときの選択肢。それ以外は無視。 */
     options: z.array(z.string().trim().min(1).max(60)).max(40).optional(),
+    /** kind='relation' のとき必須: 参照先 db ブロック id。 */
+    relationDbId: z.string().min(1).max(60).optional(),
+    /** kind='rollup' のとき必須: 同 DB 内の relation 列 id。 */
+    rollupRelationColumnId: z.string().min(1).max(60).optional(),
+    /** kind='rollup' のとき必須: 参照先 DB の列 id。 */
+    rollupTargetColumnId: z.string().min(1).max(60).optional(),
+    /** kind='rollup' のとき必須: 集計関数。 */
+    rollupFn: z.enum(ROLLUP_FNS).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((col, ctx) => {
+    if (col.kind === 'relation' && !col.relationDbId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'relation 列には relationDbId が必要です',
+        path: ['relationDbId'],
+      });
+    }
+    if (col.kind === 'rollup') {
+      if (!col.rollupRelationColumnId)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'rollup 列には rollupRelationColumnId が必要です',
+          path: ['rollupRelationColumnId'],
+        });
+      if (!col.rollupTargetColumnId)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'rollup 列には rollupTargetColumnId が必要です',
+          path: ['rollupTargetColumnId'],
+        });
+      if (!col.rollupFn)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'rollup 列には rollupFn が必要です',
+          path: ['rollupFn'],
+        });
+    }
+  });
 
 export type DbColumn = z.infer<typeof dbColumnSchema>;
 
@@ -46,6 +100,8 @@ export const dbCellValueSchema = z.union([
   z.number(),
   z.boolean(),
   z.null(),
+  /** kind='relation' のセル値: 参照先 db_row の id 配列。 */
+  z.array(z.string().min(1)),
 ]);
 export type DbCellValue = z.infer<typeof dbCellValueSchema>;
 

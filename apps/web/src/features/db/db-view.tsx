@@ -11,13 +11,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-import type { DbCellValue, DbColumn, DbColumnKind } from '@synapse/blocks';
+import type { DbCellValue, DbColumn, DbColumnKind, RollupFn } from '@synapse/blocks';
+import { ROLLUP_FNS } from '@synapse/blocks';
 
 import { trpc } from '../../lib/trpc.js';
 import { applyFilterSort, DbControls, useDbFilterSort } from './db-filter.js';
 
 type GetResult = Awaited<ReturnType<typeof trpc.db.get.query>>;
 type DbRow = GetResult['rows'][number];
+type RelationMap = GetResult['relations'];
 
 export function DbView({ dbId }: { dbId: string }) {
   const qc = useQueryClient();
@@ -145,6 +147,8 @@ export function DbView({ dbId }: { dbId: string }) {
                     <Cell
                       col={col}
                       value={row.props.values[col.id] ?? null}
+                      relation={data.relations[col.id]}
+                      rollupValue={data.rollups[row.id]?.[col.id] ?? null}
                       onChange={(value) =>
                         updateCell.mutate({ rowId: row.id, columnId: col.id, value })
                       }
@@ -192,6 +196,9 @@ export function DbView({ dbId }: { dbId: string }) {
         </button>
         <AddColumnForm
           existingIds={data.props.columns.map((c) => c.id)}
+          columns={data.props.columns}
+          workspaceId={data.workspaceId}
+          currentDbId={dbId}
           onAdd={(col) => addColumn.mutate(col)}
           busy={addColumn.isPending}
         />
@@ -203,13 +210,35 @@ export function DbView({ dbId }: { dbId: string }) {
 function Cell({
   col,
   value,
+  relation,
+  rollupValue,
   onChange,
 }: {
   col: DbColumn;
   value: DbCellValue;
+  relation?: RelationMap[string];
+  rollupValue?: number | string | null;
   onChange: (v: DbCellValue) => void;
 }) {
   switch (col.kind) {
+    case 'relation':
+      return (
+        <RelationCell
+          value={Array.isArray(value) ? value : []}
+          options={relation?.options ?? []}
+          onChange={(ids) => onChange(ids.length ? ids : null)}
+          testid={`db-cell-${col.id}`}
+        />
+      );
+    case 'rollup':
+      return (
+        <span
+          data-testid={`db-cell-${col.id}`}
+          className="block px-1 py-0.5 text-sm text-zinc-600 dark:text-zinc-300"
+        >
+          {formatRollup(rollupValue ?? null)}
+        </span>
+      );
     case 'text': {
       const v = typeof value === 'string' ? value : '';
       return <TextCell value={v} onChange={onChange} testid={`db-cell-${col.id}`} />;
@@ -300,25 +329,127 @@ function TextCell({
   );
 }
 
-const COLUMN_KINDS: DbColumnKind[] = ['text', 'number', 'checkbox', 'select', 'date'];
+/** rollup の集計値を表示用文字列に。avg は小数2桁まで。 */
+function formatRollup(value: number | string | null): string {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }
+  return value;
+}
+
+/** relation セル: 選択済みをチップ表示し、ドロップダウンで参照先行を追加する。 */
+function RelationCell({
+  value,
+  options,
+  onChange,
+  testid,
+}: {
+  value: string[];
+  options: { id: string; label: string }[];
+  onChange: (ids: string[]) => void;
+  testid: string;
+}) {
+  const labelOf = useMemo(() => new Map(options.map((o) => [o.id, o.label])), [options]);
+  const selected = new Set(value);
+  const available = options.filter((o) => !selected.has(o.id));
+
+  return (
+    <div className="flex flex-wrap items-center gap-1" data-testid={testid}>
+      {value.map((id) => (
+        <span
+          key={id}
+          className="inline-flex items-center gap-0.5 rounded bg-violet-100 px-1.5 py-0.5 text-xs text-violet-900 dark:bg-violet-900/40 dark:text-violet-100"
+        >
+          {labelOf.get(id) ?? '(不明)'}
+          <button
+            type="button"
+            onClick={() => onChange(value.filter((v) => v !== id))}
+            aria-label="リンクを外す"
+            className="text-violet-500 hover:text-red-500"
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      {available.length > 0 ? (
+        <select
+          value=""
+          onChange={(e) => {
+            const id = e.currentTarget.value;
+            if (id) onChange([...value, id]);
+          }}
+          data-testid={`${testid}-add`}
+          className="rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-zinc-400 focus:border-zinc-300 focus:outline-none dark:focus:border-zinc-600"
+        >
+          <option value="">+ リンク</option>
+          {available.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
+  );
+}
+
+const COLUMN_KINDS: DbColumnKind[] = [
+  'text',
+  'number',
+  'checkbox',
+  'select',
+  'date',
+  'relation',
+  'rollup',
+];
 
 function AddColumnForm({
   existingIds,
+  columns,
+  workspaceId,
+  currentDbId,
   onAdd,
   busy,
 }: {
   existingIds: string[];
+  columns: readonly DbColumn[];
+  workspaceId: string;
+  currentDbId: string;
   onAdd: (col: DbColumn) => void;
   busy: boolean;
 }) {
   const [name, setName] = useState('');
   const [kind, setKind] = useState<DbColumnKind>('text');
   const [options, setOptions] = useState('');
+  const [relationDbId, setRelationDbId] = useState('');
+  const [rollupRelationColumnId, setRollupRelationColumnId] = useState('');
+  const [rollupTargetColumnId, setRollupTargetColumnId] = useState('');
+  const [rollupFn, setRollupFn] = useState<RollupFn>('count');
   const existingSet = useMemo(() => new Set(existingIds), [existingIds]);
+
+  // relation 用: workspace 内の DB 一覧（自分以外を参照先候補に）。
+  const dbList = useQuery({
+    queryKey: ['db', 'listForWorkspace', workspaceId],
+    queryFn: () => trpc.db.listForWorkspace.query({ workspaceId }),
+    enabled: kind === 'relation',
+  });
+
+  // rollup 用: 選んだ relation 列の参照先 DB の列を取得（対象列の候補に）。
+  const relationCols = useMemo(() => columns.filter((c) => c.kind === 'relation'), [columns]);
+  const chosenRelCol = relationCols.find((c) => c.id === rollupRelationColumnId);
+  const targetDbId = chosenRelCol?.relationDbId;
+  const targetDb = useQuery({
+    queryKey: ['db', 'get', targetDbId],
+    queryFn: () => trpc.db.get.query({ dbId: targetDbId! }),
+    enabled: kind === 'rollup' && !!targetDbId,
+  });
 
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
+    if (kind === 'relation' && !relationDbId) return;
+    if (kind === 'rollup' && (!rollupRelationColumnId || !rollupTargetColumnId)) return;
     // id は name から軽く生成。重複ならランダムサフィックス。
     let id = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 30) || 'col';
     while (existingSet.has(id)) id = `${id}_${Math.random().toString(36).slice(2, 5)}`;
@@ -334,10 +465,17 @@ function AddColumnForm({
               .filter(Boolean),
           }
         : {}),
+      ...(kind === 'relation' ? { relationDbId } : {}),
+      ...(kind === 'rollup'
+        ? { rollupRelationColumnId, rollupTargetColumnId, rollupFn }
+        : {}),
     };
     onAdd(col);
     setName('');
     setOptions('');
+    setRelationDbId('');
+    setRollupRelationColumnId('');
+    setRollupTargetColumnId('');
   };
 
   return (
@@ -376,6 +514,69 @@ function AddColumnForm({
           data-testid="db-add-column-options"
           className="w-48 rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
         />
+      ) : null}
+      {kind === 'relation' ? (
+        <select
+          value={relationDbId}
+          onChange={(e) => setRelationDbId(e.currentTarget.value)}
+          data-testid="db-add-column-relation-db"
+          className="w-40 rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+        >
+          <option value="">参照先 DB…</option>
+          {(dbList.data ?? [])
+            .filter((d) => d.id !== currentDbId)
+            .map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.title}
+              </option>
+            ))}
+        </select>
+      ) : null}
+      {kind === 'rollup' ? (
+        <>
+          <select
+            value={rollupRelationColumnId}
+            onChange={(e) => {
+              setRollupRelationColumnId(e.currentTarget.value);
+              setRollupTargetColumnId('');
+            }}
+            data-testid="db-add-column-rollup-rel"
+            className="w-32 rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+          >
+            <option value="">relation 列…</option>
+            {relationCols.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={rollupTargetColumnId}
+            onChange={(e) => setRollupTargetColumnId(e.currentTarget.value)}
+            disabled={!targetDbId}
+            data-testid="db-add-column-rollup-target"
+            className="w-32 rounded border border-zinc-300 bg-white px-2 py-1 text-xs disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950"
+          >
+            <option value="">対象列…</option>
+            {(targetDb.data?.props.columns ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={rollupFn}
+            onChange={(e) => setRollupFn(e.currentTarget.value as RollupFn)}
+            data-testid="db-add-column-rollup-fn"
+            className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+          >
+            {ROLLUP_FNS.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        </>
       ) : null}
       <button
         type="submit"
@@ -522,6 +723,7 @@ function BoardView({
 function formatCellShort(col: DbColumn, value: DbCellValue): string {
   if (value === null || value === undefined || value === '') return '—';
   if (col.kind === 'checkbox') return value === true ? '✓' : '—';
+  if (Array.isArray(value)) return value.length ? `${value.length} 件` : '—';
   return String(value);
 }
 
