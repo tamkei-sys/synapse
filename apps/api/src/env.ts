@@ -36,6 +36,16 @@ export type Env = {
   // ---- AI (S8) -----------------------------------------------------------
   /** Anthropic API key for the `=ASK()` formula and other AI surfaces. */
   ANTHROPIC_API_KEY?: string;
+
+  // ---- GitHub OAuth (PBI-18) ---------------------------------------------
+  /**
+   * GitHub OAuth App の client_id / secret。
+   * 両方揃ったときだけ Better-Auth で github provider が enable される。
+   * 開発用は https://github.com/settings/developers から取得。
+   * 本番は GitHub App + Cloudflare Secrets。
+   */
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
 };
 
 export type AppBindings = {

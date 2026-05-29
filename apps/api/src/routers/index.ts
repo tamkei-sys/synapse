@@ -2,6 +2,7 @@
  * Top-level tRPC router. Feature routers (workspace, page, pbi, …) are
  * mounted here as they land in subsequent sprints.
  */
+import { isGithubOauthEnabled } from '../auth.js';
 import { protectedProcedure, publicProcedure, router } from '../trpc.js';
 import { aiRouter } from './ai.js';
 import { apiTokenRouter } from './api-token.js';
@@ -22,6 +23,14 @@ import { workspaceRouter } from './workspace.js';
 
 export const appRouter = router({
   healthz: publicProcedure.query(() => ({ ok: true, service: 'synapse-api' })),
+
+  /**
+   * クライアントが /login で「GitHub でログイン」ボタンを出すか判断する用。
+   * GITHUB_CLIENT_ID / SECRET が両方揃った dev / prod でのみ true。
+   */
+  authConfig: publicProcedure.query(({ ctx }) => ({
+    githubOauthEnabled: isGithubOauthEnabled(ctx.env),
+  })),
 
   me: protectedProcedure.query(({ ctx }) => ({
     user: ctx.session.user,
