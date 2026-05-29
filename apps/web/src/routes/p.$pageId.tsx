@@ -268,7 +268,40 @@ function PageShell({
       )}
 
       <ChildPagesSection pageId={pageId} />
+      <BacklinksSection pageId={pageId} />
     </div>
+  );
+}
+
+function BacklinksSection({ pageId }: { pageId: string }) {
+  const backlinks = useQuery({
+    queryKey: ['block', 'listBacklinks', pageId],
+    queryFn: () => trpc.block.listBacklinks.query({ pageId }),
+  });
+  if (backlinks.isPending || !backlinks.data || backlinks.data.length === 0) return null;
+  return (
+    <section className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800" data-testid="backlinks-section">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-medium uppercase tracking-wide text-zinc-500">
+        <span aria-hidden>🔗</span>
+        バックリンク
+        <span className="text-xs normal-case text-zinc-400">({backlinks.data.length})</span>
+      </h2>
+      <ul className="space-y-1">
+        {backlinks.data.map((b) => (
+          <li key={b.id}>
+            <Link
+              to="/p/$pageId"
+              params={{ pageId: b.id }}
+              data-testid={`backlink-${b.id}`}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <span aria-hidden>{b.icon || '📄'}</span>
+              <span className="font-medium">{b.title}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -19,3 +19,4 @@ export * from './reaction.js';
 export * from './push-subscription.js';
 export * from './notification-channel.js';
 export * from './favorite.js';
+export * from './page-link.js';

@@ -16,6 +16,7 @@
   "dependencies": {
     "@hocuspocus/extension-database": "^2.15.2",
     "@hocuspocus/server": "^2.15.2",
+    "@synapse/blocks": "workspace:*",
     "@synapse/schema": "workspace:*",
     "drizzle-orm": "^0.36.4",
     "pg": "^8.13.1",

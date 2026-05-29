@@ -214,6 +214,42 @@ export const blockRouter = router({
       return trail;
     }),
 
+  /**
+   * このページを参照しているページ一覧 = バックリンク (PBI-73)。
+   * page_link を target_id で逆引きし、source ページ（非削除）を返す。
+   */
+  listBacklinks: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const target = (
+        await ctx.db
+          .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
+          .from(schema.block)
+          .where(and(eq(schema.block.id, input.pageId), isNull(schema.block.deletedAt)))
+          .limit(1)
+      )[0];
+      if (!target || target.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, target.workspaceId, ctx.session.user.id);
+      const rows = await ctx.db
+        .select({ id: schema.block.id, props: schema.block.props })
+        .from(schema.pageLink)
+        .innerJoin(schema.block, eq(schema.block.id, schema.pageLink.sourceId))
+        .where(
+          and(
+            eq(schema.pageLink.targetId, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .orderBy(asc(schema.block.position))
+        .limit(100);
+      return rows.map((r) => ({
+        id: r.id,
+        title: (r.props as { title?: string } | null)?.title ?? '無題',
+        icon: (r.props as { icon?: string } | null)?.icon ?? null,
+      }));
+    }),
+
   /** Fetch a page block. */
   getPage: protectedProcedure
     .input(z.object({ pageId: z.string().min(1) }))

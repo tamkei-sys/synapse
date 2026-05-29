@@ -13,7 +13,8 @@
  * with the same schema TipTap uses on the client.
  */
 import { Database as HocuspocusDatabase } from '@hocuspocus/extension-database';
-import { sql } from 'drizzle-orm';
+import { extractPageRefs } from '@synapse/blocks';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { yDocToProsemirrorJSON } from 'y-prosemirror';
 import type * as Y from 'yjs';
 
@@ -56,6 +57,36 @@ export function createPersistenceExtension(db: Database) {
             updated_at = now()
           WHERE id = ${blockId}
         `);
+
+        // バックリンク索引 (PBI-73): 本文中の pageRef を抽出して page_link を
+        // 作り直す。source 分を一旦消してから現在の参照を貼り直す。
+        const [meta] = await tx
+          .select({ workspaceId: schema.block.workspaceId })
+          .from(schema.block)
+          .where(eq(schema.block.id, blockId))
+          .limit(1);
+        await tx.delete(schema.pageLink).where(eq(schema.pageLink.sourceId, blockId));
+        const refs = extractPageRefs(snapshot);
+        if (meta && refs.length > 0) {
+          // 実在する block だけを対象に（FK 違反でトランザクションが落ちないよう）。
+          const existing = await tx
+            .select({ id: schema.block.id })
+            .from(schema.block)
+            .where(inArray(schema.block.id, refs));
+          const targets = existing.map((e) => e.id).filter((id) => id !== blockId);
+          if (targets.length > 0) {
+            await tx
+              .insert(schema.pageLink)
+              .values(
+                targets.map((targetId) => ({
+                  sourceId: blockId,
+                  targetId,
+                  workspaceId: meta.workspaceId,
+                })),
+              )
+              .onConflictDoNothing();
+          }
+        }
       });
     },
   });
