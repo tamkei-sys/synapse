@@ -6,16 +6,28 @@
  * incompatible with Collaboration (both manage undo state), so we drop it
  * — Yjs supplies its own undo manager via Collaboration.
  *
+ * PBI-33: マークダウン / HTML 入出力対応
+ *   - Link / Underline / TaskList / TaskItem 拡張を追加
+ *   - StarterKit の input rules で `**bold**` `# H1` `> quote` 等は即時整形
+ *   - MarkdownPasteExtension が plain text paste を MD 判定して HTML 化
+ *   - FormatToolbar (上部固定) + BubbleMenu (選択中) + コピー/取り込み
+ *
  * `editor-content` data-testid stays so Playwright can target the
  * contenteditable surface unchanged from S2.
  */
 import Collaboration from '@tiptap/extension-collaboration';
+import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
+import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useMemo } from 'react';
 import type * as Y from 'yjs';
 
+import { FormatToolbar } from './format-toolbar.js';
+import { MarkdownPasteExtension } from './markdown-paste.js';
 import { PbiRefNode } from './pbi-ref-node.js';
 import { makePbiSlashCommand } from './pbi-slash.js';
 import { PrDiffEmbedNode } from './pr-diff-node.js';
@@ -53,6 +65,19 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
         // Yjs Collaboration provides its own undo manager.
         history: false,
       }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: {
+          rel: 'noopener noreferrer nofollow',
+          target: '_blank',
+          class: 'text-violet-600 underline hover:text-violet-500 dark:text-violet-300',
+        },
+      }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
       Placeholder.configure({
         placeholder: 'ここに入力 — 「/」でコマンドメニュー',
       }),
@@ -61,6 +86,7 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
       SheetEmbedNode,
       PrDiffEmbedNode,
       SlashCommandExtension.configure({ commands: slashCommands }),
+      MarkdownPasteExtension,
     ],
     editorProps: {
       attributes: {
@@ -72,5 +98,10 @@ export function PageEditor({ doc, workspaceId }: EditorProps) {
     immediatelyRender: false,
   });
 
-  return <EditorContent editor={editor} />;
+  return (
+    <div data-testid="editor-shell">
+      <FormatToolbar editor={editor} />
+      <EditorContent editor={editor} />
+    </div>
+  );
 }

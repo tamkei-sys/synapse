@@ -86,6 +86,52 @@ async function listSbis(pbiBlockId) {
   return r.rows;
 }
 
+async function createTopLevel(workspaceId, type, props, kind) {
+  // 既存 dogfood WS の任意の created_by を流用する。
+  const owner = (
+    await client.query(
+      `SELECT created_by FROM block WHERE workspace_id=$1 AND created_by IS NOT NULL ORDER BY created_at LIMIT 1`,
+      [workspaceId],
+    )
+  ).rows[0]?.created_by;
+  if (!owner) throw new Error('cannot infer created_by for workspace');
+  const number = await nextSequence(workspaceId, kind);
+  const id = ulid();
+  await client.query(
+    `INSERT INTO block (id, workspace_id, type, parent_id, position, props, created_by, created_at, updated_at)
+     VALUES ($1, $2, $3, NULL, $4, $5, $6, now(), now())`,
+    [id, workspaceId, type, ulid(), { ...props, number }, owner],
+  );
+  return { id, number };
+}
+
+async function createPbi(workspaceId, title, opts = {}) {
+  const owner = (
+    await client.query(
+      `SELECT created_by FROM block WHERE workspace_id=$1 AND created_by IS NOT NULL ORDER BY created_at LIMIT 1`,
+      [workspaceId],
+    )
+  ).rows[0]?.created_by;
+  if (!owner) throw new Error('cannot infer created_by for workspace');
+  const number = await nextSequence(workspaceId, 'pbi');
+  const id = ulid();
+  const props = {
+    title,
+    status: opts.status ?? 'backlog',
+    number,
+    ...(opts.projectId ? { projectId: opts.projectId } : {}),
+    ...(opts.sprintId ? { sprintId: opts.sprintId } : {}),
+    ...(typeof opts.estimate === 'number' ? { estimate: opts.estimate } : {}),
+    ...(opts.priority ? { priority: opts.priority } : {}),
+  };
+  await client.query(
+    `INSERT INTO block (id, workspace_id, type, parent_id, position, props, created_by, created_at, updated_at)
+     VALUES ($1, $2, 'pbi', NULL, $3, $4, $5, now(), now())`,
+    [id, workspaceId, ulid(), props, owner],
+  );
+  return { id, number };
+}
+
 try {
   switch (cmd) {
     case 'pbi-status': {
@@ -93,6 +139,52 @@ try {
       const pbi = await findPbiByNumber(label);
       const r = await setStatus(pbi.id, 'pbi', status);
       console.log(`OK ${label} (${pbi.id}) -> ${r.s}`);
+      break;
+    }
+    case 'project-create': {
+      const [workspaceId, name] = rest;
+      const r = await createTopLevel(
+        workspaceId,
+        'project',
+        { name, status: 'in_progress', priority: 'should' },
+        'project',
+      );
+      console.log(`OK PRJ-${r.number} ${r.id}`);
+      break;
+    }
+    case 'sprint-create': {
+      const [workspaceId, projectId, name, start, end] = rest;
+      const r = await createTopLevel(
+        workspaceId,
+        'sprint',
+        {
+          name,
+          status: 'active',
+          startDate: start,
+          endDate: end,
+          ...(projectId ? { projectId } : {}),
+        },
+        'sprint',
+      );
+      console.log(`OK SP-${r.number} ${r.id}`);
+      break;
+    }
+    case 'pbi-create': {
+      // pbi-create <wsId> <title> [--project=<id>] [--sprint=<id>] [--est=<n>] [--status=<s>] [--priority=<p>]
+      const [workspaceId, title, ...flags] = rest;
+      const opts = {};
+      for (const f of flags) {
+        const m = /^--([\w-]+)=(.+)$/.exec(f);
+        if (!m) continue;
+        const [, k, v] = m;
+        if (k === 'project') opts.projectId = v;
+        else if (k === 'sprint') opts.sprintId = v;
+        else if (k === 'est') opts.estimate = Number(v);
+        else if (k === 'status') opts.status = v;
+        else if (k === 'priority') opts.priority = v;
+      }
+      const r = await createPbi(workspaceId, title, opts);
+      console.log(`OK PBI-${r.number} ${r.id}`);
       break;
     }
     case 'sbi-create': {
