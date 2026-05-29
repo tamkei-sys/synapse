@@ -13,7 +13,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   PBI_STATUSES,
@@ -624,13 +624,11 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
         data-testid="new-comment-form"
         className="mb-4 flex items-start gap-2"
       >
-        <textarea
+        <MentionTextarea
           value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="コメントを書く…（@userId でメンション）"
-          data-testid="new-comment-body"
-          rows={3}
-          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          onChange={setBody}
+          members={members.data ?? []}
+          placeholder="コメントを書く…（@ でメンバーを候補表示）"
         />
         <button
           type="submit"
@@ -691,6 +689,166 @@ function CommentSection({ block, selfUserId }: { block: BlockRow; selfUserId: st
         <EmptyHint>まだコメントはありません。最初のひとことを書きましょう。</EmptyHint>
       )}
     </section>
+  );
+}
+
+type MemberRow = Awaited<ReturnType<typeof trpc.workspace.listMembers.query>>[number];
+
+/**
+ * コメント入力用 textarea。`@` 入力時にワークスペースメンバー候補を
+ * dropdown 表示し、矢印キー / Enter / Tab で挿入できる軽量サジェスト。
+ * フル TipTap mention extension への移行は v2。
+ */
+function MentionTextarea({
+  value,
+  onChange,
+  members,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  members: MemberRow[];
+  placeholder: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement | null>(null);
+  const [query, setQuery] = useState<{ at: number; word: string } | null>(null);
+  const [selected, setSelected] = useState(0);
+
+  // キャレットの直前から「@xxx」を取り出す。空白か行頭の直後の @ のみ拾う。
+  const detectMention = (text: string, caret: number) => {
+    let i = caret - 1;
+    while (i >= 0 && /[A-Za-z0-9_-]/.test(text[i] ?? '')) i--;
+    if (i < 0 || text[i] !== '@') return null;
+    // @ の左が行頭 or 空白 / 改行 / 句読点 でなければ無効
+    const before = i === 0 ? '' : text[i - 1];
+    if (before && !/[\s,.;:!?()[\]{}]/.test(before)) return null;
+    return { at: i, word: text.slice(i + 1, caret) };
+  };
+
+  const updateQueryFromCaret = () => {
+    const ta = ref.current;
+    if (!ta) return;
+    const caret = ta.selectionStart ?? value.length;
+    setQuery(detectMention(value, caret));
+    setSelected(0);
+  };
+
+  const filtered = query
+    ? members
+        .filter((m) => {
+          const name = (m.name ?? '').toLowerCase();
+          const email = m.email.toLowerCase();
+          const q = query.word.toLowerCase();
+          return q === '' || name.includes(q) || email.includes(q) || m.userId.includes(q);
+        })
+        .slice(0, 6)
+    : [];
+
+  const insert = (userId: string) => {
+    if (!query) return;
+    const ta = ref.current;
+    if (!ta) return;
+    const caret = ta.selectionStart ?? value.length;
+    const before = value.slice(0, query.at);
+    const after = value.slice(caret);
+    const inserted = `@${userId} `;
+    const next = before + inserted + after;
+    onChange(next);
+    setQuery(null);
+    // 挿入直後にキャレットを挿入末尾に置く
+    requestAnimationFrame(() => {
+      if (!ref.current) return;
+      const pos = (before + inserted).length;
+      ref.current.selectionStart = pos;
+      ref.current.selectionEnd = pos;
+      ref.current.focus();
+    });
+  };
+
+  return (
+    <div className="relative flex-1">
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          // 次フレームで selectionStart を読む
+          requestAnimationFrame(updateQueryFromCaret);
+        }}
+        onKeyDown={(e) => {
+          if (!query || filtered.length === 0) return;
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelected((i) => (i + 1) % filtered.length);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelected((i) => (i + filtered.length - 1) % filtered.length);
+          } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            const pick = filtered[selected];
+            if (pick) insert(pick.userId);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setQuery(null);
+          }
+        }}
+        onSelect={updateQueryFromCaret}
+        onBlur={() => {
+          // pick クリックの前に閉じないよう少しだけ遅延
+          setTimeout(() => setQuery(null), 120);
+        }}
+        placeholder={placeholder}
+        data-testid="new-comment-body"
+        rows={3}
+        className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      />
+      {query && filtered.length > 0 ? (
+        <ul
+          data-testid="mention-suggestions"
+          className="absolute left-0 top-full z-30 mt-1 w-72 rounded-md border border-zinc-200 bg-white p-1 shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          {filtered.map((m, idx) => {
+            const active = idx === selected;
+            const name = m.name ?? m.email;
+            const initial = name.trim().slice(0, 1).toUpperCase() || '?';
+            return (
+              <li key={m.userId}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    insert(m.userId);
+                  }}
+                  onMouseEnter={() => setSelected(idx)}
+                  data-testid={`mention-option-${m.userId}`}
+                  className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm ${
+                    active
+                      ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/40 dark:text-violet-100'
+                      : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  {m.image ? (
+                    <img
+                      src={m.image}
+                      alt={name}
+                      className="h-6 w-6 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
+                    />
+                  ) : (
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-xs font-medium text-violet-700 dark:bg-violet-900/40 dark:text-violet-200">
+                      {initial}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm">{name}</span>
+                    <span className="block truncate text-[10px] text-zinc-500">{m.email}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 
