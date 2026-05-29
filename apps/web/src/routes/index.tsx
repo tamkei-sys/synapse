@@ -208,6 +208,13 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
             SBI
           </Link>
           <Link
+            to="/settings/members"
+            data-testid="open-members-settings"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            メンバー
+          </Link>
+          <Link
             to="/settings/tokens"
             data-testid="open-tokens-settings"
             className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"

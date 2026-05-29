@@ -17,8 +17,10 @@ import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
+import { Route as SettingsMembersRouteImport } from './routes/settings.members';
 import { Route as SettingsAuditLogRouteImport } from './routes/settings.audit-log';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
+import { Route as InviteTokenRouteImport } from './routes/invite.$token';
 import { Route as BBlockIdRouteImport } from './routes/b.$blockId';
 
 const SprintRoute = SprintRouteImport.update({
@@ -61,6 +63,11 @@ const SettingsTokensRoute = SettingsTokensRouteImport.update({
   path: '/settings/tokens',
   getParentRoute: () => rootRouteImport,
 } as any);
+const SettingsMembersRoute = SettingsMembersRouteImport.update({
+  id: '/settings/members',
+  path: '/settings/members',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SettingsAuditLogRoute = SettingsAuditLogRouteImport.update({
   id: '/settings/audit-log',
   path: '/settings/audit-log',
@@ -69,6 +76,11 @@ const SettingsAuditLogRoute = SettingsAuditLogRouteImport.update({
 const PPageIdRoute = PPageIdRouteImport.update({
   id: '/p/$pageId',
   path: '/p/$pageId',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any);
 const BBlockIdRoute = BBlockIdRouteImport.update({
@@ -86,8 +98,10 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
   '/b/$blockId': typeof BBlockIdRoute;
+  '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
+  '/settings/members': typeof SettingsMembersRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesByTo {
@@ -99,8 +113,10 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
   '/b/$blockId': typeof BBlockIdRoute;
+  '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
+  '/settings/members': typeof SettingsMembersRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRoutesById {
@@ -113,8 +129,10 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
   '/b/$blockId': typeof BBlockIdRoute;
+  '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
+  '/settings/members': typeof SettingsMembersRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
 }
 export interface FileRouteTypes {
@@ -128,8 +146,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sprint'
     | '/b/$blockId'
+    | '/invite/$token'
     | '/p/$pageId'
     | '/settings/audit-log'
+    | '/settings/members'
     | '/settings/tokens';
   fileRoutesByTo: FileRoutesByTo;
   to:
@@ -141,8 +161,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sprint'
     | '/b/$blockId'
+    | '/invite/$token'
     | '/p/$pageId'
     | '/settings/audit-log'
+    | '/settings/members'
     | '/settings/tokens';
   id:
     | '__root__'
@@ -154,8 +176,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sprint'
     | '/b/$blockId'
+    | '/invite/$token'
     | '/p/$pageId'
     | '/settings/audit-log'
+    | '/settings/members'
     | '/settings/tokens';
   fileRoutesById: FileRoutesById;
 }
@@ -168,8 +192,10 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute;
   SprintRoute: typeof SprintRoute;
   BBlockIdRoute: typeof BBlockIdRoute;
+  InviteTokenRoute: typeof InviteTokenRoute;
   PPageIdRoute: typeof PPageIdRoute;
   SettingsAuditLogRoute: typeof SettingsAuditLogRoute;
+  SettingsMembersRoute: typeof SettingsMembersRoute;
   SettingsTokensRoute: typeof SettingsTokensRoute;
 }
 
@@ -231,6 +257,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsTokensRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/settings/members': {
+      id: '/settings/members';
+      path: '/settings/members';
+      fullPath: '/settings/members';
+      preLoaderRoute: typeof SettingsMembersRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/settings/audit-log': {
       id: '/settings/audit-log';
       path: '/settings/audit-log';
@@ -243,6 +276,13 @@ declare module '@tanstack/react-router' {
       path: '/p/$pageId';
       fullPath: '/p/$pageId';
       preLoaderRoute: typeof PPageIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/invite/$token': {
+      id: '/invite/$token';
+      path: '/invite/$token';
+      fullPath: '/invite/$token';
+      preLoaderRoute: typeof InviteTokenRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/b/$blockId': {
@@ -264,8 +304,10 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SprintRoute: SprintRoute,
   BBlockIdRoute: BBlockIdRoute,
+  InviteTokenRoute: InviteTokenRoute,
   PPageIdRoute: PPageIdRoute,
   SettingsAuditLogRoute: SettingsAuditLogRoute,
+  SettingsMembersRoute: SettingsMembersRoute,
   SettingsTokensRoute: SettingsTokensRoute,
 };
 export const routeTree = rootRouteImport

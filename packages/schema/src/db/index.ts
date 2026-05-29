@@ -7,6 +7,7 @@
  */
 export * from './auth.js';
 export * from './workspace.js';
+export * from './invitation.js';
 export * from './block.js';
 export * from './yjs.js';
 export * from './mcp.js';

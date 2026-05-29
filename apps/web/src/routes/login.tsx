@@ -1,14 +1,19 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { signIn } from '../lib/auth-client.js';
 
+type LoginSearch = { redirect?: string };
+
 export const Route = createFileRoute('/login')({
   component: LoginPage,
+  validateSearch: (s: Record<string, unknown>): LoginSearch =>
+    typeof s['redirect'] === 'string' ? { redirect: s['redirect'] } : {},
 });
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { redirect } = useSearch({ from: '/login' });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +29,10 @@ function LoginPage() {
       setError(result.error.message ?? 'ログインに失敗しました。');
       return;
     }
-    await navigate({ to: '/' });
+    // `redirect` は同一オリジン内のパスのみ許容（外部リダイレクトを禁止）。
+    const target =
+      redirect && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/';
+    await navigate({ to: target });
   }
 
   return (
