@@ -10,11 +10,11 @@
  * ログイン → ボタン押下で workspace に参加。
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, createFileRoute } from '@tanstack/react-router';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 
 import { useSession } from '../lib/auth-client.js';
-import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
+import { useCurrentWorkspaceFromList, useStoredWorkspaceId } from '../lib/current-workspace.js';
 import { formatDate, formatDateTime } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
 
@@ -153,7 +153,7 @@ function MembersPanel({
             <InviteForm workspaceId={workspaceId} />
           </section>
 
-          <section>
+          <section className="mb-10">
             <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">
               招待履歴
             </h2>
@@ -171,6 +171,10 @@ function MembersPanel({
           メンバーを招待・管理する権限がありません（オーナーまたは管理者のみ）。
         </EmptyHint>
       )}
+
+      {selfRole === 'owner' ? (
+        <DangerZone workspaceId={workspaceId} workspaceName={workspaceName} />
+      ) : null}
     </div>
   );
 }
@@ -475,6 +479,96 @@ function EmptyHint({ children }: { children: React.ReactNode }) {
     <div className="rounded-lg border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700">
       {children}
     </div>
+  );
+}
+
+function DangerZone({
+  workspaceId,
+  workspaceName,
+}: {
+  workspaceId: string;
+  workspaceName: string;
+}) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [, setStoredId] = useStoredWorkspaceId();
+  const [open, setOpen] = useState(false);
+  const [confirmName, setConfirmName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = useMutation({
+    mutationFn: () =>
+      trpc.workspace.delete.mutate({ workspaceId, confirmName: confirmName.trim() }),
+    onSuccess: async () => {
+      setStoredId(null);
+      // 削除後はあらゆる workspace 由来クエリを wipe して / に戻す。
+      qc.clear();
+      await navigate({ to: '/' });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const matches = confirmName.trim() === workspaceName;
+
+  return (
+    <section className="mt-10 rounded-lg border border-red-300 bg-red-50/50 p-4 dark:border-red-700/60 dark:bg-red-950/30">
+      <h2 className="mb-1 text-sm font-medium uppercase tracking-wide text-red-700 dark:text-red-300">
+        危険ゾーン
+      </h2>
+      <p className="mb-3 text-sm text-red-700 dark:text-red-300">
+        ワークスペースを削除すると、紐づくすべてのページ・PBI・SBI・コメント・通知・トークン・監査ログが復元不可能に消えます。
+      </p>
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          data-testid="open-delete-workspace"
+          className="rounded-md border border-red-400 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 dark:border-red-600 dark:bg-zinc-900 dark:text-red-300 dark:hover:bg-red-900/30"
+        >
+          ワークスペースを削除…
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-red-700 dark:text-red-300">
+            確認のため、ワークスペース名 <code className="font-mono">{workspaceName}</code>{' '}
+            をそのまま入力してください。
+          </p>
+          <input
+            value={confirmName}
+            onChange={(e) => setConfirmName(e.target.value)}
+            placeholder={workspaceName}
+            data-testid="delete-workspace-confirm-name"
+            className="w-full rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm dark:border-red-700 dark:bg-zinc-950"
+          />
+          {error ? <p className="text-xs text-red-700 dark:text-red-300">{error}</p> : null}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                remove.mutate();
+              }}
+              disabled={!matches || remove.isPending}
+              data-testid="delete-workspace-submit"
+              className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50"
+            >
+              {remove.isPending ? '削除中…' : '完全に削除する'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setConfirmName('');
+                setError(null);
+              }}
+              className="text-xs text-zinc-500 hover:underline"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

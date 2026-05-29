@@ -22,7 +22,7 @@ import { z } from 'zod';
 
 import { db as schema } from '@synapse/schema';
 
-import { assertWorkspaceMember } from '../lib/access.js';
+import { assertIsOwner, assertWorkspaceMember } from '../lib/access.js';
 import { slugify, suffixedSlug } from '../lib/slug.js';
 import { protectedProcedure, router } from '../trpc.js';
 
@@ -110,6 +110,41 @@ export const workspaceRouter = router({
       });
 
       return created;
+    }),
+
+  /**
+   * Hard-delete a workspace. Owner only. すべての FK は cascade なので
+   * block / member / invitation / token / audit / notification / cc / yjs /
+   * dependency / sequence もまとめて消える。
+   *
+   * 誤爆対策で `confirmName` を受け取り、現行 workspace.name と完全一致した
+   * ときだけ実行する。
+   */
+  delete: protectedProcedure
+    .input(
+      z.object({
+        workspaceId: z.string().min(1),
+        confirmName: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertIsOwner(ctx.db, input.workspaceId, ctx.session.user.id);
+
+      const [row] = await ctx.db
+        .select({ name: schema.workspace.name })
+        .from(schema.workspace)
+        .where(eq(schema.workspace.id, input.workspaceId))
+        .limit(1);
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND' });
+      if (row.name !== input.confirmName) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'ワークスペース名が一致しません。',
+        });
+      }
+
+      await ctx.db.delete(schema.workspace).where(eq(schema.workspace.id, input.workspaceId));
+      return { ok: true };
     }),
 
   // ── 招待 ────────────────────────────────────────────────────────
