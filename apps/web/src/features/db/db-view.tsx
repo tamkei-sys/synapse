@@ -8,6 +8,21 @@
  * 楽観的更新はしない（行数が高々 数十〜数百想定 + 同時編集が稀）。
  * 全 mutation の完了で `db.get` を invalidate して再 fetch。
  */
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
@@ -51,6 +66,11 @@ export function DbView({ dbId }: { dbId: string }) {
   const updateCell = useMutation({
     mutationFn: (input: { rowId: string; columnId: string; value: DbCellValue }) =>
       trpc.db.updateCell.mutate(input),
+    onSuccess: invalidate,
+  });
+
+  const reorderRows = useMutation({
+    mutationFn: (orderedRowIds: string[]) => trpc.db.reorderRows.mutate({ dbId, orderedRowIds }),
     onSuccess: invalidate,
   });
 
@@ -114,74 +134,19 @@ export function DbView({ dbId }: { dbId: string }) {
       ) : view === 'calendar' ? (
         <CalendarView columns={data.props.columns} rows={visibleRows} />
       ) : (
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-          <thead className="bg-zinc-50/60 dark:bg-zinc-900/40">
-            <tr>
-              {data.props.columns.map((col) => (
-                <th
-                  key={col.id}
-                  scope="col"
-                  data-testid={`db-col-${col.id}`}
-                  className="border-r border-zinc-200 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 last:border-r-0 dark:border-zinc-800"
-                >
-                  <span>{col.name}</span>
-                  <span className="ml-1 text-[10px] text-zinc-400">({col.kind})</span>
-                </th>
-              ))}
-              <th scope="col" className="w-12 px-2 py-2"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {visibleRows.map((row) => (
-              <tr
-                key={row.id}
-                data-testid={`db-row-${row.id}`}
-                className="hover:bg-zinc-50/40 dark:hover:bg-zinc-900/30"
-              >
-                {data.props.columns.map((col) => (
-                  <td
-                    key={col.id}
-                    className="border-r border-zinc-200 px-2 py-1 align-top last:border-r-0 dark:border-zinc-800"
-                  >
-                    <Cell
-                      col={col}
-                      value={row.props.values[col.id] ?? null}
-                      relation={data.relations[col.id]}
-                      rollupValue={data.rollups[row.id]?.[col.id] ?? null}
-                      onChange={(value) =>
-                        updateCell.mutate({ rowId: row.id, columnId: col.id, value })
-                      }
-                    />
-                  </td>
-                ))}
-                <td className="px-2 py-1 text-right">
-                  <button
-                    type="button"
-                    onClick={() => deleteRow.mutate(row.id)}
-                    aria-label="行を削除"
-                    title="行を削除"
-                    data-testid={`db-row-delete-${row.id}`}
-                    className="text-xs text-zinc-400 hover:text-red-500"
-                  >
-                    ×
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {visibleRows.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={data.props.columns.length + 1}
-                  className="px-3 py-6 text-center text-xs text-zinc-500"
-                >
-                  {data.rows.length === 0 ? 'まだ行がありません' : '条件に一致する行がありません'}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+        <TableView
+          columns={data.props.columns}
+          rows={visibleRows}
+          totalRowCount={data.rows.length}
+          relations={data.relations}
+          rollups={data.rollups}
+          reorderable={sort === null && rules.length === 0}
+          onUpdateCell={(rowId, columnId, value) =>
+            updateCell.mutate({ rowId, columnId, value })
+          }
+          onDeleteRow={(rowId) => deleteRow.mutate(rowId)}
+          onReorder={(orderedRowIds) => reorderRows.mutate(orderedRowIds)}
+        />
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -204,6 +169,175 @@ export function DbView({ dbId }: { dbId: string }) {
         />
       </div>
     </div>
+  );
+}
+
+// ── テーブルビュー + 行 DnD (PBI-71) ────────────────────────────────
+
+function TableView({
+  columns,
+  rows,
+  totalRowCount,
+  relations,
+  rollups,
+  reorderable,
+  onUpdateCell,
+  onDeleteRow,
+  onReorder,
+}: {
+  columns: readonly DbColumn[];
+  rows: readonly DbRow[];
+  totalRowCount: number;
+  relations: RelationMap;
+  rollups: GetResult['rollups'];
+  reorderable: boolean;
+  onUpdateCell: (rowId: string, columnId: string, value: DbCellValue) => void;
+  onDeleteRow: (rowId: string) => void;
+  onReorder: (orderedRowIds: string[]) => void;
+}) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const ids = useMemo(() => rows.map((r) => r.id), [rows]);
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    onReorder(arrayMove([...ids], oldIndex, newIndex));
+  };
+  const colSpan = columns.length + 1 + (reorderable ? 1 : 0);
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+        <thead className="bg-zinc-50/60 dark:bg-zinc-900/40">
+          <tr>
+            {reorderable ? (
+              <th scope="col" className="w-8 px-1 py-2" aria-label="並べ替え"></th>
+            ) : null}
+            {columns.map((col) => (
+              <th
+                key={col.id}
+                scope="col"
+                data-testid={`db-col-${col.id}`}
+                className="border-r border-zinc-200 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 last:border-r-0 dark:border-zinc-800"
+              >
+                <span>{col.name}</span>
+                <span className="ml-1 text-[10px] text-zinc-400">({col.kind})</span>
+              </th>
+            ))}
+            <th scope="col" className="w-12 px-2 py-2"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              {rows.map((row) => (
+                <SortableRow
+                  key={row.id}
+                  row={row}
+                  columns={columns}
+                  relations={relations}
+                  rollups={rollups}
+                  reorderable={reorderable}
+                  onUpdateCell={onUpdateCell}
+                  onDeleteRow={onDeleteRow}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={colSpan} className="px-3 py-6 text-center text-xs text-zinc-500">
+                {totalRowCount === 0 ? 'まだ行がありません' : '条件に一致する行がありません'}
+              </td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SortableRow({
+  row,
+  columns,
+  relations,
+  rollups,
+  reorderable,
+  onUpdateCell,
+  onDeleteRow,
+}: {
+  row: DbRow;
+  columns: readonly DbColumn[];
+  relations: RelationMap;
+  rollups: GetResult['rollups'];
+  reorderable: boolean;
+  onUpdateCell: (rowId: string, columnId: string, value: DbCellValue) => void;
+  onDeleteRow: (rowId: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: row.id,
+    disabled: !reorderable,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : undefined,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      data-testid={`db-row-${row.id}`}
+      className="bg-white hover:bg-zinc-50/40 dark:bg-zinc-950 dark:hover:bg-zinc-900/30"
+    >
+      {reorderable ? (
+        <td className="px-1 py-1 align-middle">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label="ドラッグして並べ替え"
+            data-testid={`db-row-handle-${row.id}`}
+            className="cursor-grab text-zinc-300 hover:text-zinc-500 active:cursor-grabbing dark:text-zinc-600 dark:hover:text-zinc-400"
+          >
+            ⠿
+          </button>
+        </td>
+      ) : null}
+      {columns.map((col) => (
+        <td
+          key={col.id}
+          className="border-r border-zinc-200 px-2 py-1 align-top last:border-r-0 dark:border-zinc-800"
+        >
+          <Cell
+            col={col}
+            value={row.props.values[col.id] ?? null}
+            relation={relations[col.id]}
+            rollupValue={rollups[row.id]?.[col.id] ?? null}
+            onChange={(value) => onUpdateCell(row.id, col.id, value)}
+          />
+        </td>
+      ))}
+      <td className="px-2 py-1 text-right">
+        <button
+          type="button"
+          onClick={() => onDeleteRow(row.id)}
+          aria-label="行を削除"
+          title="行を削除"
+          data-testid={`db-row-delete-${row.id}`}
+          className="text-xs text-zinc-400 hover:text-red-500"
+        >
+          ×
+        </button>
+      </td>
+    </tr>
   );
 }
 

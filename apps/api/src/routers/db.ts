@@ -322,6 +322,41 @@ export const dbRouter = router({
       return { ok: true };
     }),
 
+  /**
+   * 行の並び順を更新 (PBI-71)。orderedRowIds の順に position を 6 桁
+   * ゼロ詰めで振り直す。UI は全行の順序を送る前提（フィルタ/ソート無効時のみ）。
+   * 一覧に含まれない行（別 db や未指定）は無視。
+   */
+  reorderRows: protectedProcedure
+    .input(
+      z.object({
+        dbId: z.string().min(1),
+        orderedRowIds: z.array(z.string().min(1)).min(1).max(2000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const head = (
+        await ctx.db.select().from(schema.block).where(eq(schema.block.id, input.dbId)).limit(1)
+      )[0];
+      if (!head || head.type !== 'db') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, head.workspaceId, ctx.session.user.id);
+      const owned = await ctx.db
+        .select({ id: schema.block.id })
+        .from(schema.block)
+        .where(and(eq(schema.block.parentId, head.id), eq(schema.block.type, 'db_row')));
+      const valid = new Set(owned.map((r) => r.id));
+      let i = 0;
+      for (const rowId of input.orderedRowIds) {
+        if (!valid.has(rowId)) continue;
+        await ctx.db
+          .update(schema.block)
+          .set({ position: String(i).padStart(6, '0'), updatedAt: new Date() })
+          .where(eq(schema.block.id, rowId));
+        i += 1;
+      }
+      return { ok: true };
+    }),
+
   /** 行を削除。 */
   deleteRow: protectedProcedure
     .input(z.object({ rowId: z.string().min(1) }))
