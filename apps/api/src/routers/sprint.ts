@@ -6,7 +6,7 @@
  * needed.
  */
 import { TRPCError } from '@trpc/server';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -140,5 +140,154 @@ export const sprintRouter = router({
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       return row;
+    }),
+
+  /**
+   * Burndown / velocity 用の集計。
+   *
+   * 出力：
+   *   startDate / endDate ─ Sprint の期間
+   *   totalHours          ─ Sprint 配下 SBI の合計見積時間
+   *   totalPbis           ─ Sprint に紐付く PBI 件数
+   *   completedPbis       ─ うち status='done' の件数
+   *   points              ─ [{ date, remaining, ideal, completedHours }]
+   *
+   * "1 日分" は startDate を 0 日目とし、endDate に向かって理想線が直線
+   * 降下する形にする。状態未到達の未来日は実績 = 直近 remaining が継続
+   * （斜めに伸びない平らな線）。
+   */
+  metrics: protectedProcedure
+    .input(z.object({ sprintId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [sprint] = await ctx.db
+        .select()
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.sprintId),
+            eq(schema.block.type, 'sprint'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!sprint) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, sprint.workspaceId, ctx.session.user.id);
+
+      const sp = (sprint.props ?? {}) as { startDate?: string; endDate?: string };
+      if (!sp.startDate || !sp.endDate) {
+        return {
+          startDate: sp.startDate ?? null,
+          endDate: sp.endDate ?? null,
+          totalHours: 0,
+          totalPbis: 0,
+          completedPbis: 0,
+          points: [] as Array<{
+            date: string;
+            remaining: number;
+            ideal: number;
+            completedHours: number;
+          }>,
+        };
+      }
+
+      // 該当 sprint の PBI 群
+      const allPbis = await ctx.db
+        .select({ id: schema.block.id, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.workspaceId, sprint.workspaceId),
+            eq(schema.block.type, 'pbi'),
+            isNull(schema.block.deletedAt),
+          ),
+        );
+      const sprintPbis = allPbis.filter(
+        (p) => (p.props as { sprintId?: string } | null)?.sprintId === input.sprintId,
+      );
+
+      let totalHours = 0;
+      const points: Array<{
+        date: string;
+        remaining: number;
+        ideal: number;
+        completedHours: number;
+      }> = [];
+
+      const startMs = Date.parse(`${sp.startDate}T00:00:00Z`);
+      const endMs = Date.parse(`${sp.endDate}T00:00:00Z`);
+      const days = Math.max(1, Math.floor((endMs - startMs) / 86_400_000) + 1);
+
+      if (sprintPbis.length === 0) {
+        for (let i = 0; i < days; i++) {
+          const date = new Date(startMs + i * 86_400_000).toISOString().slice(0, 10);
+          points.push({ date, remaining: 0, ideal: 0, completedHours: 0 });
+        }
+        return {
+          startDate: sp.startDate,
+          endDate: sp.endDate,
+          totalHours: 0,
+          totalPbis: 0,
+          completedPbis: 0,
+          points,
+        };
+      }
+
+      const sbis = await ctx.db
+        .select({
+          props: schema.block.props,
+          parentId: schema.block.parentId,
+        })
+        .from(schema.block)
+        .where(
+          and(
+            inArray(
+              schema.block.parentId,
+              sprintPbis.map((p) => p.id),
+            ),
+            eq(schema.block.type, 'sbi'),
+            isNull(schema.block.deletedAt),
+          ),
+        );
+
+      for (const s of sbis) {
+        const props = (s.props ?? {}) as { estimateHours?: number };
+        totalHours += props.estimateHours ?? 0;
+      }
+
+      const nowMs = Date.now();
+      for (let i = 0; i < days; i++) {
+        const dayEnd = startMs + (i + 1) * 86_400_000;
+        let completedHours = 0;
+        for (const s of sbis) {
+          const props = (s.props ?? {}) as {
+            status?: string;
+            completedAt?: string;
+            estimateHours?: number;
+          };
+          if (props.status !== 'done' || !props.completedAt) continue;
+          if (Date.parse(props.completedAt) <= dayEnd) {
+            completedHours += props.estimateHours ?? 0;
+          }
+        }
+        const remaining = Math.max(0, totalHours - completedHours);
+        const ideal = days <= 1 ? 0 : Math.max(0, totalHours - (totalHours * i) / (days - 1));
+        const date = new Date(startMs + i * 86_400_000).toISOString().slice(0, 10);
+        points.push({ date, remaining, ideal, completedHours });
+        // 未来日の実績は描かない（最後の確定日まででライン終端）
+        if (startMs + i * 86_400_000 > nowMs) break;
+      }
+
+      const completedPbis = sprintPbis.filter(
+        (p) => (p.props as { status?: string } | null)?.status === 'done',
+      ).length;
+
+      return {
+        startDate: sp.startDate,
+        endDate: sp.endDate,
+        totalHours,
+        totalPbis: sprintPbis.length,
+        completedPbis,
+        points,
+      };
     }),
 });

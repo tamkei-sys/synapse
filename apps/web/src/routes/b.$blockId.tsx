@@ -28,6 +28,7 @@ import {
   type SprintStatus,
 } from '@synapse/blocks';
 
+import { BurndownChart } from '../features/charts/burndown-chart.js';
 import { PageEditor } from '../features/editor/editor.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
 import { usePresence, type PresenceUser } from '../features/editor/use-presence.js';
@@ -453,19 +454,38 @@ function SprintChildren({ sprintId }: { sprintId: string }) {
     queryKey: ['pbi', 'listForSprint', sprintId],
     queryFn: () => trpc.pbi.listForSprint.query({ sprintId }),
   });
+  const metrics = useQuery({
+    queryKey: ['sprint', 'metrics', sprintId],
+    queryFn: () => trpc.sprint.metrics.query({ sprintId }),
+  });
   return (
-    <section>
-      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">
-        このスプリントの PBI
-      </h2>
-      {list.isPending ? (
-        <p className="text-sm text-zinc-500">読み込み中…</p>
-      ) : list.data && list.data.length > 0 ? (
-        <ChildList items={list.data} kind="pbi" />
-      ) : (
-        <EmptyHint>このスプリントに割り当てられた PBI はまだありません。</EmptyHint>
-      )}
-    </section>
+    <>
+      {metrics.data && metrics.data.startDate && metrics.data.endDate ? (
+        <section className="mb-8">
+          <BurndownChart
+            points={metrics.data.points}
+            totalHours={metrics.data.totalHours}
+            startDate={metrics.data.startDate}
+            endDate={metrics.data.endDate}
+          />
+          <p className="mt-2 text-xs text-zinc-500">
+            PBI {metrics.data.completedPbis} / {metrics.data.totalPbis} 完了
+          </p>
+        </section>
+      ) : null}
+      <section>
+        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">
+          このスプリントの PBI
+        </h2>
+        {list.isPending ? (
+          <p className="text-sm text-zinc-500">読み込み中…</p>
+        ) : list.data && list.data.length > 0 ? (
+          <ChildList items={list.data} kind="pbi" />
+        ) : (
+          <EmptyHint>このスプリントに割り当てられた PBI はまだありません。</EmptyHint>
+        )}
+      </section>
+    </>
   );
 }
 
