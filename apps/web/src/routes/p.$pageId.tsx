@@ -160,7 +160,7 @@ function PageShell({
   useEffect(() => setTitle(initialTitle), [initialTitle]);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-12">
+    <div className="w-full max-w-none px-6 py-12">
       {cover ? (
         <div className="group relative -mx-6 -mt-12 mb-6 h-40 overflow-hidden" data-testid="page-cover">
           <img src={cover} alt="" className="h-full w-full object-cover" />
