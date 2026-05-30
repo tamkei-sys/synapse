@@ -29,7 +29,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useMemo, useState } from 'react';
 import type * as Y from 'yjs';
@@ -83,9 +83,13 @@ type EditorProps = {
    * 対象。undefined ならコメント機能は無効（埋め込みエディタ等）。
    */
   pageId?: string;
+  /**
+   * editor 生成時に親へ渡す (PBI-54 版復元で setContent を呼ぶため)。
+   */
+  onEditorReady?: (editor: Editor) => void;
 };
 
-export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorProps) {
+export function PageEditor({ doc, workspaceId, parentPageId, pageId, onEditorReady }: EditorProps) {
   const [pendingComment, setPendingComment] = useState<PendingComment | null>(null);
   // Per-workspace closure for the /pbi command. Stable across renders as
   // long as the route's workspaceId doesn't change.
@@ -174,6 +178,7 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorPro
       },
     },
     immediatelyRender: false,
+    onCreate: ({ editor }) => onEditorReady?.(editor),
   });
 
   return (

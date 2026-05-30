@@ -11,7 +11,7 @@
  * time; fractional indexing can slot in later without a schema change.
  */
 import { TRPCError } from '@trpc/server';
-import { and, asc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -23,7 +23,7 @@ import type { Env } from '../env.js';
 import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
-import { EMPTY_DOC } from '../lib/page-doc.js';
+import { EMPTY_DOC, extractTextPreview } from '../lib/page-doc.js';
 import { generateShareToken, sanitizePublicDoc } from '../lib/public-doc.js';
 import { protectedProcedure, publicProcedure, router } from '../trpc.js';
 
@@ -1103,5 +1103,83 @@ export const blockRouter = router({
         cover: typeof props['cover'] === 'string' ? (props['cover'] as string) : null,
         doc: sanitizePublicDoc(props['doc']),
       };
+    }),
+
+  // ---- ページ履歴 / バージョン復元 (PBI-54) -------------------------------
+
+  /** 現在の本文を手動スナップショット ('manual' 版) として保存する。 */
+  saveVersion: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+      const [page] = await ctx.db
+        .select({
+          workspaceId: schema.block.workspaceId,
+          type: schema.block.type,
+          props: schema.block.props,
+        })
+        .from(schema.block)
+        .where(eq(schema.block.id, input.pageId))
+        .limit(1);
+      if (!page || page.type !== 'page') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, page.workspaceId, userId);
+      const doc = (page.props as { doc?: unknown }).doc ?? EMPTY_DOC;
+      const id = ulid();
+      await ctx.db.insert(schema.pageVersion).values({
+        id,
+        blockId: input.pageId,
+        workspaceId: page.workspaceId,
+        doc,
+        kind: 'manual',
+        createdBy: userId,
+      });
+      return { id };
+    }),
+
+  /** ページの版一覧（新しい順）。各版のプレビューと作成者名を返す。 */
+  listVersions: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [page] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId })
+        .from(schema.block)
+        .where(eq(schema.block.id, input.pageId))
+        .limit(1);
+      if (!page) return [];
+      await assertWorkspaceMember(ctx.db, page.workspaceId, ctx.session.user.id);
+      const rows = await ctx.db
+        .select({
+          id: schema.pageVersion.id,
+          kind: schema.pageVersion.kind,
+          createdAt: schema.pageVersion.createdAt,
+          authorName: schema.user.name,
+          doc: schema.pageVersion.doc,
+        })
+        .from(schema.pageVersion)
+        .leftJoin(schema.user, eq(schema.pageVersion.createdBy, schema.user.id))
+        .where(eq(schema.pageVersion.blockId, input.pageId))
+        .orderBy(desc(schema.pageVersion.createdAt))
+        .limit(100);
+      return rows.map((r) => ({
+        id: r.id,
+        kind: r.kind,
+        createdAt: r.createdAt,
+        authorName: r.authorName ?? null,
+        preview: extractTextPreview(r.doc),
+      }));
+    }),
+
+  /** 単一版の doc を取得する（復元用。クライアントが setContent で適用する）。 */
+  getVersion: protectedProcedure
+    .input(z.object({ versionId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [v] = await ctx.db
+        .select({ doc: schema.pageVersion.doc, workspaceId: schema.pageVersion.workspaceId })
+        .from(schema.pageVersion)
+        .where(eq(schema.pageVersion.id, input.versionId))
+        .limit(1);
+      if (!v) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, v.workspaceId, ctx.session.user.id);
+      return { doc: v.doc };
     }),
 });

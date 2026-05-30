@@ -36,3 +36,22 @@ export const pagePropsSchema = z.object({
 });
 
 export type PageProps = z.infer<typeof pagePropsSchema>;
+
+/**
+ * doc 先頭のテキストを max 文字まで抜き出す。版履歴 (PBI-54) 一覧の
+ * プレビュー用。テキストノードを文書順に拾い、連続空白を 1 つに畳む。
+ * 不正な入力 (null / 非オブジェクト) では空文字を返す。
+ */
+export function extractTextPreview(doc: unknown, max = 100): string {
+  const parts: string[] = [];
+  const walk = (node: unknown): void => {
+    if (parts.join('').length >= max) return;
+    if (!node || typeof node !== 'object') return;
+    const n = node as { type?: string; text?: string; content?: unknown[] };
+    if (n.type === 'text' && typeof n.text === 'string') parts.push(n.text);
+    if (Array.isArray(n.content)) for (const child of n.content) walk(child);
+  };
+  walk(doc);
+  const text = parts.join('').replace(/\s+/g, ' ').trim();
+  return text.length > max ? text.slice(0, max) : text;
+}

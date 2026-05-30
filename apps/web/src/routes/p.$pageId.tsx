@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import type { Editor } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from '../features/editor/editor.js';
@@ -96,6 +97,7 @@ function PageShell({
   const [icon, setIcon] = useState(initialIcon);
   const [cover, setCover] = useState(initialCover);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [editor, setEditor] = useState<Editor | null>(null);
 
   const setPageCover = useMutation({
     mutationFn: (next: string) => trpc.block.setPageCover.mutate({ pageId, cover: next }),
@@ -211,6 +213,7 @@ function PageShell({
             <span className="text-xs">お気に入り</span>
           </button>
           <SharePopover pageId={pageId} />
+          <HistoryPanel pageId={pageId} editor={editor} />
           <button
             type="button"
             onClick={() => saveAsTemplate.mutate()}
@@ -285,7 +288,13 @@ function PageShell({
       </p>
 
       {doc ? (
-        <PageEditor doc={doc} workspaceId={workspaceId} parentPageId={pageId} pageId={pageId} />
+        <PageEditor
+          doc={doc}
+          workspaceId={workspaceId}
+          parentPageId={pageId}
+          pageId={pageId}
+          onEditorReady={setEditor}
+        />
       ) : (
         <p className="text-zinc-500">エディタを準備中…</p>
       )}
@@ -407,6 +416,124 @@ function SharePopover({ pageId }: { pageId: string }) {
             >
               このページを公開する
             </button>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * ページ履歴パネル (PBI-54)。版一覧 + 「現在を保存」+ 各版の復元。
+ * 復元は getVersion で過去 doc を取り、editor.setContent で現在ドキュメントへ
+ * 新しい変更として書き込む（Collaboration 経由で Yjs に載り全クライアントに伝播）。
+ */
+function HistoryPanel({ pageId, editor }: { pageId: string; editor: Editor | null }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+
+  const versions = useQuery({
+    queryKey: ['block', 'listVersions', pageId],
+    queryFn: () => trpc.block.listVersions.query({ pageId }),
+    enabled: open,
+  });
+  const save = useMutation({
+    mutationFn: () => trpc.block.saveVersion.mutate({ pageId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'listVersions', pageId] }),
+  });
+  const restore = useMutation({
+    mutationFn: (versionId: string) => trpc.block.getVersion.query({ versionId }),
+    onSuccess: (data) => {
+      if (editor && data.doc) {
+        editor.commands.setContent(data.doc as Record<string, unknown>, true);
+        setOpen(false);
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="page-history-button"
+        className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        title="履歴"
+        aria-expanded={open}
+      >
+        <span>🕐</span>
+        <span className="text-xs">履歴</span>
+      </button>
+      {open ? (
+        <div
+          data-testid="history-popover"
+          className="absolute right-0 top-full z-30 mt-1 w-80 rounded-md border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium">ページ履歴</p>
+            <button
+              type="button"
+              onClick={() => save.mutate()}
+              disabled={save.isPending}
+              data-testid="history-save"
+              className="rounded bg-violet-600 px-2 py-1 text-xs text-white hover:bg-violet-500 disabled:opacity-50"
+            >
+              現在を保存
+            </button>
+          </div>
+          {versions.isPending ? (
+            <p className="text-xs text-zinc-500">読み込み中…</p>
+          ) : !versions.data || versions.data.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              まだ版がありません。「現在を保存」で作成できます。
+            </p>
+          ) : (
+            <ul className="max-h-80 space-y-1 overflow-y-auto">
+              {versions.data.map((v) => (
+                <li
+                  key={v.id}
+                  data-testid="history-item"
+                  className="rounded-md border border-zinc-100 p-2 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                >
+                  <p className="truncate text-xs text-zinc-700 dark:text-zinc-200">
+                    {v.preview || '（空のページ）'}
+                  </p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-400">
+                      {v.kind === 'manual' ? '手動保存' : '自動'} ·{' '}
+                      {new Date(v.createdAt).toLocaleString('ja-JP')}
+                      {v.authorName ? ` · ${v.authorName}` : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => restore.mutate(v.id)}
+                      disabled={restore.isPending || !editor}
+                      data-testid="history-restore"
+                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-violet-600 hover:bg-violet-50 disabled:opacity-50 dark:hover:bg-violet-950/40"
+                    >
+                      復元
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       ) : null}
