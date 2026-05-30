@@ -41,6 +41,8 @@ import { CommentsPanel, type PendingComment } from './comments-panel.js';
 import { CodeBlockHighlighted } from './code-block.js';
 import { DateMentionNode } from './date-mention-node.js';
 import { EmbedNode } from './embed-node.js';
+import { FileNode } from './file-node.js';
+import { makeFileSlashCommand } from './file-slash.js';
 import { InlineMathNode, MathBlockNode } from './math-node.js';
 import { FindBar } from './find-bar.js';
 import { FindExtension } from './find.js';
@@ -94,6 +96,7 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorPro
       makePageSlashCommand(workspaceId, parentPageId),
       makeAiSlashCommand(workspaceId),
       makeImageSlashCommand(),
+      makeFileSlashCommand(),
     ],
     [workspaceId, parentPageId],
   );
@@ -125,6 +128,7 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorPro
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, HTMLAttributes: { class: 'rounded-md' } }),
       ImageDropPasteExtension,
+      FileNode,
       CalloutNode,
       ToggleNode,
       ToggleSummary,
