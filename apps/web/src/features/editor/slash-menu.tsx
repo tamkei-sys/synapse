@@ -121,6 +121,13 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     run: (editor, range) => editor.chain().focus().deleteRange(range).setColumns(2).run(),
   },
   {
+    id: 'sync',
+    title: '同期ブロック',
+    description: '別ページの内容をライブ表示',
+    keywords: ['sync', '同期', 'synced', '参照', 'ミラー', 'mirror'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertSyncedBlock().run(),
+  },
+  {
     id: 'toc',
     title: '目次',
     description: '見出しから自動生成される目次',
