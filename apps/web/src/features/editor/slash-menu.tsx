@@ -128,6 +128,13 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     run: (editor, range) => editor.chain().focus().deleteRange(range).insertSyncedBlock().run(),
   },
   {
+    id: 'divider',
+    title: '区切り線',
+    description: '色を変えられる水平線',
+    keywords: ['divider', '区切り', '罫線', 'hr', 'rule', 'line', '線', 'セパレータ'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+  },
+  {
     id: 'toc',
     title: '目次',
     description: '見出しから自動生成される目次',

@@ -43,6 +43,7 @@ import { DateMentionNode } from './date-mention-node.js';
 import { BookmarkNode } from './bookmark-node.js';
 import { makeBookmarkSlashCommand } from './bookmark-slash.js';
 import { ColumnListNode, ColumnNode } from './column-node.js';
+import { ColoredHorizontalRule } from './colored-hr-node.js';
 import { SyncedBlockNode } from './synced-block-node.js';
 import { EmbedNode } from './embed-node.js';
 import { FileNode } from './file-node.js';
@@ -121,8 +122,11 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId, onEditorRea
         history: false,
         // codeBlock は CodeBlockLowlight に差し替えるので無効化。
         codeBlock: false,
+        // 区切り線は色付きの自前ノードに差し替える (PBI-49)。
+        horizontalRule: false,
       }),
       CodeBlockHighlighted,
+      ColoredHorizontalRule,
       Underline,
       TextStyle,
       Color,
