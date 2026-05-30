@@ -23,6 +23,7 @@ import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
+import { BookmarkNode } from './bookmark-node.js';
 import { CalloutNode } from './callout-node.js';
 import { CodeBlockHighlighted } from './code-block.js';
 import { DateMentionNode } from './date-mention-node.js';
@@ -52,6 +53,7 @@ export function PublicPageEditor({ doc }: { doc: unknown }) {
       TaskList,
       TaskItem.configure({ nested: true }),
       Image.configure({ inline: false, HTMLAttributes: { class: 'rounded-md' } }),
+      BookmarkNode,
       CalloutNode,
       ToggleNode,
       ToggleSummary,

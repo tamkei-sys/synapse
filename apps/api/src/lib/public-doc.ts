@@ -50,6 +50,7 @@ const ALLOWED_NODES = new Set<string>([
   'inlineMath',
   'mathBlock',
   'dateMention',
+  'bookmark',
 ]);
 
 const ALLOWED_MARKS = new Set<string>([
@@ -139,6 +140,23 @@ function sanitizeNode(node: PmNode): PmNode | null {
     if (typeof node.attrs?.['alt'] === 'string') attrs['alt'] = node.attrs['alt'];
     if (typeof node.attrs?.['title'] === 'string') attrs['title'] = node.attrs['title'];
     return { type: 'image', attrs };
+  }
+
+  // bookmark は外部リンクのカード（embed の iframe と違い公開可）。url は
+  // http(s)/相対のみ、image/favicon は安全な画像 src のみ通し、危険スキームを弾く。
+  if (node.type === 'bookmark') {
+    const url = safeHref(node.attrs?.['url']);
+    if (!url) return null;
+    const attrs: Record<string, unknown> = { url };
+    for (const key of ['title', 'description', 'siteName'] as const) {
+      const v = node.attrs?.[key];
+      if (typeof v === 'string') attrs[key] = v;
+    }
+    const image = safeImageSrc(node.attrs?.['image']);
+    if (image) attrs['image'] = image;
+    const favicon = safeImageSrc(node.attrs?.['favicon']);
+    if (favicon) attrs['favicon'] = favicon;
+    return { type: 'bookmark', attrs };
   }
 
   const out: PmNode = { type: node.type };

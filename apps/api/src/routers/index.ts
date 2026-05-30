@@ -8,6 +8,7 @@ import { aiRouter } from './ai.js';
 import { apiTokenRouter } from './api-token.js';
 import { auditRouter } from './audit.js';
 import { blockRouter } from './block.js';
+import { bookmarkRouter } from './bookmark.js';
 import { ccRouter } from './cc.js';
 import { commentRouter } from './comment.js';
 import { dbRouter } from './db.js';
@@ -41,6 +42,7 @@ export const appRouter = router({
 
   workspace: workspaceRouter,
   block: blockRouter,
+  bookmark: bookmarkRouter,
   pbi: pbiRouter,
   project: projectRouter,
   sprint: sprintRouter,

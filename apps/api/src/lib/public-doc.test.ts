@@ -151,6 +151,53 @@ describe('sanitizePublicDoc', () => {
     const out = sanitizePublicDoc(doc);
     expect(out.content[0]).toMatchObject({ attrs: { level: 1 } });
   });
+
+  it('keeps bookmark with safe url and sanitized image/favicon', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'bookmark',
+          attrs: {
+            url: 'https://example.com/post',
+            title: 'A Title',
+            description: 'desc',
+            siteName: 'Example',
+            image: 'https://cdn.example.com/c.png',
+            favicon: 'https://example.com/favicon.ico',
+          },
+        },
+      ],
+    };
+    const out = sanitizePublicDoc(doc);
+    expect(out.content[0]).toMatchObject({
+      type: 'bookmark',
+      attrs: {
+        url: 'https://example.com/post',
+        title: 'A Title',
+        description: 'desc',
+        siteName: 'Example',
+        image: 'https://cdn.example.com/c.png',
+        favicon: 'https://example.com/favicon.ico',
+      },
+    });
+  });
+
+  it('drops bookmark with dangerous url and strips dangerous image/favicon schemes', () => {
+    const evil = 'java' + 'script:alert(1)'; // no-script-url 回避のため分割
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'bookmark', attrs: { url: evil, title: 'x' } },
+        { type: 'bookmark', attrs: { url: 'https://ok.test', image: evil, favicon: 'data:text/html,x' } },
+      ],
+    };
+    const out = sanitizePublicDoc(doc);
+    expect(out.content).toHaveLength(1);
+    expect(out.content[0]).toMatchObject({ type: 'bookmark', attrs: { url: 'https://ok.test' } });
+    expect(JSON.stringify(out)).not.toContain('script:');
+    expect(JSON.stringify(out)).not.toContain('data:text/html');
+  });
 });
 
 describe('generateShareToken', () => {
