@@ -33,6 +33,7 @@ import { useUiStore } from '../../stores/ui-store.js';
 import { UserMenu } from '../account/user-menu.js';
 import { NotificationBell } from '../notifications/notification-bell.js';
 import { SortablePageTree } from './page-tree.js';
+import { TemplateMenu } from './template-menu.js';
 import { WorkspaceSwitcher } from './workspace-switcher.js';
 
 export function Sidebar() {
@@ -261,17 +262,20 @@ function PagesSection({
         <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
           {t('nav.section.pages')}
         </span>
-        <button
-          type="button"
-          onClick={() => createPage.mutate()}
-          disabled={createPage.isPending}
-          data-testid="sidebar-new-page"
-          className="flex h-7 w-7 items-center justify-center rounded text-base text-zinc-500 hover:bg-zinc-200 hover:text-violet-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-violet-300"
-          title={t('nav.newPage')}
-          aria-label={t('nav.newPage')}
-        >
-          +
-        </button>
+        <div className="flex items-center gap-0.5">
+          <TemplateMenu workspaceId={workspaceId} onNavigate={onNavigate} />
+          <button
+            type="button"
+            onClick={() => createPage.mutate()}
+            disabled={createPage.isPending}
+            data-testid="sidebar-new-page"
+            className="flex h-7 w-7 items-center justify-center rounded text-base text-zinc-500 hover:bg-zinc-200 hover:text-violet-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-violet-300"
+            title={t('nav.newPage')}
+            aria-label={t('nav.newPage')}
+          >
+            +
+          </button>
+        </div>
       </div>
       {pages.data && pages.data.length === 0 ? (
         <ul className="space-y-0.5">

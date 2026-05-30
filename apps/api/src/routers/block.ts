@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { sheetCellsSchema, sheetPropsSchema } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
+import type { Database } from '../db.js';
 import type { Env } from '../env.js';
 import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
@@ -48,6 +49,37 @@ async function indexAfterWrite(env: Env, row: IndexableBlock): Promise<void> {
     console.warn('[search] indexBlock failed:', err);
   }
 }
+
+/**
+ * Yjs バイナリ state を別の block id へ複製する (PBI-55 テンプレート)。
+ *
+ * `block_yjs_state.state` は内容エンコードで document name (block id) に
+ * 依存しない純粋な CRDT バイナリなので、行をそのまま新しい block id へ
+ * 挿し直せばテンプレート本文が「編集可能な状態で」復元される。元ページが
+ * 一度も編集されていない (state 行が無い) ときは何もしない — props.doc が
+ * 空のまま空ページになるだけで正しい。
+ */
+async function copyYjsState(db: Database, fromId: string, toId: string): Promise<void> {
+  const [row] = await db
+    .select({ state: schema.blockYjsState.state })
+    .from(schema.blockYjsState)
+    .where(eq(schema.blockYjsState.blockId, fromId))
+    .limit(1);
+  if (!row) return;
+  await db
+    .insert(schema.blockYjsState)
+    .values({ blockId: toId, state: row.state, updatedAt: new Date() })
+    .onConflictDoNothing();
+}
+
+/**
+ * 「テンプレートは通常のページ一覧/検索/バックリンクに出さない」ための
+ * 述語。props.isTemplate が真でない page だけを通す。jsonb の boolean は
+ * `->>` でテキスト 'true' になるので文字列比較で判定する。毎回新しい
+ * sql 片を返して使い回しの副作用を避ける。
+ */
+const notTemplate = () =>
+  sql`coalesce(${schema.block.props}->>'isTemplate', 'false') <> 'true'`;
 
 const workspaceIdInput = z.object({ workspaceId: z.string().min(1) });
 
@@ -89,6 +121,7 @@ export const blockRouter = router({
           eq(schema.block.type, 'page'),
           isNull(schema.block.parentId),
           isNull(schema.block.deletedAt),
+          notTemplate(),
         ),
       )
       .orderBy(asc(schema.block.position));
@@ -113,6 +146,7 @@ export const blockRouter = router({
           eq(schema.block.workspaceId, input.workspaceId),
           eq(schema.block.type, 'page'),
           isNull(schema.block.deletedAt),
+          notTemplate(),
         ),
       )
       .orderBy(asc(schema.block.position));
@@ -134,6 +168,7 @@ export const blockRouter = router({
             eq(schema.block.workspaceId, input.workspaceId),
             eq(schema.block.type, 'page'),
             isNull(schema.block.deletedAt),
+            notTemplate(),
             input.query.trim()
               ? sql`${schema.block.props}->>'title' ILIKE ${'%' + input.query.trim() + '%'}`
               : sql`true`,
@@ -239,6 +274,7 @@ export const blockRouter = router({
             eq(schema.pageLink.targetId, input.pageId),
             eq(schema.block.type, 'page'),
             isNull(schema.block.deletedAt),
+            notTemplate(),
           ),
         )
         .orderBy(asc(schema.block.position))
@@ -323,6 +359,151 @@ export const blockRouter = router({
         })
         .returning();
       if (!page) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await indexAfterWrite(ctx.env, page);
+      return page;
+    }),
+
+  /**
+   * 現在のページをテンプレートとして保存 (PBI-55)。
+   *
+   * 元ページのコピーを `props.isTemplate=true` で作る。本文 (Yjs state) も
+   * 複製するのでテンプレ自体を普通のエディタで編集できる。テンプレは
+   * listAllPages / listPages / searchPages / listBacklinks から除外される
+   * ので通常のページツリー・検索・バックリンクには出ない。検索インデックス
+   * にも載せない (indexAfterWrite を呼ばない)。
+   */
+  saveAsTemplate: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [src] = await ctx.db
+        .select()
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!src) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, src.workspaceId, ctx.session.user.id);
+
+      const srcProps = (src.props ?? {}) as Record<string, unknown>;
+      const newId = ulid();
+      const [tpl] = await ctx.db
+        .insert(schema.block)
+        .values({
+          id: newId,
+          workspaceId: src.workspaceId,
+          parentId: null,
+          type: 'page',
+          position: newId,
+          props: { ...srcProps, isTemplate: true },
+          createdBy: ctx.session.user.id,
+        })
+        .returning();
+      if (!tpl) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      // 本文 (Yjs バイナリ) を複製。元が未編集なら state 行が無く no-op。
+      await copyYjsState(ctx.db, input.pageId, newId);
+      return tpl;
+    }),
+
+  /** ワークスペースのテンプレート一覧 (PBI-55)。props.isTemplate=true の page。 */
+  listTemplates: protectedProcedure.input(workspaceIdInput).query(async ({ ctx, input }) => {
+    await assertWorkspaceMember(ctx.db, input.workspaceId, ctx.session.user.id);
+    const rows = await ctx.db
+      .select({ id: schema.block.id, props: schema.block.props })
+      .from(schema.block)
+      .where(
+        and(
+          eq(schema.block.workspaceId, input.workspaceId),
+          eq(schema.block.type, 'page'),
+          isNull(schema.block.deletedAt),
+          sql`${schema.block.props}->>'isTemplate' = 'true'`,
+        ),
+      )
+      .orderBy(asc(schema.block.position));
+    return rows.map((r) => ({
+      id: r.id,
+      title: (r.props as { title?: string } | null)?.title ?? '無題',
+      icon: (r.props as { icon?: string } | null)?.icon ?? null,
+    }));
+  }),
+
+  /**
+   * テンプレートから通常ページを作成 (PBI-55)。
+   *
+   * テンプレの props (doc スナップショット含む) を複製し isTemplate を外す。
+   * 本文 (Yjs state) も複製するので、新ページを開くとテンプレ内容が編集
+   * 可能な状態で表示される。`parentPageId` を渡すとサブページとして作る
+   * (createPage と同じく同一 WS + page 型を検証)。新ページは検索に載せる。
+   */
+  createFromTemplate: protectedProcedure
+    .input(
+      z.object({
+        templateId: z.string().min(1),
+        parentPageId: z.string().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [tpl] = await ctx.db
+        .select()
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.templateId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!tpl) throw new TRPCError({ code: 'NOT_FOUND' });
+      const tplProps = (tpl.props ?? {}) as Record<string, unknown>;
+      if (tplProps['isTemplate'] !== true) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'not a template' });
+      }
+      await assertCanWrite(ctx.db, tpl.workspaceId, ctx.session.user.id);
+
+      // 親ページがあるなら同一 WS + page 型を確認 (createPage と同じ規則)。
+      if (input.parentPageId) {
+        const parent = (
+          await ctx.db
+            .select({
+              workspaceId: schema.block.workspaceId,
+              type: schema.block.type,
+            })
+            .from(schema.block)
+            .where(eq(schema.block.id, input.parentPageId))
+            .limit(1)
+        )[0];
+        if (!parent || parent.type !== 'page') {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'parent page not found' });
+        }
+        if (parent.workspaceId !== tpl.workspaceId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: 'cross-workspace parent forbidden' });
+        }
+      }
+
+      const newId = ulid();
+      // isTemplate を外して通常ページに。title / doc / icon / cover は引き継ぐ。
+      const props = { ...tplProps };
+      delete props['isTemplate'];
+      const [page] = await ctx.db
+        .insert(schema.block)
+        .values({
+          id: newId,
+          workspaceId: tpl.workspaceId,
+          parentId: input.parentPageId ?? null,
+          type: 'page',
+          position: newId,
+          props,
+          createdBy: ctx.session.user.id,
+        })
+        .returning();
+      if (!page) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      // 本文 (Yjs バイナリ) を複製してから検索インデックスへ。
+      await copyYjsState(ctx.db, input.templateId, newId);
       await indexAfterWrite(ctx.env, page);
       return page;
     }),

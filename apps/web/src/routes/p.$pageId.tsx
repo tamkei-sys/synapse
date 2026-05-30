@@ -82,8 +82,17 @@ function PageShell({
       await navigate({ to: '/' });
     },
   });
+  // このページをテンプレ化 (PBI-55)。本文 (Yjs state) ごと複製される。
+  const saveAsTemplate = useMutation({
+    mutationFn: () => trpc.block.saveAsTemplate.mutate({ pageId }),
+    onSuccess: async () => {
+      setTemplateSavedAt(new Date());
+      await queryClient.invalidateQueries({ queryKey: ['block', 'listTemplates'] });
+    },
+  });
   const [title, setTitle] = useState(initialTitle);
   const [titleSavedAt, setTitleSavedAt] = useState<Date | null>(null);
+  const [templateSavedAt, setTemplateSavedAt] = useState<Date | null>(null);
   const [icon, setIcon] = useState(initialIcon);
   const [cover, setCover] = useState(initialCover);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -200,6 +209,19 @@ function PageShell({
               {fav.data?.favorited ? '★' : '☆'}
             </span>
             <span className="text-xs">お気に入り</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => saveAsTemplate.mutate()}
+            disabled={saveAsTemplate.isPending}
+            data-testid="page-save-template"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-800"
+            title="テンプレートとして保存"
+          >
+            <span>📋</span>
+            <span className="text-xs" data-testid="page-template-saved-label">
+              {templateSavedAt ? 'テンプレートに保存しました' : 'テンプレートとして保存'}
+            </span>
           </button>
           <button
             type="button"
