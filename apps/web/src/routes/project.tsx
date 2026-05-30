@@ -10,6 +10,12 @@ import { useState } from 'react';
 
 import { PRIORITIES, PROJECT_STATUSES, type Priority, type ProjectStatus } from '@synapse/blocks';
 
+import {
+  FilterControls,
+  applyItemFilters,
+  type FilterValue,
+} from '../features/board/filter-controls.js';
+import { KanbanBoard } from '../features/board/kanban-board.js';
 import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import {
@@ -104,6 +110,27 @@ function ProjectsPanel({
     onSuccess: () => qc.invalidateQueries({ queryKey: ['project', 'list', workspaceId] }),
   });
 
+  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [filters, setFilters] = useState<FilterValue>({});
+  const rows = list.data ?? [];
+  const filtered = applyItemFilters(rows, filters, (row, key) => {
+    const p = readProjectProps(row);
+    return key === 'status' ? p.status : key === 'priority' ? p.priority : '';
+  });
+  const FILTER_DEFS = [
+    {
+      key: 'status',
+      label: 'ステータス',
+      options: PROJECT_STATUSES.map((s) => ({ value: s, label: projectStatusLabel[s] })),
+    },
+    {
+      key: 'priority',
+      label: '優先度',
+      options: PRIORITIES.map((p) => ({ value: p, label: priorityLabel[p] })),
+    },
+  ];
+  const KANBAN_COLUMNS = PROJECT_STATUSES.map((s) => ({ value: s, label: projectStatusLabel[s] }));
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-12">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -158,14 +185,60 @@ function ProjectsPanel({
         </form>
       </header>
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-md border border-zinc-300 bg-zinc-50 p-0.5 text-sm dark:border-zinc-700 dark:bg-zinc-900">
+          {(['list', 'kanban'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              data-testid={`project-view-${v}`}
+              aria-pressed={view === v}
+              className={`rounded px-3 py-1 ${
+                view === v
+                  ? 'bg-white shadow-sm dark:bg-zinc-800'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+              }`}
+            >
+              {v === 'list' ? 'リスト' : 'カンバン'}
+            </button>
+          ))}
+        </div>
+        <FilterControls filters={FILTER_DEFS} value={filters} onChange={setFilters} />
+      </div>
+
       {list.isPending ? (
         <p className="text-sm text-zinc-500">読み込み中…</p>
-      ) : list.data && list.data.length > 0 ? (
+      ) : view === 'kanban' ? (
+        <KanbanBoard
+          items={filtered}
+          columns={KANBAN_COLUMNS}
+          getId={(row) => row.id}
+          getStatus={(row) => readProjectProps(row).status}
+          onChangeStatus={(row, status) =>
+            update.mutate({ projectId: row.id, status: status as ProjectStatus })
+          }
+          renderCard={(row) => {
+            const p = readProjectProps(row);
+            return (
+              <Link
+                to="/b/$blockId"
+                params={{ blockId: row.id }}
+                data-testid={`project-name-${row.id}`}
+                className="block font-medium hover:underline"
+              >
+                <span className="mr-1 font-mono text-xs text-zinc-400">PRJ-{p.number ?? '–'}</span>
+                {p.name}
+              </Link>
+            );
+          }}
+        />
+      ) : filtered.length > 0 ? (
         <ul
           data-testid="project-list"
           className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
         >
-          {list.data.map((row) => {
+          {filtered.map((row) => {
             const p = readProjectProps(row);
             return (
               <li

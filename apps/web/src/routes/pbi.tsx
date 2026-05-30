@@ -24,6 +24,11 @@ import {
   type Priority,
 } from '@synapse/blocks';
 
+import {
+  FilterControls,
+  applyItemFilters,
+  type FilterValue,
+} from '../features/board/filter-controls.js';
 import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import {
@@ -81,6 +86,23 @@ function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspa
     queryKey: ['pbi', 'list', workspaceId],
     queryFn: () => trpc.pbi.list.query({ workspaceId }),
   });
+  const [filters, setFilters] = useState<FilterValue>({});
+  const filtered = applyItemFilters(list.data ?? [], filters, (row, key) => {
+    const p = (row.props ?? {}) as { status?: PbiStatus; priority?: Priority };
+    return key === 'status' ? (p.status ?? '') : key === 'priority' ? (p.priority ?? '') : '';
+  });
+  const FILTER_DEFS = [
+    {
+      key: 'status',
+      label: 'ステータス',
+      options: PBI_STATUS_ORDER.map((s) => ({ value: s, label: pbiStatusLabel[s] })),
+    },
+    {
+      key: 'priority',
+      label: '優先度',
+      options: PRIORITIES.map((p) => ({ value: p, label: priorityLabel[p] })),
+    },
+  ];
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-12">
@@ -100,15 +122,19 @@ function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspa
 
       <NewPbiForm workspaceId={workspaceId} />
 
+      <div className="mb-4">
+        <FilterControls filters={FILTER_DEFS} value={filters} onChange={setFilters} />
+      </div>
+
       {list.isPending ? (
         <p className="text-sm text-zinc-500">読み込み中…</p>
       ) : list.data && list.data.length > 0 ? (
         view === 'backlog' ? (
-          <BacklogTable items={list.data} workspaceId={workspaceId} />
+          <BacklogTable items={filtered} workspaceId={workspaceId} />
         ) : view === 'timeline' ? (
-          <TimelineView items={list.data} />
+          <TimelineView items={filtered} />
         ) : (
-          <KanbanBoard items={list.data} workspaceId={workspaceId} />
+          <KanbanBoard items={filtered} workspaceId={workspaceId} />
         )
       ) : (
         <Empty />
