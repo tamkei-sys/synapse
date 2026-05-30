@@ -43,6 +43,8 @@ import { DateMentionNode } from './date-mention-node.js';
 import { EmbedNode } from './embed-node.js';
 import { FileNode } from './file-node.js';
 import { makeFileSlashCommand } from './file-slash.js';
+import { AudioNode, VideoNode } from './media-node.js';
+import { makeAudioSlashCommand, makeVideoSlashCommand } from './media-slash.js';
 import { InlineMathNode, MathBlockNode } from './math-node.js';
 import { FindBar } from './find-bar.js';
 import { FindExtension } from './find.js';
@@ -97,6 +99,8 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorPro
       makeAiSlashCommand(workspaceId),
       makeImageSlashCommand(),
       makeFileSlashCommand(),
+      makeVideoSlashCommand(),
+      makeAudioSlashCommand(),
     ],
     [workspaceId, parentPageId],
   );
@@ -129,6 +133,8 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorPro
       Image.configure({ inline: false, HTMLAttributes: { class: 'rounded-md' } }),
       ImageDropPasteExtension,
       FileNode,
+      VideoNode,
+      AudioNode,
       CalloutNode,
       ToggleNode,
       ToggleSummary,
