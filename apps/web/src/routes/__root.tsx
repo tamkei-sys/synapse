@@ -1,5 +1,5 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
-import { Outlet, createRootRouteWithContext } from '@tanstack/react-router';
+import { Outlet, createRootRouteWithContext, useLocation } from '@tanstack/react-router';
 
 import { UserMenu } from '../features/account/user-menu.js';
 import { NotificationBell } from '../features/notifications/notification-bell.js';
@@ -20,6 +20,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootLayout() {
   const session = useSession();
+  const location = useLocation();
   const workspaces = useQuery({
     queryKey: ['workspace', 'listMine'],
     queryFn: () => trpc.workspace.listMine.query(),
@@ -29,6 +30,16 @@ function RootLayout() {
   const hasWorkspace = !!current;
   const sidebarVisible = !!session.data && hasWorkspace;
   const toggleMobileSidebar = useUiStore((s) => s.toggleMobileSidebar);
+
+  // 公開共有ページ (/share/<token>) は chrome 無しで描画。サイドバー・コマンド
+  // パレット・モバイル topbar を出さず、顧客にはページ本文だけを見せる (PBI-56)。
+  if (location.pathname.startsWith('/share/')) {
+    return (
+      <main id="main-content" role="main" className="min-h-full flex-1">
+        <Outlet />
+      </main>
+    );
+  }
 
   return (
     <div className="flex min-h-full">

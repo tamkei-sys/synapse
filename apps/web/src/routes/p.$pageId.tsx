@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { PageEditor } from '../features/editor/editor.js';
 import { EmojiPicker } from '../features/editor/emoji-picker.js';
@@ -210,6 +210,7 @@ function PageShell({
             </span>
             <span className="text-xs">お気に入り</span>
           </button>
+          <SharePopover pageId={pageId} />
           <button
             type="button"
             onClick={() => saveAsTemplate.mutate()}
@@ -291,6 +292,124 @@ function PageShell({
 
       <ChildPagesSection pageId={pageId} />
       <BacklinksSection pageId={pageId} />
+    </div>
+  );
+}
+
+/**
+ * ページ公開の設定ポップオーバー (PBI-56)。read-only 共有 URL の発行/停止と
+ * URL コピー。外クリック / Esc で閉じる（EmojiPicker と同方式）。
+ */
+function SharePopover({ pageId }: { pageId: string }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+
+  const share = useQuery({
+    queryKey: ['block', 'getPublicShare', pageId],
+    queryFn: () => trpc.block.getPublicShare.query({ pageId }),
+    enabled: open,
+  });
+  const enable = useMutation({
+    mutationFn: () => trpc.block.enablePublicShare.mutate({ pageId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getPublicShare', pageId] }),
+  });
+  const disable = useMutation({
+    mutationFn: () => trpc.block.disablePublicShare.mutate({ pageId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getPublicShare', pageId] }),
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const enabled = share.data?.enabled ?? false;
+  const token = share.data?.token ?? null;
+  const url = token ? `${window.location.origin}/share/${token}` : '';
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="page-share-button"
+        className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        title="共有"
+        aria-expanded={open}
+      >
+        <span>🔗</span>
+        <span className="text-xs">共有</span>
+      </button>
+      {open ? (
+        <div
+          data-testid="share-popover"
+          className="absolute right-0 top-full z-30 mt-1 w-72 rounded-md border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          <p className="mb-1 text-sm font-medium">公開 read-only リンク</p>
+          <p className="mb-2 text-xs text-zinc-500">
+            リンクを知っている人なら誰でも閲覧できます（編集不可・社内埋め込みは非表示）。
+          </p>
+          {share.isPending ? (
+            <p className="text-xs text-zinc-500">読み込み中…</p>
+          ) : enabled ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <input
+                  readOnly
+                  value={url}
+                  data-testid="share-url"
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-0 flex-1 rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(url);
+                    setCopied(true);
+                    window.setTimeout(() => setCopied(false), 1500);
+                  }}
+                  data-testid="share-copy"
+                  className="shrink-0 rounded bg-violet-600 px-2 py-1 text-xs text-white hover:bg-violet-500"
+                >
+                  {copied ? '✓' : 'コピー'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => disable.mutate()}
+                disabled={disable.isPending}
+                data-testid="share-disable"
+                className="text-xs text-red-600 hover:underline disabled:opacity-50"
+              >
+                公開を停止
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => enable.mutate()}
+              disabled={enable.isPending}
+              data-testid="share-enable"
+              className="w-full rounded-md bg-violet-600 px-3 py-1.5 text-sm text-white hover:bg-violet-500 disabled:opacity-50"
+            >
+              このページを公開する
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

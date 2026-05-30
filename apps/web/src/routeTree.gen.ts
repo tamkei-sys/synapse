@@ -18,6 +18,7 @@ import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as DbRouteImport } from './routes/db';
 import { Route as IndexRouteImport } from './routes/index';
+import { Route as ShareTokenRouteImport } from './routes/share.$token';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications';
 import { Route as SettingsMembersRouteImport } from './routes/settings.members';
@@ -69,6 +70,11 @@ const DbRoute = DbRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
   getParentRoute: () => rootRouteImport,
 } as any);
 const SettingsTokensRoute = SettingsTokensRouteImport.update({
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/settings/members': typeof SettingsMembersRoute;
   '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
+  '/share/$token': typeof ShareTokenRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/settings/members': typeof SettingsMembersRoute;
   '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
+  '/share/$token': typeof ShareTokenRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/settings/members': typeof SettingsMembersRoute;
   '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
+  '/share/$token': typeof ShareTokenRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -180,7 +189,8 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/members'
     | '/settings/notifications'
-    | '/settings/tokens';
+    | '/settings/tokens'
+    | '/share/$token';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
@@ -198,7 +208,8 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/members'
     | '/settings/notifications'
-    | '/settings/tokens';
+    | '/settings/tokens'
+    | '/share/$token';
   id:
     | '__root__'
     | '/'
@@ -216,7 +227,8 @@ export interface FileRouteTypes {
     | '/settings/audit-log'
     | '/settings/members'
     | '/settings/notifications'
-    | '/settings/tokens';
+    | '/settings/tokens'
+    | '/share/$token';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   SettingsMembersRoute: typeof SettingsMembersRoute;
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute;
   SettingsTokensRoute: typeof SettingsTokensRoute;
+  ShareTokenRoute: typeof ShareTokenRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -301,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/';
       fullPath: '/';
       preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/share/$token': {
+      id: '/share/$token';
+      path: '/share/$token';
+      fullPath: '/share/$token';
+      preLoaderRoute: typeof ShareTokenRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/settings/tokens': {
@@ -372,6 +392,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsMembersRoute: SettingsMembersRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsTokensRoute: SettingsTokensRoute,
+  ShareTokenRoute: ShareTokenRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

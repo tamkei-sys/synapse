@@ -24,7 +24,8 @@ import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { EMPTY_DOC } from '../lib/page-doc.js';
-import { protectedProcedure, router } from '../trpc.js';
+import { generateShareToken, sanitizePublicDoc } from '../lib/public-doc.js';
+import { protectedProcedure, publicProcedure, router } from '../trpc.js';
 
 type IndexableBlock = {
   id: string;
@@ -981,5 +982,126 @@ export const blockRouter = router({
         .set({ props: nextProps, updatedAt: new Date() })
         .where(eq(schema.block.id, input.pageId));
       return { ok: true };
+    }),
+
+  /**
+   * ページを公開して read-only 共有 URL を発行する (PBI-56)。
+   *
+   * 顧客向け説明資料として、未認証でも閲覧できる /share/<token> を出す。
+   * トークンは初回に生成し以後は再利用する（無効化→再有効化で URL が変わらない）。
+   * 実際の閲覧は getPublicPage が doc をサニタイズして返す。
+   */
+  enablePublicShare: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+      const props = (existing.props ?? {}) as Record<string, unknown>;
+      const share = (props['publicShare'] ?? {}) as { token?: string };
+      const token =
+        typeof share.token === 'string' && share.token ? share.token : generateShareToken();
+      await ctx.db
+        .update(schema.block)
+        .set({
+          props: { ...props, publicShare: { enabled: true, token } },
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.block.id, input.pageId));
+      return { enabled: true, token };
+    }),
+
+  /** 公開を停止する (PBI-56)。トークンは保持し、再公開で同じ URL に戻れる。 */
+  disablePublicShare: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+      const props = (existing.props ?? {}) as Record<string, unknown>;
+      const share = (props['publicShare'] ?? {}) as { token?: string };
+      const next = share.token ? { enabled: false, token: share.token } : { enabled: false };
+      await ctx.db
+        .update(schema.block)
+        .set({ props: { ...props, publicShare: next }, updatedAt: new Date() })
+        .where(eq(schema.block.id, input.pageId));
+      return { ok: true };
+    }),
+
+  /** 現在の公開状態 (PBI-56)。UI 表示用に enabled と token を返す。 */
+  getPublicShare: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertWorkspaceMember(ctx.db, existing.workspaceId, ctx.session.user.id);
+      const props = (existing.props ?? {}) as Record<string, unknown>;
+      const share = (props['publicShare'] ?? {}) as { enabled?: boolean; token?: string };
+      return { enabled: share.enabled === true, token: share.token ?? null };
+    }),
+
+  /**
+   * 公開ページを取得する (PBI-56) — **publicProcedure（未認証可）**。
+   *
+   * token で enabled な公開ページだけを引く。返すのは表示に必要な最小限
+   * (title / icon / cover / サニタイズ済み doc) のみ。workspaceId や createdBy
+   * などの内部情報は一切返さない。doc は sanitizePublicDoc で社内埋め込みと
+   * 危険な href/src を除去済み。
+   */
+  getPublicPage: publicProcedure
+    .input(z.object({ token: z.string().min(1).max(128) }))
+    .query(async ({ ctx, input }) => {
+      const [row] = await ctx.db
+        .select({ props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+            sql`${schema.block.props}->'publicShare'->>'token' = ${input.token}`,
+            sql`${schema.block.props}->'publicShare'->>'enabled' = 'true'`,
+          ),
+        )
+        .limit(1);
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND' });
+      const props = (row.props ?? {}) as Record<string, unknown>;
+      return {
+        title: typeof props['title'] === 'string' ? (props['title'] as string) : '無題',
+        icon: typeof props['icon'] === 'string' ? (props['icon'] as string) : null,
+        cover: typeof props['cover'] === 'string' ? (props['cover'] as string) : null,
+        doc: sanitizePublicDoc(props['doc']),
+      };
     }),
 });
