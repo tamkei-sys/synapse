@@ -21,13 +21,21 @@ import {
   PROJECT_STATUSES,
   SBI_STATUSES,
   SPRINT_STATUSES,
+  PBI_STATUS_ORDER,
   type PbiStatus,
   type Priority,
   type ProjectStatus,
+  SBI_STATUS_ORDER,
   type SbiStatus,
   type SprintStatus,
 } from '@synapse/blocks';
 
+import {
+  FilterControls,
+  applyItemFilters,
+  type FilterValue,
+} from '../features/board/filter-controls.js';
+import { KanbanBoard } from '../features/board/kanban-board.js';
 import { BurndownChart } from '../features/charts/burndown-chart.js';
 import { DbView } from '../features/db/db-view.js';
 import { PageEditor } from '../features/editor/editor.js';
@@ -555,50 +563,120 @@ function PbiChildren({ pbiId, workspaceId }: { pbiId: string; workspaceId: strin
 type ChildKind = 'pbi' | 'sbi';
 
 function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
+  const qc = useQueryClient();
+  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [filters, setFilters] = useState<FilterValue>({});
+
+  const prefix = kind === 'pbi' ? 'PBI' : 'SBI';
+  const defaultStatus = kind === 'pbi' ? 'backlog' : 'todo';
+  const statusLabel: Record<string, string> = kind === 'pbi' ? pbiStatusLabel : sbiStatusLabel;
+  const columns = (kind === 'pbi' ? PBI_STATUS_ORDER : SBI_STATUS_ORDER).map((s) => ({
+    value: s as string,
+    label: statusLabel[s] ?? (s as string),
+  }));
+
+  const getStatus = (row: BlockRow) =>
+    String((row.props as { status?: string } | null | undefined)?.status ?? defaultStatus);
+  const filtered = applyItemFilters(items, filters, (row, key) =>
+    key === 'status' ? getStatus(row) : '',
+  );
+
+  const setStatus = useMutation({
+    mutationFn: (args: { id: string; status: string }) =>
+      kind === 'pbi'
+        ? trpc.pbi.update.mutate({ pbiId: args.id, patch: { status: args.status as PbiStatus } })
+        : trpc.sbi.update.mutate({ sbiId: args.id, patch: { status: args.status as SbiStatus } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [kind] }),
+  });
+
   return (
-    <ul
-      data-testid={`child-${kind}-list`}
-      className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
-    >
-      {items.map((row) => {
-        const p = (row.props ?? {}) as {
-          title?: string;
-          status?: string;
-          number?: number;
-        };
-        const prefix = kind === 'pbi' ? 'PBI' : 'SBI';
-        const label = `${prefix}-${p.number ?? '–'}`;
-        const statusJp =
-          kind === 'pbi'
-            ? pbiStatusLabel[(p.status ?? 'backlog') as PbiStatus]
-            : sbiStatusLabel[(p.status ?? 'todo') as SbiStatus];
-        return (
-          <li
-            key={row.id}
-            data-testid={`child-row-${row.id}`}
-            className="flex items-center justify-between px-4 py-2.5"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="font-mono text-xs text-zinc-400">{label}</span>
-              <Link
-                to="/b/$blockId"
-                params={{ blockId: row.id }}
-                className="truncate text-sm font-medium hover:underline"
-              >
-                {p.title ?? '(無題)'}
-              </Link>
-            </div>
-            <span
-              className={`rounded px-1.5 py-0.5 font-mono text-xs ${
-                statusTone[p.status ?? 'backlog'] ?? statusTone['backlog']
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="inline-flex rounded-md border border-zinc-300 bg-zinc-50 p-0.5 text-xs dark:border-zinc-700 dark:bg-zinc-900">
+          {(['list', 'kanban'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              data-testid={`child-${kind}-view-${v}`}
+              aria-pressed={view === v}
+              className={`rounded px-2.5 py-1 ${
+                view === v
+                  ? 'bg-white shadow-sm dark:bg-zinc-800'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
-              {statusJp}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
+              {v === 'list' ? 'リスト' : 'カンバン'}
+            </button>
+          ))}
+        </div>
+        <FilterControls
+          filters={[{ key: 'status', label: 'ステータス', options: columns }]}
+          value={filters}
+          onChange={setFilters}
+        />
+      </div>
+
+      {view === 'kanban' ? (
+        <KanbanBoard
+          items={filtered}
+          columns={columns}
+          getId={(row) => row.id}
+          getStatus={getStatus}
+          onChangeStatus={(row, status) => setStatus.mutate({ id: row.id, status })}
+          renderCard={(row) => {
+            const p = (row.props ?? {}) as { title?: string; number?: number };
+            return (
+              <Link to="/b/$blockId" params={{ blockId: row.id }} className="block hover:underline">
+                <span className="mr-1 font-mono text-xs text-zinc-400">
+                  {prefix}-{p.number ?? '–'}
+                </span>
+                {p.title ?? '(無題)'}
+              </Link>
+            );
+          }}
+        />
+      ) : (
+        <ul
+          data-testid={`child-${kind}-list`}
+          className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800"
+        >
+          {filtered.map((row) => {
+            const p = (row.props ?? {}) as { title?: string; status?: string; number?: number };
+            const label = `${prefix}-${p.number ?? '–'}`;
+            const statusJp =
+              kind === 'pbi'
+                ? pbiStatusLabel[(p.status ?? 'backlog') as PbiStatus]
+                : sbiStatusLabel[(p.status ?? 'todo') as SbiStatus];
+            return (
+              <li
+                key={row.id}
+                data-testid={`child-row-${row.id}`}
+                className="flex items-center justify-between px-4 py-2.5"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="font-mono text-xs text-zinc-400">{label}</span>
+                  <Link
+                    to="/b/$blockId"
+                    params={{ blockId: row.id }}
+                    className="truncate text-sm font-medium hover:underline"
+                  >
+                    {p.title ?? '(無題)'}
+                  </Link>
+                </div>
+                <span
+                  className={`rounded px-1.5 py-0.5 font-mono text-xs ${
+                    statusTone[p.status ?? 'backlog'] ?? statusTone['backlog']
+                  }`}
+                >
+                  {statusJp}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
