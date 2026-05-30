@@ -214,6 +214,7 @@ function PageShell({
           </button>
           <SharePopover pageId={pageId} />
           <HistoryPanel pageId={pageId} editor={editor} />
+          <ReminderPanel pageId={pageId} workspaceId={workspaceId} />
           <button
             type="button"
             onClick={() => saveAsTemplate.mutate()}
@@ -535,6 +536,157 @@ function HistoryPanel({ pageId, editor }: { pageId: string; editor: Editor | nul
               ))}
             </ul>
           )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * リマインダーパネル (PBI-68)。このページに自分宛てリマインダーを作成 / 一覧 /
+ * 削除する。指定時刻が来ると（本番 cron / dev は reminder.processDue）通知ベルに
+ * 届く。
+ */
+function ReminderPanel({ pageId, workspaceId }: { pageId: string; workspaceId: string }) {
+  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState('');
+  const [body, setBody] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const qc = useQueryClient();
+
+  const list = useQuery({
+    queryKey: ['reminder', 'listMine', workspaceId, pageId],
+    queryFn: () => trpc.reminder.listMine.query({ workspaceId, blockId: pageId }),
+    enabled: open,
+  });
+  const create = useMutation({
+    mutationFn: () =>
+      trpc.reminder.create.mutate({
+        blockId: pageId,
+        remindAt: new Date(at),
+        body: body.trim(),
+      }),
+    onSuccess: async () => {
+      setAt('');
+      setBody('');
+      await qc.invalidateQueries({ queryKey: ['reminder', 'listMine', workspaceId, pageId] });
+    },
+  });
+  const del = useMutation({
+    mutationFn: (reminderId: string) => trpc.reminder.delete.mutate({ reminderId }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['reminder', 'listMine', workspaceId, pageId] });
+    },
+  });
+  // dev 限定: 本番は Cron Trigger が due を捌くが dev には cron が無いので、
+  // 手動で processDue を叩いて通知配信を確認できるようにする（本番ビルドでは非表示）。
+  const processDue = useMutation({
+    mutationFn: () => trpc.reminder.processDue.mutate({ workspaceId }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['notification'] });
+      await qc.invalidateQueries({ queryKey: ['reminder', 'listMine', workspaceId, pageId] });
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid="page-reminder-button"
+        className="flex items-center gap-1 rounded-md px-2 py-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        title="リマインダー"
+        aria-expanded={open}
+      >
+        <span>⏰</span>
+        <span className="text-xs">リマインダー</span>
+      </button>
+      {open ? (
+        <div
+          data-testid="reminder-popover"
+          className="absolute right-0 top-full z-30 mt-1 w-80 rounded-md border border-zinc-200 bg-white p-3 text-left shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+        >
+          <p className="mb-2 text-sm font-medium">このページのリマインダー</p>
+          <div className="space-y-2">
+            <input
+              type="datetime-local"
+              value={at}
+              onChange={(e) => setAt(e.target.value)}
+              data-testid="reminder-datetime"
+              className="w-full rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+            />
+            <input
+              type="text"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="メッセージ（任意）"
+              data-testid="reminder-body"
+              className="w-full rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+            />
+            <button
+              type="button"
+              onClick={() => create.mutate()}
+              disabled={!at || create.isPending}
+              data-testid="reminder-create"
+              className="w-full rounded-md bg-violet-600 px-3 py-1.5 text-sm text-white hover:bg-violet-500 disabled:opacity-50"
+            >
+              リマインダーを追加
+            </button>
+            {import.meta.env.DEV ? (
+              <button
+                type="button"
+                onClick={() => processDue.mutate()}
+                disabled={processDue.isPending}
+                data-testid="reminder-process-due"
+                className="w-full rounded-md border border-zinc-300 px-3 py-1 text-xs text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                title="dev 限定: 期限切れリマインダーを今すぐ通知に変換"
+              >
+                ⚡ 今すぐ確認（dev）
+              </button>
+            ) : null}
+          </div>
+          <ul className="mt-3 space-y-1">
+            {list.data?.map((r) => (
+              <li
+                key={r.id}
+                data-testid="reminder-item"
+                className="flex items-center justify-between gap-2 rounded border border-zinc-100 px-2 py-1.5 text-xs dark:border-zinc-800"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{r.body || '（メッセージなし）'}</span>
+                  <span className="text-[10px] text-zinc-400">
+                    {new Date(r.remindAt).toLocaleString('ja-JP')}
+                    {r.status === 'sent' ? ' · 送信済み' : ''}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => del.mutate(r.id)}
+                  data-testid="reminder-delete"
+                  className="shrink-0 text-zinc-400 hover:text-red-600"
+                  title="削除"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </div>

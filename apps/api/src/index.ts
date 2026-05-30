@@ -14,8 +14,10 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { createAuth } from './auth.js';
-import type { AppBindings } from './env.js';
+import { createDb } from './db.js';
+import type { AppBindings, Env } from './env.js';
 import { createGithubWebhookRouter } from './integrations/github/webhook.js';
+import { dispatchDueReminders } from './lib/reminder-dispatch.js';
 import { appRouter } from './routers/index.js';
 import { createTrpcContext } from './trpc.js';
 
@@ -57,4 +59,15 @@ app.all('/trpc/*', (c) =>
 app.route('/api/integrations/github', createGithubWebhookRouter());
 
 export type { AppRouter } from './routers/index.js';
-export default app;
+
+export default {
+  fetch: app.fetch,
+  /**
+   * Cron Trigger (PBI-68): due なリマインダーを全 WS で dispatch する。
+   * dev には cron が無いので発火しない（reminder.processDue が代替）。
+   */
+  scheduled: async (_controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
+    const db = createDb(env.DATABASE_URL);
+    ctx.waitUntil(dispatchDueReminders(db, {}));
+  },
+};

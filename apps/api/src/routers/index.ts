@@ -19,6 +19,7 @@ import { notificationChannelRouter } from './notification-channel.js';
 import { pbiRouter } from './pbi.js';
 import { projectRouter } from './project.js';
 import { pushRouter } from './push.js';
+import { reminderRouter } from './reminder.js';
 import { sbiRouter } from './sbi.js';
 import { searchRouter } from './search.js';
 import { sprintRouter } from './sprint.js';
@@ -57,6 +58,7 @@ export const appRouter = router({
   notification: notificationRouter,
   notificationChannel: notificationChannelRouter,
   push: pushRouter,
+  reminder: reminderRouter,
   db: dbRouter,
   favorite: favoriteRouter,
 });
