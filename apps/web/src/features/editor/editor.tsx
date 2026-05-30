@@ -42,6 +42,7 @@ import { CodeBlockHighlighted } from './code-block.js';
 import { DateMentionNode } from './date-mention-node.js';
 import { BookmarkNode } from './bookmark-node.js';
 import { makeBookmarkSlashCommand } from './bookmark-slash.js';
+import { ColumnListNode, ColumnNode } from './column-node.js';
 import { EmbedNode } from './embed-node.js';
 import { FileNode } from './file-node.js';
 import { makeFileSlashCommand } from './file-slash.js';
@@ -152,6 +153,8 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId, onEditorRea
       TableCell,
       EmbedNode,
       BookmarkNode,
+      ColumnListNode,
+      ColumnNode,
       TocNode,
       Placeholder.configure({
         placeholder: 'ここに入力 — 「/」でコマンドメニュー',

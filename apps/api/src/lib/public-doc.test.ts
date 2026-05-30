@@ -198,6 +198,25 @@ describe('sanitizePublicDoc', () => {
     expect(JSON.stringify(out)).not.toContain('script:');
     expect(JSON.stringify(out)).not.toContain('data:text/html');
   });
+
+  it('keeps a valid columnList and drops underfilled ones', () => {
+    const col = (text: string) => ({
+      type: 'column',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+    });
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'columnList', content: [col('L'), col('R')] },
+        // 1 列だけ → columnList ごと落ちる
+        { type: 'columnList', content: [col('solo')] },
+      ],
+    };
+    const out = sanitizePublicDoc(doc);
+    expect(out.content).toHaveLength(1);
+    expect(out.content[0]).toMatchObject({ type: 'columnList' });
+    expect((out.content[0] as { content: unknown[] }).content).toHaveLength(2);
+  });
 });
 
 describe('generateShareToken', () => {

@@ -114,6 +114,13 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     },
   },
   {
+    id: 'columns',
+    title: '2 カラム',
+    description: '横並びの段組レイアウト',
+    keywords: ['column', 'カラム', '段組', '多段', 'columns', '2列', 'レイアウト'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setColumns(2).run(),
+  },
+  {
     id: 'toc',
     title: '目次',
     description: '見出しから自動生成される目次',

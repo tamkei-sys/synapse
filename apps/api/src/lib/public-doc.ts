@@ -51,6 +51,8 @@ const ALLOWED_NODES = new Set<string>([
   'mathBlock',
   'dateMention',
   'bookmark',
+  'columnList',
+  'column',
 ]);
 
 const ALLOWED_MARKS = new Set<string>([
@@ -157,6 +159,25 @@ function sanitizeNode(node: PmNode): PmNode | null {
     const favicon = safeImageSrc(node.attrs?.['favicon']);
     if (favicon) attrs['favicon'] = favicon;
     return { type: 'bookmark', attrs };
+  }
+
+  // columnList / column は構造ノード。空 column や 2 列未満は schema
+  // (column{2,} / block+) 違反になるので落とす（read-only レンダラのクラッシュ防止）。
+  if (node.type === 'column') {
+    const content = Array.isArray(node.content)
+      ? node.content.map((c) => sanitizeNode(c)).filter((n): n is PmNode => n !== null)
+      : [];
+    if (content.length === 0) return null;
+    return { type: 'column', content };
+  }
+  if (node.type === 'columnList') {
+    const cols = Array.isArray(node.content)
+      ? node.content
+          .map((c) => sanitizeNode(c))
+          .filter((n): n is PmNode => n !== null && n.type === 'column')
+      : [];
+    if (cols.length < 2) return null;
+    return { type: 'columnList', content: cols };
   }
 
   const out: PmNode = { type: node.type };
