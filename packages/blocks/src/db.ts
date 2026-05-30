@@ -31,6 +31,7 @@ export const DB_COLUMN_KINDS = [
   'date',
   'relation',
   'rollup',
+  'formula',
 ] as const;
 export type DbColumnKind = (typeof DB_COLUMN_KINDS)[number];
 
@@ -52,6 +53,11 @@ export const dbColumnSchema = z
     rollupTargetColumnId: z.string().min(1).max(60).optional(),
     /** kind='rollup' のとき必須: 集計関数。 */
     rollupFn: z.enum(ROLLUP_FNS).optional(),
+    /**
+     * kind='formula' のとき必須: 式。他列は名前を波括弧で参照する。
+     * 例: `{単価} * {数量}`。クライアントで HyperFormula が評価する。
+     */
+    formulaExpr: z.string().max(500).optional(),
   })
   .strict()
   .superRefine((col, ctx) => {
@@ -81,6 +87,13 @@ export const dbColumnSchema = z
           message: 'rollup 列には rollupFn が必要です',
           path: ['rollupFn'],
         });
+    }
+    if (col.kind === 'formula' && !col.formulaExpr) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'formula 列には formulaExpr が必要です',
+        path: ['formulaExpr'],
+      });
     }
   });
 

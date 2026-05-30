@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { HyperFormula } from 'hyperformula';
 import { useMemo, useState } from 'react';
 
 import type { DbCellValue, DbColumn, DbColumnKind, RollupFn } from '@synapse/blocks';
@@ -172,6 +173,77 @@ export function DbView({ dbId }: { dbId: string }) {
   );
 }
 
+// ── Formula 列 (PBI-65) ─────────────────────────────────────────────
+
+/** 0始まりの列番号 → スプレッドシート列名（A, B, …, Z, AA, …）。 */
+function colLetter(n: number): string {
+  let s = '';
+  let x = n + 1;
+  while (x > 0) {
+    const m = (x - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    x = Math.floor((x - 1) / 26);
+  }
+  return s;
+}
+
+/**
+ * formula 列を HyperFormula でクライアント評価 (PBI-65)。式は他列を
+ * `{列名}` で参照する。各行を 1 行のシートに見立て、operand 列を実値、
+ * formula 列を式として流し込み、計算結果を rowId→colId→値 で返す。
+ */
+function computeFormulas(
+  columns: readonly DbColumn[],
+  rows: readonly DbRow[],
+): Record<string, Record<string, number | string | null>> {
+  const formulaCols = columns.filter((c) => c.kind === 'formula');
+  if (formulaCols.length === 0) return {};
+  const operandCols = columns.filter((c) => c.kind !== 'formula');
+
+  const letterOf = new Map<string, string>();
+  operandCols.forEach((c, i) => letterOf.set(c.id, colLetter(i)));
+  formulaCols.forEach((c, i) => letterOf.set(c.id, colLetter(operandCols.length + i)));
+  const nameToId = new Map<string, string>();
+  for (const c of columns) if (!nameToId.has(c.name)) nameToId.set(c.name, c.id);
+
+  const data: (string | number | boolean | null)[][] = rows.map((row, r) => {
+    const line: (string | number | boolean | null)[] = [];
+    for (const c of operandCols) {
+      const v = row.props.values[c.id];
+      line.push(typeof v === 'number' || typeof v === 'boolean' || typeof v === 'string' ? v : null);
+    }
+    for (const fc of formulaCols) {
+      const expr = (fc.formulaExpr ?? '').trim();
+      if (!expr) {
+        line.push(null);
+        continue;
+      }
+      const translated = expr.replace(/\{([^}]+)\}/g, (_, ref: string) => {
+        const id = nameToId.get(ref.trim()) ?? ref.trim();
+        const letter = letterOf.get(id);
+        return letter ? `${letter}${r + 1}` : '#REF!';
+      });
+      line.push(`=${translated}`);
+    }
+    return line;
+  });
+
+  const hf = HyperFormula.buildFromArray(data, { licenseKey: 'gpl-v3' });
+  const out: Record<string, Record<string, number | string | null>> = {};
+  rows.forEach((row, r) => {
+    const per: Record<string, number | string | null> = {};
+    formulaCols.forEach((fc, i) => {
+      const v = hf.getCellValue({ sheet: 0, col: operandCols.length + i, row: r });
+      if (v === null || typeof v === 'number' || typeof v === 'string') per[fc.id] = v;
+      else if (typeof v === 'boolean') per[fc.id] = v ? 'TRUE' : 'FALSE';
+      else per[fc.id] = String((v as { value?: unknown }).value ?? '#ERR');
+    });
+    out[row.id] = per;
+  });
+  hf.destroy();
+  return out;
+}
+
 // ── テーブルビュー + 行 DnD (PBI-71) ────────────────────────────────
 
 function TableView({
@@ -197,6 +269,7 @@ function TableView({
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const ids = useMemo(() => rows.map((r) => r.id), [rows]);
+  const formulas = useMemo(() => computeFormulas(columns, rows), [columns, rows]);
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -243,6 +316,7 @@ function TableView({
                   columns={columns}
                   relations={relations}
                   rollups={rollups}
+                  formulas={formulas}
                   reorderable={reorderable}
                   onUpdateCell={onUpdateCell}
                   onDeleteRow={onDeleteRow}
@@ -268,6 +342,7 @@ function SortableRow({
   columns,
   relations,
   rollups,
+  formulas,
   reorderable,
   onUpdateCell,
   onDeleteRow,
@@ -276,6 +351,7 @@ function SortableRow({
   columns: readonly DbColumn[];
   relations: RelationMap;
   rollups: GetResult['rollups'];
+  formulas: Record<string, Record<string, number | string | null>>;
   reorderable: boolean;
   onUpdateCell: (rowId: string, columnId: string, value: DbCellValue) => void;
   onDeleteRow: (rowId: string) => void;
@@ -321,6 +397,7 @@ function SortableRow({
             value={row.props.values[col.id] ?? null}
             relation={relations[col.id]}
             rollupValue={rollups[row.id]?.[col.id] ?? null}
+            formulaValue={formulas[row.id]?.[col.id] ?? null}
             onChange={(value) => onUpdateCell(row.id, col.id, value)}
           />
         </td>
@@ -346,15 +423,26 @@ function Cell({
   value,
   relation,
   rollupValue,
+  formulaValue,
   onChange,
 }: {
   col: DbColumn;
   value: DbCellValue;
   relation?: RelationMap[string];
   rollupValue?: number | string | null;
+  formulaValue?: number | string | null;
   onChange: (v: DbCellValue) => void;
 }) {
   switch (col.kind) {
+    case 'formula':
+      return (
+        <span
+          data-testid={`db-cell-${col.id}`}
+          className="block px-1 py-0.5 text-sm text-zinc-600 dark:text-zinc-300"
+        >
+          {formatRollup(formulaValue ?? null)}
+        </span>
+      );
     case 'relation':
       return (
         <RelationCell
@@ -560,6 +648,7 @@ function AddColumnForm({
   const [rollupRelationColumnId, setRollupRelationColumnId] = useState('');
   const [rollupTargetColumnId, setRollupTargetColumnId] = useState('');
   const [rollupFn, setRollupFn] = useState<RollupFn>('count');
+  const [formulaExpr, setFormulaExpr] = useState('');
   const existingSet = useMemo(() => new Set(existingIds), [existingIds]);
 
   // relation 用: workspace 内の DB 一覧（自分以外を参照先候補に）。
@@ -584,6 +673,7 @@ function AddColumnForm({
     if (!trimmed) return;
     if (kind === 'relation' && !relationDbId) return;
     if (kind === 'rollup' && (!rollupRelationColumnId || !rollupTargetColumnId)) return;
+    if (kind === 'formula' && !formulaExpr.trim()) return;
     // id は name から軽く生成。重複ならランダムサフィックス。
     let id = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 30) || 'col';
     while (existingSet.has(id)) id = `${id}_${Math.random().toString(36).slice(2, 5)}`;
@@ -603,6 +693,7 @@ function AddColumnForm({
       ...(kind === 'rollup'
         ? { rollupRelationColumnId, rollupTargetColumnId, rollupFn }
         : {}),
+      ...(kind === 'formula' ? { formulaExpr: formulaExpr.trim() } : {}),
     };
     onAdd(col);
     setName('');
@@ -610,6 +701,7 @@ function AddColumnForm({
     setRelationDbId('');
     setRollupRelationColumnId('');
     setRollupTargetColumnId('');
+    setFormulaExpr('');
   };
 
   return (
@@ -711,6 +803,16 @@ function AddColumnForm({
             ))}
           </select>
         </>
+      ) : null}
+      {kind === 'formula' ? (
+        <input
+          value={formulaExpr}
+          onChange={(e) => setFormulaExpr(e.currentTarget.value)}
+          placeholder="式 例: {単価} * {数量}"
+          title={`他列を {列名} で参照: ${columns.map((c) => c.name).join(', ')}`}
+          data-testid="db-add-column-formula"
+          className="w-56 rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+        />
       ) : null}
       <button
         type="submit"
