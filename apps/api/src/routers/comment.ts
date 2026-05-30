@@ -181,6 +181,10 @@ export const commentRouter = router({
         body: z.string().trim().min(1).max(4_000),
         /** ルートに付ける場合は省略。リプライ時のみ親 comment id を渡す。 */
         parentCommentId: z.string().min(1).optional(),
+        /** インラインコメント (PBI-70): 本文ハイライトと共有するスレッド id。 */
+        threadId: z.string().min(1).max(40).optional(),
+        /** スレッド作成時のハイライト抜粋（root コメントのみ付与）。 */
+        anchorText: z.string().max(300).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -230,6 +234,9 @@ export const commentRouter = router({
         body: input.body,
         ...(mentions.length > 0 ? { mentions } : {}),
         ...(resolvedParentCommentId ? { parentCommentId: resolvedParentCommentId } : {}),
+        ...(input.threadId ? { threadId: input.threadId } : {}),
+        // anchorText はスレッドのルート（返信でない）にだけ載せる。
+        ...(input.anchorText && !resolvedParentCommentId ? { anchorText: input.anchorText } : {}),
       });
 
       const id = ulid();

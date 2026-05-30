@@ -16,14 +16,17 @@ import { BubbleMenu } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { trpc } from '../../lib/trpc.js';
+import type { PendingComment } from './comments-panel.js';
 import { markdownToHtml, tiptapJsonToMarkdown } from './markdown.js';
 
 type Props = {
   editor: Editor | null;
   workspaceId?: string;
+  /** 選択範囲からインラインコメント (PBI-70) を起こすトリガ。未指定なら非表示。 */
+  onComment?: (c: PendingComment) => void;
 };
 
-export function FormatToolbar({ editor, workspaceId }: Props) {
+export function FormatToolbar({ editor, workspaceId, onComment }: Props) {
   const [copied, setCopied] = useState<null | 'md' | 'html'>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -298,6 +301,21 @@ export function FormatToolbar({ editor, workspaceId }: Props) {
           >
             🔗
           </BubbleButton>
+          {onComment ? (
+            <BubbleButton
+              active={editor.isActive('comment')}
+              onClick={() => {
+                const { from, to } = editor.state.selection;
+                if (from === to) return;
+                const text = editor.state.doc.textBetween(from, to, ' ').slice(0, 300);
+                onComment({ threadId: crypto.randomUUID(), from, to, text });
+              }}
+              label="コメント"
+              testid="bubble-comment"
+            >
+              💬
+            </BubbleButton>
+          ) : null}
           {workspaceId ? <AiBubbleMenu editor={editor} workspaceId={workspaceId} /> : null}
         </div>
       </BubbleMenu>

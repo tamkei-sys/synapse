@@ -31,11 +31,13 @@ import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type * as Y from 'yjs';
 
 import { makeAiSlashCommand } from './ai-slash.js';
 import { CalloutNode } from './callout-node.js';
+import { CommentMark } from './comment-mark.js';
+import { CommentsPanel, type PendingComment } from './comments-panel.js';
 import { CodeBlockHighlighted } from './code-block.js';
 import { DateMentionNode } from './date-mention-node.js';
 import { EmbedNode } from './embed-node.js';
@@ -70,9 +72,15 @@ type EditorProps = {
    * サブページを作るのに使う。 undefined ならトップレベル page を作る。
    */
   parentPageId?: string;
+  /**
+   * このページ自身の block id。インラインコメント (PBI-70) を紐づける
+   * 対象。undefined ならコメント機能は無効（埋め込みエディタ等）。
+   */
+  pageId?: string;
 };
 
-export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
+export function PageEditor({ doc, workspaceId, parentPageId, pageId }: EditorProps) {
+  const [pendingComment, setPendingComment] = useState<PendingComment | null>(null);
   // Per-workspace closure for the /pbi command. Stable across renders as
   // long as the route's workspaceId doesn't change.
   const slashCommands = useMemo(
@@ -131,6 +139,7 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
         placeholder: 'ここに入力 — 「/」でコマンドメニュー',
       }),
       Collaboration.configure({ document: doc }),
+      CommentMark,
       PbiRefNode,
       PageRefNode,
       DateMentionNode,
@@ -156,8 +165,24 @@ export function PageEditor({ doc, workspaceId, parentPageId }: EditorProps) {
   return (
     <div data-testid="editor-shell">
       <FindBar editor={editor} />
-      <FormatToolbar editor={editor} workspaceId={workspaceId} />
+      <FormatToolbar
+        editor={editor}
+        workspaceId={workspaceId}
+        onComment={
+          pageId
+            ? (c) => setPendingComment(c)
+            : undefined
+        }
+      />
       <EditorContent editor={editor} />
+      {pageId ? (
+        <CommentsPanel
+          pageId={pageId}
+          editor={editor}
+          pending={pendingComment}
+          onClearPending={() => setPendingComment(null)}
+        />
+      ) : null}
     </div>
   );
 }

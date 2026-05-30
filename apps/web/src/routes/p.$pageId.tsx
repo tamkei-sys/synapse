@@ -262,7 +262,7 @@ function PageShell({
       </p>
 
       {doc ? (
-        <PageEditor doc={doc} workspaceId={workspaceId} parentPageId={pageId} />
+        <PageEditor doc={doc} workspaceId={workspaceId} parentPageId={pageId} pageId={pageId} />
       ) : (
         <p className="text-zinc-500">エディタを準備中…</p>
       )}
