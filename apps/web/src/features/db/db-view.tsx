@@ -39,7 +39,7 @@ type RelationMap = GetResult['relations'];
 
 export function DbView({ dbId }: { dbId: string }) {
   const qc = useQueryClient();
-  const [view, setView] = useState<'table' | 'board' | 'gallery' | 'calendar'>('table');
+  const [view, setView] = useState<'table' | 'board' | 'gallery' | 'calendar' | 'form'>('table');
   const { rules, setRules, sort, setSort } = useDbFilterSort();
   const query = useQuery({
     queryKey: ['db', 'get', dbId],
@@ -86,13 +86,14 @@ export function DbView({ dbId }: { dbId: string }) {
     board: 'ボード',
     gallery: 'ギャラリー',
     calendar: 'カレンダー',
+    form: 'フォーム',
   } as const;
 
   return (
     <div className="space-y-3" data-testid={`db-view-${dbId}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1" role="tablist" aria-label="DB ビュー">
-          {(['table', 'board', 'gallery', 'calendar'] as const).map((v) => (
+          {(['table', 'board', 'gallery', 'calendar', 'form'] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -123,7 +124,13 @@ export function DbView({ dbId }: { dbId: string }) {
         setSort={setSort}
       />
 
-      {view === 'board' ? (
+      {view === 'form' ? (
+        <FormView
+          columns={data.props.columns}
+          busy={addRow.isPending}
+          onSubmit={(values) => addRow.mutate(values)}
+        />
+      ) : view === 'board' ? (
         <BoardView
           columns={data.props.columns}
           rows={visibleRows}
@@ -170,6 +177,111 @@ export function DbView({ dbId }: { dbId: string }) {
         />
       </div>
     </div>
+  );
+}
+
+// ── Form ビュー (PBI-66) ─────────────────────────────────────────────
+
+/** Form ビューで入力できる列の種類。formula/relation/rollup は派生・複雑なので除外。 */
+const FORM_INPUT_KINDS: readonly DbColumnKind[] = ['text', 'number', 'select', 'checkbox', 'date'];
+
+/** 入力可能な列だけのフォームで 1 行を作成する。 */
+function FormView({
+  columns,
+  busy,
+  onSubmit,
+}: {
+  columns: readonly DbColumn[];
+  busy: boolean;
+  onSubmit: (values: Record<string, DbCellValue>) => void;
+}) {
+  const fields = columns.filter((c) => FORM_INPUT_KINDS.includes(c.kind));
+  const [values, setValues] = useState<Record<string, DbCellValue>>({});
+  const set = (id: string, v: DbCellValue) =>
+    setValues((prev) => {
+      const next = { ...prev };
+      if (v === null || v === '') delete next[id];
+      else next[id] = v;
+      return next;
+    });
+
+  if (fields.length === 0) {
+    return <p className="text-sm text-zinc-500">入力できる列がありません。</p>;
+  }
+
+  return (
+    <form
+      data-testid="db-form-view"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(values);
+        setValues({});
+      }}
+      className="max-w-md space-y-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-700"
+    >
+      {fields.map((c) => (
+        <label key={c.id} className="block">
+          <span className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-300">
+            {c.name}
+          </span>
+          {c.kind === 'select' ? (
+            <select
+              value={typeof values[c.id] === 'string' ? (values[c.id] as string) : ''}
+              onChange={(e) => set(c.id, e.target.value || null)}
+              data-testid={`db-form-field-${c.id}`}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              <option value="">—</option>
+              {(c.options ?? []).map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          ) : c.kind === 'checkbox' ? (
+            <input
+              type="checkbox"
+              checked={values[c.id] === true}
+              onChange={(e) => set(c.id, e.target.checked)}
+              data-testid={`db-form-field-${c.id}`}
+              className="h-4 w-4"
+            />
+          ) : c.kind === 'number' ? (
+            <input
+              type="number"
+              value={typeof values[c.id] === 'number' ? String(values[c.id]) : ''}
+              onChange={(e) => set(c.id, e.target.value === '' ? null : Number(e.target.value))}
+              data-testid={`db-form-field-${c.id}`}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          ) : c.kind === 'date' ? (
+            <input
+              type="date"
+              value={typeof values[c.id] === 'string' ? (values[c.id] as string) : ''}
+              onChange={(e) => set(c.id, e.target.value || null)}
+              data-testid={`db-form-field-${c.id}`}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          ) : (
+            <input
+              type="text"
+              value={typeof values[c.id] === 'string' ? (values[c.id] as string) : ''}
+              onChange={(e) => set(c.id, e.target.value || null)}
+              data-testid={`db-form-field-${c.id}`}
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            />
+          )}
+        </label>
+      ))}
+      <button
+        type="submit"
+        disabled={busy}
+        data-testid="db-form-submit"
+        className="rounded-md bg-violet-600 px-3 py-1.5 text-sm text-white hover:bg-violet-500 disabled:opacity-50"
+      >
+        行を追加
+      </button>
+    </form>
   );
 }
 
