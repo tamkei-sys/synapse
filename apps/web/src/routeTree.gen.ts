@@ -9,20 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root';
+import { Route as TrashRouteImport } from './routes/trash';
 import { Route as SprintRouteImport } from './routes/sprint';
 import { Route as SignupRouteImport } from './routes/signup';
 import { Route as SbiRouteImport } from './routes/sbi';
 import { Route as ProjectRouteImport } from './routes/project';
 import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
+import { Route as DbRouteImport } from './routes/db';
 import { Route as IndexRouteImport } from './routes/index';
+import { Route as ShareTokenRouteImport } from './routes/share.$token';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications';
 import { Route as SettingsMembersRouteImport } from './routes/settings.members';
 import { Route as SettingsAuditLogRouteImport } from './routes/settings.audit-log';
 import { Route as PPageIdRouteImport } from './routes/p.$pageId';
 import { Route as InviteTokenRouteImport } from './routes/invite.$token';
 import { Route as BBlockIdRouteImport } from './routes/b.$blockId';
 
+const TrashRoute = TrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SprintRoute = SprintRouteImport.update({
   id: '/sprint',
   path: '/sprint',
@@ -53,14 +62,29 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any);
+const DbRoute = DbRouteImport.update({
+  id: '/db',
+  path: '/db',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any);
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const SettingsTokensRoute = SettingsTokensRouteImport.update({
   id: '/settings/tokens',
   path: '/settings/tokens',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings/notifications',
+  path: '/settings/notifications',
   getParentRoute: () => rootRouteImport,
 } as any);
 const SettingsMembersRoute = SettingsMembersRouteImport.update({
@@ -91,116 +115,151 @@ const BBlockIdRoute = BBlockIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
+  '/db': typeof DbRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/trash': typeof TrashRoute;
   '/b/$blockId': typeof BBlockIdRoute;
   '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/members': typeof SettingsMembersRoute;
+  '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
+  '/share/$token': typeof ShareTokenRoute;
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
+  '/db': typeof DbRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/trash': typeof TrashRoute;
   '/b/$blockId': typeof BBlockIdRoute;
   '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/members': typeof SettingsMembersRoute;
+  '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
+  '/share/$token': typeof ShareTokenRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
+  '/db': typeof DbRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
   '/sbi': typeof SbiRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
+  '/trash': typeof TrashRoute;
   '/b/$blockId': typeof BBlockIdRoute;
   '/invite/$token': typeof InviteTokenRoute;
   '/p/$pageId': typeof PPageIdRoute;
   '/settings/audit-log': typeof SettingsAuditLogRoute;
   '/settings/members': typeof SettingsMembersRoute;
+  '/settings/notifications': typeof SettingsNotificationsRoute;
   '/settings/tokens': typeof SettingsTokensRoute;
+  '/share/$token': typeof ShareTokenRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
+    | '/db'
     | '/login'
     | '/pbi'
     | '/project'
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/trash'
     | '/b/$blockId'
     | '/invite/$token'
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/members'
-    | '/settings/tokens';
+    | '/settings/notifications'
+    | '/settings/tokens'
+    | '/share/$token';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
+    | '/db'
     | '/login'
     | '/pbi'
     | '/project'
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/trash'
     | '/b/$blockId'
     | '/invite/$token'
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/members'
-    | '/settings/tokens';
+    | '/settings/notifications'
+    | '/settings/tokens'
+    | '/share/$token';
   id:
     | '__root__'
     | '/'
+    | '/db'
     | '/login'
     | '/pbi'
     | '/project'
     | '/sbi'
     | '/signup'
     | '/sprint'
+    | '/trash'
     | '/b/$blockId'
     | '/invite/$token'
     | '/p/$pageId'
     | '/settings/audit-log'
     | '/settings/members'
-    | '/settings/tokens';
+    | '/settings/notifications'
+    | '/settings/tokens'
+    | '/share/$token';
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
+  DbRoute: typeof DbRoute;
   LoginRoute: typeof LoginRoute;
   PbiRoute: typeof PbiRoute;
   ProjectRoute: typeof ProjectRoute;
   SbiRoute: typeof SbiRoute;
   SignupRoute: typeof SignupRoute;
   SprintRoute: typeof SprintRoute;
+  TrashRoute: typeof TrashRoute;
   BBlockIdRoute: typeof BBlockIdRoute;
   InviteTokenRoute: typeof InviteTokenRoute;
   PPageIdRoute: typeof PPageIdRoute;
   SettingsAuditLogRoute: typeof SettingsAuditLogRoute;
   SettingsMembersRoute: typeof SettingsMembersRoute;
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute;
   SettingsTokensRoute: typeof SettingsTokensRoute;
+  ShareTokenRoute: typeof ShareTokenRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trash': {
+      id: '/trash';
+      path: '/trash';
+      fullPath: '/trash';
+      preLoaderRoute: typeof TrashRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/sprint': {
       id: '/sprint';
       path: '/sprint';
@@ -243,6 +302,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/db': {
+      id: '/db';
+      path: '/db';
+      fullPath: '/db';
+      preLoaderRoute: typeof DbRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/': {
       id: '/';
       path: '/';
@@ -250,11 +316,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/share/$token': {
+      id: '/share/$token';
+      path: '/share/$token';
+      fullPath: '/share/$token';
+      preLoaderRoute: typeof ShareTokenRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/settings/tokens': {
       id: '/settings/tokens';
       path: '/settings/tokens';
       fullPath: '/settings/tokens';
       preLoaderRoute: typeof SettingsTokensRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/settings/notifications': {
+      id: '/settings/notifications';
+      path: '/settings/notifications';
+      fullPath: '/settings/notifications';
+      preLoaderRoute: typeof SettingsNotificationsRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/settings/members': {
@@ -297,18 +377,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DbRoute: DbRoute,
   LoginRoute: LoginRoute,
   PbiRoute: PbiRoute,
   ProjectRoute: ProjectRoute,
   SbiRoute: SbiRoute,
   SignupRoute: SignupRoute,
   SprintRoute: SprintRoute,
+  TrashRoute: TrashRoute,
   BBlockIdRoute: BBlockIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   PPageIdRoute: PPageIdRoute,
   SettingsAuditLogRoute: SettingsAuditLogRoute,
   SettingsMembersRoute: SettingsMembersRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsTokensRoute: SettingsTokensRoute,
+  ShareTokenRoute: ShareTokenRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

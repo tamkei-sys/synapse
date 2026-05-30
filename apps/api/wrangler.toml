@@ -10,3 +10,28 @@ BETTER_AUTH_URL = "http://localhost:8787"
 WEB_ORIGIN = "http://localhost:5173"
 
 # Additional bindings (KV / D1 / R2 / Queues) will be added as features land.
+
+# ---- Cron Triggers (PBI-68) -----------------------------------------------
+# 毎分 due なリマインダーを dispatch する（本番のみ発火。dev は cron が動かない
+# ので reminder.processDue が代替）。
+[triggers]
+crons = ["* * * * *"]
+
+# ---- cc Container (PBI-19) ------------------------------------------------
+# 本番デプロイ時に下記を有効化する。dev では undefined のままで sandbox-stub
+# にフォールバックする (apps/api/src/integrations/cc/container.ts)。
+#
+# [[containers]]
+# class_name    = "CcContainer"
+# image         = "synapse-cc"        # apps/cc-container/ で build
+# max_instances = 5                    # workspace x parallel cap
+# instance_type = "small"
+#
+# [durable_objects]
+# bindings = [
+#   { name = "CC_CONTAINER", class_name = "CcContainer" },
+# ]
+#
+# 併せて wrangler secret put CC_SESSION_TOKEN_SECRET し、vars に
+# CC_API_BASE = "https://api.synapse.example" を入れる。
+# 詳細は docs/adr/0007-cc-container-sandbox.md.

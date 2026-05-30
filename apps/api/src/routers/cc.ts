@@ -16,9 +16,12 @@ import { z } from 'zod';
 
 import { db as schema } from '@synapse/schema';
 
-import { startStubSession } from '../integrations/cc/sandbox-stub.js';
+import { startCcSession } from '../integrations/cc/container.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { protectedProcedure, router } from '../trpc.js';
+
+/** デフォルト allowedTools. CLAUDE.md §6: 明示 allowlist だけ。 */
+const DEFAULT_ALLOWED_TOOLS = ['Read', 'Edit', 'Write', 'Bash', 'Grep'] as const;
 
 export const ccRouter = router({
   startForPbi: protectedProcedure
@@ -39,6 +42,9 @@ export const ccRouter = router({
       await assertCanWrite(ctx.db, pbi.workspaceId, ctx.session.user.id);
 
       const id = ulid();
+      const usingContainer = Boolean(
+        ctx.env.CC_CONTAINER && ctx.env.CC_API_BASE && ctx.env.CC_SESSION_TOKEN_SECRET,
+      );
       const [row] = await ctx.db
         .insert(schema.ccSession)
         .values({
@@ -47,16 +53,23 @@ export const ccRouter = router({
           pbiId: input.pbiId,
           createdBy: ctx.session.user.id,
           status: 'queued',
-          lastMessage: 'queued for sandbox',
-          meta: { sandbox: 'stub-v1' },
+          lastMessage: usingContainer ? 'queued for cf-container' : 'queued for stub',
+          meta: { sandbox: usingContainer ? 'cf-container-v1' : 'stub-v1' },
         })
         .returning();
       if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
 
-      // Hand the simulated lifecycle to workerd via waitUntil — without
-      // it the isolate dies right after this response returns and the
-      // status stays stuck on `queued`. See trpc.ts `WaitUntil`.
-      ctx.waitUntil(startStubSession(ctx.db, row.id));
+      // Hand the lifecycle to workerd via waitUntil — without it the
+      // isolate dies right after this response returns and the status
+      // stays stuck on `queued`. See trpc.ts `WaitUntil`.
+      ctx.waitUntil(
+        startCcSession(ctx.db, ctx.env, {
+          sessionId: row.id,
+          pbiId: input.pbiId,
+          prompt: `Implement ${input.pbiId}`,
+          allowedTools: DEFAULT_ALLOWED_TOOLS,
+        }),
+      );
       return row;
     }),
 

@@ -26,6 +26,8 @@ export function projectBlock(row: ProjectInput): SearchHit | null {
   const props = (row.props ?? {}) as Record<string, unknown>;
   switch (row.type) {
     case 'page': {
+      // テンプレートは検索に出さない (PBI-55)。
+      if (props['isTemplate'] === true) return null;
       const title = stringOr(props['title'], 'Untitled');
       const body = flattenDoc(props['doc']).slice(0, MAX_BODY);
       return base(row, title, body);

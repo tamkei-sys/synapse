@@ -39,7 +39,7 @@ export const Route = createFileRoute('/pbi')({
   component: PbiBoardRoute,
 });
 
-type ViewMode = 'backlog' | 'kanban';
+type ViewMode = 'backlog' | 'kanban' | 'timeline';
 
 function PbiBoardRoute() {
   const session = useSession();
@@ -49,6 +49,8 @@ function PbiBoardRoute() {
     enabled: !!session.data,
   });
 
+  // Hooks は条件分岐 / early return より前にまとめて呼ぶ（Rules of Hooks）。
+  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (session.isPending || workspaces.isPending) return <Centered>読み込み中…</Centered>;
   if (!session.data)
     return (
@@ -58,8 +60,6 @@ function PbiBoardRoute() {
         </Link>
       </Centered>
     );
-
-  const workspace = useCurrentWorkspaceFromList(workspaces.data);
   if (!workspace)
     return (
       <Centered>
@@ -105,6 +105,8 @@ function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspa
       ) : list.data && list.data.length > 0 ? (
         view === 'backlog' ? (
           <BacklogTable items={list.data} workspaceId={workspaceId} />
+        ) : view === 'timeline' ? (
+          <TimelineView items={list.data} />
         ) : (
           <KanbanBoard items={list.data} workspaceId={workspaceId} />
         )
@@ -116,14 +118,18 @@ function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspa
 }
 
 function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
-  const labels: Record<ViewMode, string> = { backlog: 'バックログ', kanban: 'カンバン' };
+  const labels: Record<ViewMode, string> = {
+    backlog: 'バックログ',
+    kanban: 'カンバン',
+    timeline: 'タイムライン',
+  };
   return (
     <div
       role="tablist"
       data-testid="view-toggle"
       className="inline-flex rounded-md border border-zinc-300 bg-zinc-50 p-0.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
     >
-      {(['backlog', 'kanban'] as const).map((v) => (
+      {(['backlog', 'kanban', 'timeline'] as const).map((v) => (
         <button
           key={v}
           type="button"
@@ -144,6 +150,96 @@ function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMo
   );
 }
 
+// ── タイムライン (PBI-61) ────────────────────────────────────
+
+/** UTC 日付文字列 (YYYY-MM-DD) 間の日数差。 */
+function daysBetween(a: string, b: string): number {
+  return Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+}
+
+/**
+ * PBI を dueDate で時間軸に並べる簡易タイムライン (PBI-61)。期間バーや依存線は
+ * 将来 — まずは「いつ期限か」を一望できることを目的にする。dueDate 未設定の
+ * PBI は件数だけ末尾に出す。
+ */
+function TimelineView({ items }: { items: readonly PbiRow[] }) {
+  const dated = items
+    .map((it) => ({
+      it,
+      props: (it.props ?? {}) as {
+        dueDate?: string;
+        title?: string;
+        status?: PbiStatus;
+      },
+    }))
+    .filter((x): x is { it: PbiRow; props: { dueDate: string; title?: string; status?: PbiStatus } } =>
+      Boolean(x.props.dueDate),
+    )
+    .sort((a, b) => a.props.dueDate.localeCompare(b.props.dueDate));
+  const undatedCount = items.length - dated.length;
+
+  if (dated.length === 0) {
+    return (
+      <p className="text-sm text-zinc-500" data-testid="timeline-empty">
+        期限 (dueDate) が設定された PBI がありません。作成時に期限を入れるとここに並びます。
+      </p>
+    );
+  }
+
+  const minDue = dated[0]!.props.dueDate;
+  const maxDue = dated[dated.length - 1]!.props.dueDate;
+  const span = Math.max(1, daysBetween(minDue, maxDue));
+
+  return (
+    <div data-testid="timeline-view" className="space-y-2">
+      <div className="flex justify-between px-[12rem] text-xs text-zinc-400">
+        <span>{minDue}</span>
+        <span>{maxDue}</span>
+      </div>
+      <ul className="space-y-1">
+        {dated.map(({ it, props }) => {
+          const pct = (daysBetween(minDue, props.dueDate) / span) * 100;
+          return (
+            <li
+              key={it.id}
+              data-testid={`timeline-item-${it.id}`}
+              className="grid grid-cols-[12rem_1fr] items-center gap-2"
+            >
+              <Link
+                to="/b/$blockId"
+                params={{ blockId: it.id }}
+                className="truncate text-sm hover:underline"
+                title={props.title}
+              >
+                {props.title ?? '無題'}
+              </Link>
+              <div className="relative h-6 rounded bg-zinc-100 dark:bg-zinc-800">
+                <div
+                  className="absolute top-0 flex h-6 -translate-x-1/2 items-center"
+                  style={{ left: `${pct}%` }}
+                >
+                  <span
+                    className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] ${
+                      statusTone[props.status ?? 'backlog'] ?? ''
+                    }`}
+                  >
+                    {props.dueDate}
+                  </span>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {undatedCount > 0 ? (
+        <p className="pt-2 text-xs text-zinc-400" data-testid="timeline-undated">
+          期限なし: {undatedCount} 件
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 // ── 新規作成フォーム ─────────────────────────────────────────
 
 function NewPbiForm({ workspaceId }: { workspaceId: string }) {
@@ -153,6 +249,7 @@ function NewPbiForm({ workspaceId }: { workspaceId: string }) {
   const [sprintId, setSprintId] = useState('');
   const [priority, setPriority] = useState<Priority>('should');
   const [estimate, setEstimate] = useState<PbiEstimate | ''>('');
+  const [dueDate, setDueDate] = useState('');
 
   const projects = useQuery({
     queryKey: ['project', 'list', workspaceId],
@@ -172,6 +269,7 @@ function NewPbiForm({ workspaceId }: { workspaceId: string }) {
         ...(estimate !== '' ? { estimate } : {}),
         ...(projectId ? { projectId } : {}),
         ...(sprintId ? { sprintId } : {}),
+        ...(dueDate ? { dueDate } : {}),
       }),
     onSuccess: async () => {
       setTitle('');
@@ -179,6 +277,7 @@ function NewPbiForm({ workspaceId }: { workspaceId: string }) {
       setSprintId('');
       setPriority('should');
       setEstimate('');
+      setDueDate('');
       await qc.invalidateQueries({ queryKey: ['pbi', 'list', workspaceId] });
     },
   });
@@ -191,7 +290,7 @@ function NewPbiForm({ workspaceId }: { workspaceId: string }) {
         create.mutate();
       }}
       data-testid="new-pbi-form"
-      className="mb-6 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] dark:border-zinc-800 dark:bg-zinc-900/30"
+      className="mb-6 grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50/60 p-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto_auto] dark:border-zinc-800 dark:bg-zinc-900/30"
     >
       <input
         value={title}
@@ -259,6 +358,14 @@ function NewPbiForm({ workspaceId }: { workspaceId: string }) {
           </option>
         ))}
       </select>
+      <input
+        type="date"
+        value={dueDate}
+        onChange={(e) => setDueDate(e.target.value)}
+        data-testid="new-pbi-due"
+        title="期限（任意）"
+        className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+      />
       <button
         type="submit"
         disabled={create.isPending || !title.trim()}

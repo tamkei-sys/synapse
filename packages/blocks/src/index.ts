@@ -7,6 +7,8 @@ export * from './pbi.js';
 export * from './sbi.js';
 export * from './sheet.js';
 export * from './comment.js';
+export * from './db.js';
+export * from './page-ref.js';
 
 export type BlockType =
   | 'page'
@@ -22,7 +24,9 @@ export type BlockType =
   | 'table_row'
   | 'embed'
   | 'code'
-  | 'comment';
+  | 'comment'
+  | 'db'
+  | 'db_row';
 
 export type Block = {
   id: string;

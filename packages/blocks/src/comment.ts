@@ -22,6 +22,14 @@ export const commentPropsSchema = z.object({
    * 親のルートに付け替える方針（多段化は v2）。
    */
   parentCommentId: z.string().optional(),
+  /**
+   * インラインコメント (PBI-70) のスレッド id。エディタ本文の `comment` mark
+   * （ハイライト）と同じ id を共有する。省略時はブロック全体への通常コメント。
+   * 同一スレッドのルート + 返信は同じ threadId を持つ。
+   */
+  threadId: z.string().min(1).max(40).optional(),
+  /** スレッド作成時にハイライトしていた本文の抜粋（一覧の見出し用）。 */
+  anchorText: z.string().max(300).optional(),
 });
 
 export type CommentProps = z.infer<typeof commentPropsSchema>;

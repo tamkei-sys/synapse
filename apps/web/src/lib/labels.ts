@@ -1,54 +1,76 @@
 /**
- * 日本語ラベル辞書。
+ * ステータス / 優先度 のラベル辞書。
  *
  * Block の Zod スキーマでは enum 値（`backlog`, `in_progress`, ...）を
  * 内部表現として持ち、その値だけが API 境界・Typesense・DB に流れる。
- * 画面側の見出し・選択肢のテキストはここで集約して日本語表示に揃える。
+ * 画面側の見出し・選択肢のテキストはここで集約。
  *
- * 大和心の Notion ワークスペースで使われている表現に寄せている。
+ * R15 (PBI-25) 以降は ja/en の locale 切替に対応。`useLabels()` を呼ぶと
+ * 現 locale のラベル辞書が返る。古い `pbiStatusLabel` 等の素の Record
+ * エクスポートはコンポーネントの段階的移行のため当面は ja のまま
+ * 互換 export として残す（locale を「跨ぐ」場面が無いコンポーネントは
+ * useLabels() に置き換え予定）。
  */
 import type { PbiStatus, Priority, ProjectStatus, SbiStatus, SprintStatus } from '@synapse/blocks';
 
-export const projectStatusLabel: Record<ProjectStatus, string> = {
-  backlog: 'バックログ',
-  planned: '計画済み',
-  in_progress: '進行中',
-  paused: '保留中',
-  review: 'レビュー中',
-  done: '完了',
-  cancelled: '中止',
-  archived: 'アーカイブ',
-};
+import { type Locale, tFor, useLocale } from './i18n.js';
 
-export const sprintStatusLabel: Record<SprintStatus, string> = {
-  planning: '計画中',
-  active: '実行中',
-  review: 'レビュー中',
-  done: '完了',
-};
+function build<T extends string>(locale: Locale, prefix: string, keys: readonly T[]): Record<T, string> {
+  const out = {} as Record<T, string>;
+  for (const k of keys) out[k] = tFor(locale, `${prefix}.${k}`);
+  return out;
+}
 
-export const pbiStatusLabel: Record<PbiStatus, string> = {
-  backlog: 'バックログ',
-  ready: '着手可',
-  in_progress: '進行中',
-  review: 'レビュー中',
-  done: '完了',
-};
+const PROJECT_KEYS = [
+  'backlog',
+  'planned',
+  'in_progress',
+  'paused',
+  'review',
+  'done',
+  'cancelled',
+  'archived',
+] as const satisfies readonly ProjectStatus[];
+const SPRINT_KEYS = ['planning', 'active', 'review', 'done'] as const satisfies readonly SprintStatus[];
+const PBI_KEYS = ['backlog', 'ready', 'in_progress', 'review', 'done'] as const satisfies readonly PbiStatus[];
+const SBI_KEYS = [
+  'todo',
+  'in_progress',
+  'review',
+  'done',
+  'archived',
+] as const satisfies readonly SbiStatus[];
+const PRIORITY_KEYS = ['must', 'should', 'could', 'wont'] as const satisfies readonly Priority[];
 
-export const sbiStatusLabel: Record<SbiStatus, string> = {
-  todo: 'これから',
-  in_progress: '進行中',
-  review: 'レビュー中',
-  done: '完了',
-  archived: 'アーカイブ',
-};
+/** 旧 API: 日本語固定の Record。ステップワイズ移行のため残しておく。 */
+export const projectStatusLabel: Record<ProjectStatus, string> = build('ja', 'status.project', PROJECT_KEYS);
+export const sprintStatusLabel: Record<SprintStatus, string> = build('ja', 'status.sprint', SPRINT_KEYS);
+export const pbiStatusLabel: Record<PbiStatus, string> = build('ja', 'status.pbi', PBI_KEYS);
+export const sbiStatusLabel: Record<SbiStatus, string> = build('ja', 'status.sbi', SBI_KEYS);
+export const priorityLabel: Record<Priority, string> = build('ja', 'priority', PRIORITY_KEYS);
 
-export const priorityLabel: Record<Priority, string> = {
-  must: '必須',
-  should: '推奨',
-  could: '可能',
-  wont: '先送り',
-};
+/**
+ * 現 locale の全 enum ラベルをまとめて返す hook。新規コンポーネントは
+ * これを使う。store 購読しているので locale 切替で自動再 render。
+ */
+export function useLabels(): {
+  locale: Locale;
+  projectStatus: Record<ProjectStatus, string>;
+  sprintStatus: Record<SprintStatus, string>;
+  pbiStatus: Record<PbiStatus, string>;
+  sbiStatus: Record<SbiStatus, string>;
+  priority: Record<Priority, string>;
+} {
+  const locale = useLocale();
+  return {
+    locale,
+    projectStatus: build(locale, 'status.project', PROJECT_KEYS),
+    sprintStatus: build(locale, 'status.sprint', SPRINT_KEYS),
+    pbiStatus: build(locale, 'status.pbi', PBI_KEYS),
+    sbiStatus: build(locale, 'status.sbi', SBI_KEYS),
+    priority: build(locale, 'priority', PRIORITY_KEYS),
+  };
+}
 
 /** ステータスチップの配色トーン（Tailwind クラスを揃える）。 */
 export const statusTone: Record<string, string> = {

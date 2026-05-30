@@ -156,6 +156,7 @@ export const pbiRouter = router({
         storyPoints: z.number().int().min(0).max(100).optional(),
         projectId: z.string().optional(),
         sprintId: z.string().optional(),
+        dueDate: z.string().date().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -172,6 +173,7 @@ export const pbiRouter = router({
         ...(typeof input.storyPoints === 'number' ? { storyPoints: input.storyPoints } : {}),
         ...(input.projectId ? { projectId: input.projectId } : {}),
         ...(input.sprintId ? { sprintId: input.sprintId } : {}),
+        ...(input.dueDate ? { dueDate: input.dueDate } : {}),
       });
 
       const [row] = await ctx.db

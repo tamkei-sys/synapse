@@ -71,6 +71,48 @@
       "when": 1780030463901,
       "tag": "0009_whole_ego",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780033000000,
+      "tag": "0010_push_subscription",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780036000000,
+      "tag": "0011_notification_channel",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1780039000000,
+      "tag": "0012_page_favorite",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780042000000,
+      "tag": "0013_page_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1780045000000,
+      "tag": "0014_page_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1780048000000,
+      "tag": "0015_reminder",
+      "breakpoints": true
     }
   ]
 }

@@ -83,6 +83,9 @@ export function usePresence(
       aw.off('change', update);
       aw.setLocalStateField('user', null);
     };
+    // `self` を丸ごと dep に入れると親が再 render するたびに awareness
+    // 接続が張り直されるので、安定したフィールドだけ列挙する意図的設計。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, self?.id, self?.name, self?.email, self?.image, self?.color]);
 
   return peers;

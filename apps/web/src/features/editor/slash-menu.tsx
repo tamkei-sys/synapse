@@ -69,9 +69,98 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   {
     id: 'code-block',
     title: 'コードブロック',
-    description: '等幅フォントのコード領域',
+    description: 'シンタックスハイライト付きコード領域',
     keywords: ['コード', 'code', 'snippet', 'pre'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).setCodeBlock().run(),
+  },
+  {
+    id: 'callout',
+    title: 'Callout',
+    description: '情報 / 注意 / 成功 / メモ の囲みブロック',
+    keywords: ['callout', '囲み', 'info', 'warning', 'note', '注意', 'コールアウト'],
+    run: (editor, range) =>
+      editor.chain().focus().deleteRange(range).setCallout('info').run(),
+  },
+  {
+    id: 'toggle',
+    title: 'トグル',
+    description: '折りたたみ可能なブロック',
+    keywords: ['toggle', 'トグル', '折りたたみ', 'fold', 'collapse', 'details'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setToggle().run(),
+  },
+  {
+    id: 'table',
+    title: 'テーブル',
+    description: '3×3 の表を挿入',
+    keywords: ['table', '表', 'テーブル', 'grid'],
+    run: (editor, range) =>
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .run(),
+  },
+  {
+    id: 'embed',
+    title: '埋め込み',
+    description: 'YouTube / Figma / Loom などを iframe 埋め込み',
+    keywords: ['embed', '埋め込み', 'iframe', 'youtube', 'figma', 'loom'],
+    run: (editor, range) => {
+      editor.chain().focus().deleteRange(range).run();
+      const url = window.prompt('埋め込む URL', 'https://');
+      if (!url) return;
+      editor.chain().focus().setEmbed(url).run();
+    },
+  },
+  {
+    id: 'columns',
+    title: '2 カラム',
+    description: '横並びの段組レイアウト',
+    keywords: ['column', 'カラム', '段組', '多段', 'columns', '2列', 'レイアウト'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setColumns(2).run(),
+  },
+  {
+    id: 'sync',
+    title: '同期ブロック',
+    description: '別ページの内容をライブ表示',
+    keywords: ['sync', '同期', 'synced', '参照', 'ミラー', 'mirror'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertSyncedBlock().run(),
+  },
+  {
+    id: 'divider',
+    title: '区切り線',
+    description: '色を変えられる水平線',
+    keywords: ['divider', '区切り', '罫線', 'hr', 'rule', 'line', '線', 'セパレータ'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+  },
+  {
+    id: 'toc',
+    title: '目次',
+    description: '見出しから自動生成される目次',
+    keywords: ['toc', '目次', 'もくじ', 'outline', 'table of contents'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).setTocBlock().run(),
+  },
+  {
+    id: 'date',
+    title: '日付',
+    description: '日付メンション（相対表記）を挿入',
+    keywords: ['date', '日付', 'today', '今日', 'カレンダー'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertDateMention('').run(),
+  },
+  {
+    id: 'math-block',
+    title: '数式ブロック',
+    description: 'KaTeX で display 数式',
+    keywords: ['math', '数式', 'katex', 'latex', 'tex', 'equation'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertMathBlock('').run(),
+  },
+  {
+    id: 'inline-math',
+    title: 'インライン数式',
+    description: '文中の KaTeX 数式',
+    keywords: ['imath', 'inline math', 'インライン数式', 'katex', 'latex'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertInlineMath('').run(),
   },
 ];
 
