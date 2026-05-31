@@ -3,6 +3,7 @@ import { Outlet, createRootRouteWithContext, useLocation } from '@tanstack/react
 
 import { UserMenu } from '../features/account/user-menu.js';
 import { NotificationBell } from '../features/notifications/notification-bell.js';
+import { ShortcutsHelp } from '../features/help/shortcuts-help.js';
 import { CommandPalette } from '../features/search/command-palette.js';
 import { Sidebar } from '../features/sidebar/sidebar.js';
 import { useSession } from '../lib/auth-client.js';
@@ -89,6 +90,7 @@ function RootLayout() {
         <Outlet />
       </main>
       <CommandPalette />
+      <ShortcutsHelp />
     </div>
   );
 }
