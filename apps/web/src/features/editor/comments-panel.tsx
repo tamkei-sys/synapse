@@ -81,6 +81,11 @@ export function CommentsPanel({
     }) => trpc.comment.create.mutate({ blockId: pageId, ...input }),
     onSuccess: invalidate,
   });
+  const setResolved = useMutation({
+    mutationFn: (input: { commentId: string; resolved: boolean }) =>
+      trpc.comment.setResolved.mutate(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comment', 'list', pageId] }),
+  });
   const remove = useMutation({
     mutationFn: (commentId: string) => trpc.comment.delete.mutate({ commentId }),
     onSuccess: invalidate,
@@ -134,6 +139,9 @@ export function CommentsPanel({
               create.mutate({ body, threadId: t.threadId, parentCommentId: t.root.id })
             }
             onDelete={(commentId) => remove.mutate(commentId)}
+            onToggleResolved={(resolved) =>
+              setResolved.mutate({ commentId: t.root.id, resolved })
+            }
           />
         ))}
       </ul>
@@ -202,24 +210,52 @@ function ThreadCard({
   busy,
   onReply,
   onDelete,
+  onToggleResolved,
 }: {
   thread: Thread;
   busy: boolean;
   onReply: (body: string) => void;
   onDelete: (commentId: string) => void;
+  onToggleResolved: (resolved: boolean) => void;
 }) {
   const [reply, setReply] = useState('');
+  const resolved = thread.root.resolved;
   const comments = [thread.root, ...thread.replies];
   return (
     <li
       data-testid={`comment-thread-${thread.threadId}`}
-      className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
+      data-resolved={resolved}
+      className={`rounded-lg border p-3 ${
+        resolved
+          ? 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/50 dark:bg-emerald-900/10'
+          : 'border-zinc-200 dark:border-zinc-800'
+      }`}
     >
-      {thread.anchorText ? (
-        <p className="mb-2 truncate border-l-2 border-amber-400 pl-2 text-xs text-zinc-500">
-          「{thread.anchorText}」
-        </p>
-      ) : null}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        {thread.anchorText ? (
+          <p className="min-w-0 flex-1 truncate border-l-2 border-amber-400 pl-2 text-xs text-zinc-500">
+            「{thread.anchorText}」
+          </p>
+        ) : (
+          <span className="flex-1" />
+        )}
+        <button
+          type="button"
+          onClick={() => onToggleResolved(!resolved)}
+          disabled={busy}
+          data-testid={`comment-resolve-${thread.threadId}`}
+          className={`shrink-0 rounded px-1.5 py-0.5 text-xs disabled:opacity-50 ${
+            resolved
+              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200'
+              : 'text-zinc-400 hover:bg-zinc-100 hover:text-emerald-600 dark:hover:bg-zinc-800'
+          }`}
+          title={resolved ? '未解決に戻す' : '解決済みにする'}
+        >
+          {resolved ? '✓ 解決済み' : '解決にする'}
+        </button>
+      </div>
+      {resolved ? null : (
+      <>
       <ul className="space-y-2">
         {comments.map((c) => {
           const p = (c.props ?? {}) as CommentProps;
@@ -268,6 +304,8 @@ function ThreadCard({
           返信
         </button>
       </form>
+      </>
+      )}
     </li>
   );
 }

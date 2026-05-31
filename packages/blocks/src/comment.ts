@@ -30,6 +30,8 @@ export const commentPropsSchema = z.object({
   threadId: z.string().min(1).max(40).optional(),
   /** スレッド作成時にハイライトしていた本文の抜粋（一覧の見出し用）。 */
   anchorText: z.string().max(300).optional(),
+  /** 解決済みフラグ (PBI-83)。ルートコメントにのみ立て、スレッド全体の解決状態を表す。 */
+  resolved: z.boolean().optional(),
 });
 
 export type CommentProps = z.infer<typeof commentPropsSchema>;
