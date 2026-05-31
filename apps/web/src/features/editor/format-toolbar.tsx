@@ -55,6 +55,21 @@ export function FormatToolbar({ editor, workspaceId, onComment }: Props) {
     editor.commands.insertContent(html);
   };
 
+  // Markdown を .md ファイルとしてダウンロード (PBI-88)。
+  const downloadMd = () => {
+    const md = tiptapJsonToMarkdown(editor.getJSON());
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `synapse-export-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // PDF 出力 (PBI-88): 新規依存を避け、ブラウザの印刷ダイアログ（PDF 保存）に委ねる。
+  const exportPdf = () => window.print();
+
   return (
     <>
       <div
@@ -195,6 +210,24 @@ export function FormatToolbar({ editor, workspaceId, onComment }: Props) {
             title=".md / .html をインポート"
           >
             📥 取り込み
+          </button>
+          <button
+            type="button"
+            onClick={downloadMd}
+            data-testid="fmt-download-md"
+            className="rounded px-2 py-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            title="Markdown(.md) としてダウンロード"
+          >
+            ⬇️ MD
+          </button>
+          <button
+            type="button"
+            onClick={exportPdf}
+            data-testid="fmt-export-pdf"
+            className="rounded px-2 py-1 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            title="PDF として出力（印刷ダイアログ）"
+          >
+            🖨️ PDF
           </button>
           <input
             ref={fileRef}
