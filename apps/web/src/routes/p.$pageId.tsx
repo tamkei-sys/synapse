@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PageEditor } from '../features/editor/editor.js';
 import { EmojiPicker } from '../features/editor/emoji-picker.js';
 import { uploadImage } from '../features/editor/image-upload.js';
+import { diffWords, docToText, type DiffPart } from '../features/editor/text-diff.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
@@ -456,6 +457,16 @@ function HistoryPanel({ pageId, editor }: { pageId: string; editor: Editor | nul
       }
     },
   });
+  // 差分表示 (PBI-86): 選択版 → 現在 の語単位 diff。
+  const [diffParts, setDiffParts] = useState<DiffPart[] | null>(null);
+  const showDiff = useMutation({
+    mutationFn: (versionId: string) => trpc.block.getVersion.query({ versionId }),
+    onSuccess: (data) => {
+      const before = docToText(data.doc);
+      const after = editor ? docToText(editor.getJSON()) : '';
+      setDiffParts(diffWords(before, after));
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -526,20 +537,73 @@ function HistoryPanel({ pageId, editor }: { pageId: string; editor: Editor | nul
                       {new Date(v.createdAt).toLocaleString('ja-JP')}
                       {v.authorName ? ` · ${v.authorName}` : ''}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => restore.mutate(v.id)}
-                      disabled={restore.isPending || !editor}
-                      data-testid="history-restore"
-                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] text-violet-600 hover:bg-violet-50 disabled:opacity-50 dark:hover:bg-violet-950/40"
-                    >
-                      復元
-                    </button>
+                    <span className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        onClick={() => showDiff.mutate(v.id)}
+                        disabled={showDiff.isPending || !editor}
+                        data-testid="history-diff"
+                        className="rounded px-1.5 py-0.5 text-[10px] text-zinc-500 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-800"
+                      >
+                        差分
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => restore.mutate(v.id)}
+                        disabled={restore.isPending || !editor}
+                        data-testid="history-restore"
+                        className="rounded px-1.5 py-0.5 text-[10px] text-violet-600 hover:bg-violet-50 disabled:opacity-50 dark:hover:bg-violet-950/40"
+                      >
+                        復元
+                      </button>
+                    </span>
                   </div>
                 </li>
               ))}
             </ul>
           )}
+        </div>
+      ) : null}
+      {diffParts ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-testid="history-diff-modal"
+          onClick={() => setDiffParts(null)}
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-6 pt-20"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[70vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-zinc-200 bg-white p-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-medium">この版 → 現在 の差分</h3>
+              <button
+                type="button"
+                onClick={() => setDiffParts(null)}
+                data-testid="history-diff-close"
+                className="rounded px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed" data-testid="history-diff-body">
+              {diffParts.map((p, i) => (
+                <span
+                  key={i}
+                  className={
+                    p.kind === 'added'
+                      ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200'
+                      : p.kind === 'removed'
+                        ? 'bg-red-100 text-red-800 line-through dark:bg-red-900/40 dark:text-red-200'
+                        : ''
+                  }
+                >
+                  {p.text}
+                </span>
+              ))}
+            </p>
+          </div>
         </div>
       ) : null}
     </div>
