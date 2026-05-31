@@ -13,10 +13,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { mergeAttributes, Node } from '@tiptap/core';
-import { NodeViewWrapper, ReactNodeViewRenderer, type ReactNodeViewProps } from '@tiptap/react';
+import Collaboration from '@tiptap/extension-collaboration';
+import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor, type ReactNodeViewProps } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useState } from 'react';
 
+import { useSession } from '../../lib/auth-client.js';
 import { trpc } from '../../lib/trpc.js';
 import { PublicPageEditor } from './public-page-editor.js';
+import { useCollabDoc } from './use-collab-doc.js';
 
 export type SyncedBlockOptions = { workspaceId: string };
 
@@ -133,10 +138,11 @@ function SyncedBlockPicker({
 }
 
 function SyncedBlockContent({ sourceId, onClear }: { sourceId: string; onClear: () => void }) {
+  const [editing, setEditing] = useState(false);
   const page = useQuery({
     queryKey: ['block', 'getPage', sourceId],
     queryFn: () => trpc.block.getPage.query({ pageId: sourceId }),
-    refetchInterval: 5_000,
+    refetchInterval: editing ? false : 5_000, // 編集中は polling を止める（Yjs が真実）
   });
 
   if (page.isPending) {
@@ -170,13 +176,66 @@ function SyncedBlockContent({ sourceId, onClear }: { sourceId: string; onClear: 
             {props.icon || '📄'} {props.title ?? '無題'}
           </Link>
         </span>
-        <button type="button" onClick={onClear} data-testid="synced-block-clear" className="hover:text-red-600">
-          解除
-        </button>
+        <span className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            data-testid="synced-block-edit-toggle"
+            className={editing ? 'text-violet-600 dark:text-violet-300' : 'hover:text-violet-600'}
+            title={editing ? '表示に戻す' : 'この場で編集（双方向同期）'}
+          >
+            {editing ? '✓ 編集中' : '✏️ 編集'}
+          </button>
+          <button type="button" onClick={onClear} data-testid="synced-block-clear" className="hover:text-red-600">
+            解除
+          </button>
+        </span>
       </header>
       <div className="px-3 py-2">
-        <PublicPageEditor key={`${sourceId}:${data.version}`} doc={props.doc ?? { type: 'doc', content: [] }} />
+        {editing ? (
+          <SyncedEditable sourceId={sourceId} />
+        ) : (
+          <PublicPageEditor key={`${sourceId}:${data.version}`} doc={props.doc ?? { type: 'doc', content: [] }} />
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * source ページの Yjs doc に Collaboration で直結する軽量な編集可能ビュー (PBI-84)。
+ * ここでの編集は source 本体に即反映され、全クライアントに同期される（双方向）。
+ * スラッシュ等の重装備は source 本体に委ね、ここは本文編集に絞る。
+ */
+function SyncedEditable({ sourceId }: { sourceId: string }) {
+  const session = useSession();
+  const token = session.data?.session.token;
+  const { doc, status } = useCollabDoc(`page:${sourceId}`, token);
+  const editor = useEditor(
+    {
+      extensions: doc
+        ? [StarterKit.configure({ history: false }), Collaboration.configure({ document: doc })]
+        : [StarterKit],
+      editorProps: {
+        attributes: {
+          class: 'tiptap prose prose-sm prose-zinc max-w-none focus:outline-none dark:prose-invert',
+          'data-testid': 'synced-block-editable',
+        },
+      },
+      immediatelyRender: false,
+    },
+    [doc],
+  );
+
+  if (!doc) {
+    return <p className="text-sm text-zinc-500">同期エディタを準備中…</p>;
+  }
+  return (
+    <div>
+      <EditorContent editor={editor} />
+      <p className="mt-1 text-[10px] text-zinc-400" data-testid="synced-block-edit-status">
+        {status === 'connected' ? '🟢 同期中（編集は元ページに反映されます）' : '接続中…'}
+      </p>
     </div>
   );
 }
