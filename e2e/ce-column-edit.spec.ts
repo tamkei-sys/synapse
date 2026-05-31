@@ -38,9 +38,16 @@ test('rename and delete a database column', async ({ browser }) => {
   await expect(page).toHaveURL(/\/b\/[0-9A-Z]+$/);
   await expect(page.getByTestId('db-col-title')).toBeVisible({ timeout: 10_000 });
 
-  // ---- title 列をリネーム ---------------------------------------------
+  // ---- title 列メニューを開く → 名前/型/削除がすべて「見える」こと ----
+  // （以前はポップオーバーが overflow コンテナにクリップされ、型セレクトと
+  //  削除ボタンが見切れていた。fixed 配置で解消したことを toBeVisible で守る）
   await page.getByTestId('db-col-menu-title').click();
   await expect(page.getByTestId('db-col-editor-title')).toBeVisible();
+  await expect(page.getByTestId('db-col-name-title')).toBeVisible();
+  await expect(page.getByTestId('db-col-kind-title')).toBeVisible();
+  await expect(page.getByTestId('db-col-delete-title')).toBeVisible();
+
+  // ---- リネーム ------------------------------------------------------
   await page.getByTestId('db-col-name-title').fill(newName);
   await page.getByTestId('db-col-save-title').click();
   await expect(page.getByTestId('db-col-title')).toContainText(newName, { timeout: 10_000 });
