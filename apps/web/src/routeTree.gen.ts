@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root';
 import { Route as TrashRouteImport } from './routes/trash';
 import { Route as SprintRouteImport } from './routes/sprint';
 import { Route as SignupRouteImport } from './routes/signup';
+import { Route as SearchRouteImport } from './routes/search';
 import { Route as SbiRouteImport } from './routes/sbi';
 import { Route as ProjectRouteImport } from './routes/project';
 import { Route as PbiRouteImport } from './routes/pbi';
@@ -40,6 +41,11 @@ const SprintRoute = SprintRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any);
 const SbiRoute = SbiRouteImport.update({
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
   '/sbi': typeof SbiRoute;
+  '/search': typeof SearchRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
   '/trash': typeof TrashRoute;
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
   '/sbi': typeof SbiRoute;
+  '/search': typeof SearchRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
   '/trash': typeof TrashRoute;
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
   '/sbi': typeof SbiRoute;
+  '/search': typeof SearchRoute;
   '/signup': typeof SignupRoute;
   '/sprint': typeof SprintRoute;
   '/trash': typeof TrashRoute;
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/pbi'
     | '/project'
     | '/sbi'
+    | '/search'
     | '/signup'
     | '/sprint'
     | '/trash'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/pbi'
     | '/project'
     | '/sbi'
+    | '/search'
     | '/signup'
     | '/sprint'
     | '/trash'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/pbi'
     | '/project'
     | '/sbi'
+    | '/search'
     | '/signup'
     | '/sprint'
     | '/trash'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   PbiRoute: typeof PbiRoute;
   ProjectRoute: typeof ProjectRoute;
   SbiRoute: typeof SbiRoute;
+  SearchRoute: typeof SearchRoute;
   SignupRoute: typeof SignupRoute;
   SprintRoute: typeof SprintRoute;
   TrashRoute: typeof TrashRoute;
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/signup';
       fullPath: '/signup';
       preLoaderRoute: typeof SignupRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/search': {
+      id: '/search';
+      path: '/search';
+      fullPath: '/search';
+      preLoaderRoute: typeof SearchRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/sbi': {
@@ -382,6 +402,7 @@ const rootRouteChildren: RootRouteChildren = {
   PbiRoute: PbiRoute,
   ProjectRoute: ProjectRoute,
   SbiRoute: SbiRoute,
+  SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   SprintRoute: SprintRoute,
   TrashRoute: TrashRoute,
