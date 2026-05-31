@@ -20,6 +20,7 @@ import { ulid } from 'ulid';
 import { z } from 'zod';
 
 import {
+  coerceCellValue,
   dbColumnSchema,
   dbCellValueSchema,
   dbPropsSchema,
@@ -254,6 +255,95 @@ export const dbRouter = router({
         .update(schema.block)
         .set({ props: next, updatedAt: new Date() })
         .where(eq(schema.block.id, input.dbId));
+      return { ok: true };
+    }),
+
+  /**
+   * 既存列を更新（リネーム / 型変更）。kind が変わったら全 db_row の該当セルを
+   * coerceCellValue で新しい型にベストエフォート変換する。
+   */
+  updateColumn: protectedProcedure
+    .input(z.object({ dbId: z.string().min(1), column: dbColumnSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const head = (
+        await ctx.db.select().from(schema.block).where(eq(schema.block.id, input.dbId)).limit(1)
+      )[0];
+      if (!head || head.type !== 'db') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, head.workspaceId, ctx.session.user.id);
+      const props = readDbProps(head.props);
+      const prev = props.columns.find((c) => c.id === input.column.id);
+      if (!prev) throw new TRPCError({ code: 'NOT_FOUND', message: 'column not found' });
+      const columns = props.columns.map((c) => (c.id === input.column.id ? input.column : c));
+      const next: DbProps = { ...props, columns };
+
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .update(schema.block)
+          .set({ props: next, updatedAt: new Date() })
+          .where(eq(schema.block.id, input.dbId));
+        // kind が変わった場合のみ全行のセルを変換。
+        if (prev.kind !== input.column.kind) {
+          const rows = await tx
+            .select()
+            .from(schema.block)
+            .where(and(eq(schema.block.parentId, input.dbId), eq(schema.block.type, 'db_row')));
+          for (const r of rows) {
+            const rp = readRowProps(r.props);
+            const cur = rp.values[input.column.id];
+            if (cur === undefined) continue;
+            const coerced = coerceCellValue(cur, input.column.kind);
+            const values = { ...rp.values };
+            if (coerced === null) delete values[input.column.id];
+            else values[input.column.id] = coerced;
+            await tx
+              .update(schema.block)
+              .set({ props: { ...rp, values }, updatedAt: new Date() })
+              .where(eq(schema.block.id, r.id));
+          }
+        }
+      });
+      return { ok: true };
+    }),
+
+  /** 列を削除。列定義を除き、全 db_row から該当セルキーを取り除く。 */
+  deleteColumn: protectedProcedure
+    .input(z.object({ dbId: z.string().min(1), columnId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const head = (
+        await ctx.db.select().from(schema.block).where(eq(schema.block.id, input.dbId)).limit(1)
+      )[0];
+      if (!head || head.type !== 'db') throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, head.workspaceId, ctx.session.user.id);
+      const props = readDbProps(head.props);
+      if (props.columns.length <= 1) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: '最後の列は削除できません' });
+      }
+      const columns = props.columns.filter((c) => c.id !== input.columnId);
+      if (columns.length === props.columns.length) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'column not found' });
+      }
+      const next: DbProps = { ...props, columns };
+
+      await ctx.db.transaction(async (tx) => {
+        await tx
+          .update(schema.block)
+          .set({ props: next, updatedAt: new Date() })
+          .where(eq(schema.block.id, input.dbId));
+        const rows = await tx
+          .select()
+          .from(schema.block)
+          .where(and(eq(schema.block.parentId, input.dbId), eq(schema.block.type, 'db_row')));
+        for (const r of rows) {
+          const rp = readRowProps(r.props);
+          if (!(input.columnId in rp.values)) continue;
+          const values = { ...rp.values };
+          delete values[input.columnId];
+          await tx
+            .update(schema.block)
+            .set({ props: { ...rp, values }, updatedAt: new Date() })
+            .where(eq(schema.block.id, r.id));
+        }
+      });
       return { ok: true };
     }),
 

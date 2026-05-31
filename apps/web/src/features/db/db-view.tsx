@@ -64,6 +64,16 @@ export function DbView({ dbId }: { dbId: string }) {
     onSuccess: invalidate,
   });
 
+  const updateColumn = useMutation({
+    mutationFn: (column: DbColumn) => trpc.db.updateColumn.mutate({ dbId, column }),
+    onSuccess: invalidate,
+  });
+
+  const deleteColumn = useMutation({
+    mutationFn: (columnId: string) => trpc.db.deleteColumn.mutate({ dbId, columnId }),
+    onSuccess: invalidate,
+  });
+
   const updateCell = useMutation({
     mutationFn: (input: { rowId: string; columnId: string; value: DbCellValue }) =>
       trpc.db.updateCell.mutate(input),
@@ -154,6 +164,8 @@ export function DbView({ dbId }: { dbId: string }) {
           }
           onDeleteRow={(rowId) => deleteRow.mutate(rowId)}
           onReorder={(orderedRowIds) => reorderRows.mutate(orderedRowIds)}
+          onUpdateColumn={(column) => updateColumn.mutate(column)}
+          onDeleteColumn={(columnId) => deleteColumn.mutate(columnId)}
         />
       )}
 
@@ -368,6 +380,8 @@ function TableView({
   onUpdateCell,
   onDeleteRow,
   onReorder,
+  onUpdateColumn,
+  onDeleteColumn,
 }: {
   columns: readonly DbColumn[];
   rows: readonly DbRow[];
@@ -378,6 +392,8 @@ function TableView({
   onUpdateCell: (rowId: string, columnId: string, value: DbCellValue) => void;
   onDeleteRow: (rowId: string) => void;
   onReorder: (orderedRowIds: string[]) => void;
+  onUpdateColumn: (column: DbColumn) => void;
+  onDeleteColumn: (columnId: string) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const ids = useMemo(() => rows.map((r) => r.id), [rows]);
@@ -407,8 +423,12 @@ function TableView({
                 data-testid={`db-col-${col.id}`}
                 className="border-r border-zinc-200 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500 last:border-r-0 dark:border-zinc-800"
               >
-                <span>{col.name}</span>
-                <span className="ml-1 text-[10px] text-zinc-400">({col.kind})</span>
+                <ColumnHeaderMenu
+                  column={col}
+                  canDelete={columns.length > 1}
+                  onUpdate={onUpdateColumn}
+                  onDelete={onDeleteColumn}
+                />
               </th>
             ))}
             <th scope="col" className="w-12 px-2 py-2"></th>
@@ -737,6 +757,145 @@ const COLUMN_KINDS: DbColumnKind[] = [
   'relation',
   'rollup',
 ];
+
+/** 基本型（互換変換が定義済み）への型変更のみ許可。relation/rollup/formula は除外。 */
+const EDITABLE_KINDS: readonly DbColumnKind[] = ['text', 'number', 'select', 'checkbox', 'date'];
+const KIND_LABEL: Record<string, string> = {
+  text: 'テキスト',
+  number: '数値',
+  select: '選択',
+  checkbox: 'チェック',
+  date: '日付',
+  relation: 'リレーション',
+  rollup: 'ロールアップ',
+  formula: '数式',
+};
+
+/** 列ヘッダのメニュー（リネーム / 型変更 / 選択肢編集 / 削除）。 */
+function ColumnHeaderMenu({
+  column,
+  canDelete,
+  onUpdate,
+  onDelete,
+}: {
+  column: DbColumn;
+  canDelete: boolean;
+  onUpdate: (column: DbColumn) => void;
+  onDelete: (columnId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(column.name);
+  const [kind, setKind] = useState<DbColumnKind>(column.kind);
+  const [options, setOptions] = useState((column.options ?? []).join(', '));
+  // 派生型（relation/rollup/formula）は型変更不可。基本型のみ select に出す。
+  const kindEditable = EDITABLE_KINDS.includes(column.kind);
+
+  const save = () => {
+    const next: DbColumn = { ...column, name: name.trim() || column.name, kind };
+    if (kind === 'select') {
+      const opts = options
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (opts.length) next.options = opts;
+      else delete next.options;
+    } else {
+      delete next.options;
+    }
+    onUpdate(next);
+    setOpen(false);
+  };
+
+  return (
+    <span className="relative inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        data-testid={`db-col-menu-${column.id}`}
+        className="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-zinc-100"
+        title="列を編集"
+      >
+        <span>{column.name}</span>
+        <span className="text-[10px] text-zinc-400">({KIND_LABEL[column.kind] ?? column.kind})</span>
+        <span aria-hidden className="text-[8px]">▾</span>
+      </button>
+      {open ? (
+        <>
+          <button
+            type="button"
+            aria-label="閉じる"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-10 cursor-default"
+          />
+          <div
+            data-testid={`db-col-editor-${column.id}`}
+            className="absolute left-0 top-full z-20 mt-1 w-56 space-y-2 rounded-md border border-zinc-200 bg-white p-2 normal-case shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid={`db-col-name-${column.id}`}
+              placeholder="列名"
+              className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+            />
+            {kindEditable ? (
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value as DbColumnKind)}
+                data-testid={`db-col-kind-${column.id}`}
+                className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+              >
+                {EDITABLE_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {KIND_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-[10px] text-zinc-400">
+                {KIND_LABEL[column.kind]} 型は名前のみ変更できます
+              </p>
+            )}
+            {kind === 'select' ? (
+              <input
+                value={options}
+                onChange={(e) => setOptions(e.target.value)}
+                data-testid={`db-col-options-${column.id}`}
+                placeholder="選択肢（カンマ区切り）"
+                className="w-full rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-950"
+              />
+            ) : null}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={save}
+                data-testid={`db-col-save-${column.id}`}
+                className="rounded bg-violet-600 px-2 py-1 text-xs text-white hover:bg-violet-500"
+              >
+                保存
+              </button>
+              {canDelete ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`列「${column.name}」を削除しますか？この列の値も消えます。`)) {
+                      onDelete(column.id);
+                      setOpen(false);
+                    }
+                  }}
+                  data-testid={`db-col-delete-${column.id}`}
+                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                >
+                  削除
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </span>
+  );
+}
 
 function AddColumnForm({
   existingIds,
