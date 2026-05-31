@@ -24,6 +24,7 @@ export const reminderRouter = router({
         blockId: z.string().min(1),
         remindAt: z.coerce.date(),
         body: z.string().max(500).default(''),
+        recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).default('none'),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -44,8 +45,32 @@ export const reminderRouter = router({
         remindAt: input.remindAt,
         body: input.body,
         status: 'pending',
+        recurrence: input.recurrence,
       });
       return { id };
+    }),
+
+  /** リマインダーをスヌーズ（指定分だけ後ろ倒し + pending に戻す） (PBI-85)。 */
+  snooze: protectedProcedure
+    .input(z.object({ reminderId: z.string().min(1), minutes: z.number().int().min(1).max(43200) }))
+    .mutation(async ({ ctx, input }) => {
+      const [r] = await ctx.db
+        .select({ id: schema.reminder.id })
+        .from(schema.reminder)
+        .where(
+          and(
+            eq(schema.reminder.id, input.reminderId),
+            eq(schema.reminder.userId, ctx.session.user.id),
+          ),
+        )
+        .limit(1);
+      if (!r) throw new TRPCError({ code: 'NOT_FOUND' });
+      const next = new Date(Date.now() + input.minutes * 60_000);
+      await ctx.db
+        .update(schema.reminder)
+        .set({ remindAt: next, status: 'pending' })
+        .where(eq(schema.reminder.id, input.reminderId));
+      return { remindAt: next };
     }),
 
   /** 自分のリマインダー一覧（remind_at 昇順）。blockId 指定でそのページ分のみ。 */
@@ -60,6 +85,7 @@ export const reminderRouter = router({
           remindAt: schema.reminder.remindAt,
           body: schema.reminder.body,
           status: schema.reminder.status,
+          recurrence: schema.reminder.recurrence,
         })
         .from(schema.reminder)
         .where(
