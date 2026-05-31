@@ -159,6 +159,14 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
     queryKey: ['block', 'listPages', workspace.id],
     queryFn: () => trpc.block.listPages.query({ workspaceId: workspace.id }),
   });
+  const pbis = useQuery({
+    queryKey: ['pbi', 'list', workspace.id],
+    queryFn: () => trpc.pbi.list.query({ workspaceId: workspace.id }),
+  });
+  const unread = useQuery({
+    queryKey: ['notification', 'unreadCount', workspace.id],
+    queryFn: () => trpc.notification.unreadCount.query({ workspaceId: workspace.id }),
+  });
 
   const createPage = useMutation({
     mutationFn: () => trpc.block.createPage.mutate({ workspaceId: workspace.id, title: '無題' }),
@@ -190,6 +198,21 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
         </button>
       </header>
 
+      <section className="mb-8 grid gap-4 sm:grid-cols-3" data-testid="dashboard-cards">
+        <DashboardCard title="期限間近の PBI" testid="card-due">
+          <DuePbiList pbis={pbis.data ?? []} />
+        </DashboardCard>
+        <DashboardCard title="未読通知" testid="card-unread">
+          <p className="flex h-full items-center justify-center text-3xl font-semibold text-violet-600 dark:text-violet-300">
+            {unread.data?.count ?? 0}
+            <span className="ml-1 self-end pb-1 text-sm text-zinc-400">件</span>
+          </p>
+        </DashboardCard>
+        <DashboardCard title="PBI ステータス" testid="card-pbi-summary">
+          <PbiSummary pbis={pbis.data ?? []} />
+        </DashboardCard>
+      </section>
+
       <section>
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">ページ</h2>
         {pages.isPending ? (
@@ -207,6 +230,80 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
         )}
       </section>
     </div>
+  );
+}
+
+// ── ダッシュボード (PBI-81) ──────────────────────────────────
+
+function DashboardCard({
+  title,
+  testid,
+  children,
+}: {
+  title: string;
+  testid: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-testid={testid}
+      className="flex min-h-28 flex-col rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+    >
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">{title}</h3>
+      <div className="min-h-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+type DashPbi = { id: string; props?: unknown };
+
+/** 期限(dueDate)のある PBI を近い順に最大 5 件。 */
+function DuePbiList({ pbis }: { pbis: readonly DashPbi[] }) {
+  const dated = pbis
+    .map((p) => ({ id: p.id, props: (p.props ?? {}) as { title?: string; dueDate?: string } }))
+    .filter((x): x is { id: string; props: { title?: string; dueDate: string } } =>
+      Boolean(x.props.dueDate),
+    )
+    .sort((a, b) => a.props.dueDate.localeCompare(b.props.dueDate))
+    .slice(0, 5);
+  if (dated.length === 0) {
+    return <p className="text-sm text-zinc-400">期限付きの PBI はありません。</p>;
+  }
+  return (
+    <ul className="space-y-1">
+      {dated.map((p) => (
+        <li key={p.id}>
+          <Link
+            to="/b/$blockId"
+            params={{ blockId: p.id }}
+            className="flex items-center justify-between gap-2 text-sm hover:underline"
+          >
+            <span className="min-w-0 truncate">{p.props.title ?? '無題'}</span>
+            <span className="shrink-0 font-mono text-xs text-zinc-400">{p.props.dueDate}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** PBI のステータス別件数サマリ。 */
+function PbiSummary({ pbis }: { pbis: readonly DashPbi[] }) {
+  const counts = new Map<string, number>();
+  for (const p of pbis) {
+    const s = ((p.props ?? {}) as { status?: string }).status ?? 'backlog';
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  if (pbis.length === 0) {
+    return <p className="text-sm text-zinc-400">PBI はまだありません。</p>;
+  }
+  return (
+    <Link to="/pbi" className="block">
+      <p className="text-2xl font-semibold">{pbis.length}</p>
+      <p className="mt-1 text-xs text-zinc-500">
+        進行中 {counts.get('in_progress') ?? 0} · 完了 {counts.get('done') ?? 0}
+      </p>
+    </Link>
   );
 }
 
