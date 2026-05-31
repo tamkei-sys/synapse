@@ -124,6 +124,9 @@ export function Sidebar() {
           <NavLink to="/trash" icon="🗑️" onNavigate={closeMobile}>
             {t('nav.trash')}
           </NavLink>
+          <NavLink to="/help" icon="📖" onNavigate={closeMobile}>
+            {t('nav.help')}
+          </NavLink>
         </NavSection>
 
         <div className="mt-auto flex items-center justify-end rounded-md bg-white/40 px-2 py-1.5 dark:bg-zinc-900/40">
