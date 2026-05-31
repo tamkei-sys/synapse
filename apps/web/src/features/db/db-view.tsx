@@ -785,22 +785,16 @@ function ColumnHeaderMenu({
   onDelete: (columnId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
   const [name, setName] = useState(column.name);
   const [kind, setKind] = useState<DbColumnKind>(column.kind);
   const [options, setOptions] = useState((column.options ?? []).join(', '));
   // 派生型（relation/rollup/formula）は型変更不可。基本型のみ select に出す。
   const kindEditable = EDITABLE_KINDS.includes(column.kind);
 
-  // ポップオーバーはテーブルの overflow コンテナにクリップされないよう、トリガーの
-  // 画面座標を測って position:fixed で出す（absolute だと overflow-x-auto に切られ
-  // 下部の型セレクト/削除が見切れるため）。
-  const openMenu = () => {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) setCoords({ left: r.left, top: r.bottom + 4 });
-    setOpen((v) => !v);
-  };
+  // テーブルの overflow コンテナにクリップ／intercept されないよう、画面中央の
+  // モーダルとして createPortal(document.body) で出す（command-palette / 差分モーダルと
+  // 同方式）。座標計算で下方向に出すと展開分が viewport 外にはみ出すため中央固定。
+  const openMenu = () => setOpen((v) => !v);
 
   const save = () => {
     const next: DbColumn = { ...column, name: name.trim() || column.name, kind };
@@ -821,7 +815,6 @@ function ColumnHeaderMenu({
   return (
     <span className="relative inline-flex items-center gap-1">
       <button
-        ref={btnRef}
         type="button"
         onClick={openMenu}
         data-testid={`db-col-menu-${column.id}`}
@@ -834,17 +827,14 @@ function ColumnHeaderMenu({
       </button>
       {open
         ? createPortal(
-            <>
-              <button
-                type="button"
-                aria-label="閉じる"
-                onClick={() => setOpen(false)}
-                className="fixed inset-0 z-40 cursor-default"
-              />
+            <div
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 p-4 pt-32"
+            >
               <div
+                onClick={(e) => e.stopPropagation()}
                 data-testid={`db-col-editor-${column.id}`}
-                style={{ position: 'fixed', left: coords.left, top: coords.top }}
-                className="z-50 w-56 space-y-2 rounded-md border border-zinc-200 bg-white p-2 normal-case shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                className="w-72 space-y-2 rounded-md border border-zinc-200 bg-white p-3 normal-case shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
               >
             <input
               value={name}
