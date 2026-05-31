@@ -129,6 +129,39 @@ export const dbRowPropsSchema = z
 
 export type DbRowProps = z.infer<typeof dbRowPropsSchema>;
 
+/**
+ * 列の型変更時に既存セル値をベストエフォートで新しい kind に変換する純粋関数。
+ * 変換できない / 派生型 (relation/rollup/formula) はクリア（null）。
+ *   - number: Number()、NaN は null
+ *   - checkbox: truthy 判定（'false'/'0'/'' は false）
+ *   - date: YYYY-MM-DD 形式のみ通す
+ *   - select / text: 文字列化（select は options 外でも保持）
+ */
+export function coerceCellValue(value: DbCellValue, toKind: DbColumnKind): DbCellValue {
+  if (value === null || value === undefined) return null;
+  switch (toKind) {
+    case 'number': {
+      const n = typeof value === 'boolean' ? (value ? 1 : 0) : Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+    case 'checkbox': {
+      if (typeof value === 'boolean') return value;
+      const s = String(value).trim().toLowerCase();
+      return !(s === '' || s === 'false' || s === '0' || s === 'no');
+    }
+    case 'date': {
+      const s = String(value).trim();
+      return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+    }
+    case 'text':
+    case 'select':
+      return typeof value === 'boolean' || typeof value === 'number' ? String(value) : value;
+    // relation/rollup/formula は派生・参照型なので、別 kind からの移行ではクリア。
+    default:
+      return null;
+  }
+}
+
 /** 既定列セット — 「タイトル / ステータス / 期限」だけ用意した空 DB を作るとき用。 */
 export function defaultDbColumns(): DbColumn[] {
   return [
