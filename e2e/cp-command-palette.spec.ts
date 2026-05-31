@@ -48,5 +48,13 @@ test('Cmd+K palette navigates via action', async ({ browser }) => {
   await page.getByTestId('command-action-go-trash').click();
   await expect(page).toHaveURL(/\/trash$/);
 
+  // ---- 「使い方」アクションで /help へジャンプ -------------------------
+  await page.locator('body').click();
+  await page.keyboard.press('Meta+k');
+  await page.getByTestId('command-palette-input').fill('使い方');
+  await expect(page.getByTestId('command-action-go-help')).toBeVisible();
+  await page.getByTestId('command-action-go-help').click();
+  await expect(page).toHaveURL(/\/help$/);
+
   await context.close();
 });

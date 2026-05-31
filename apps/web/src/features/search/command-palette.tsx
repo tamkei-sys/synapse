@@ -81,6 +81,7 @@ export function CommandPalette() {
     { id: 'go-sprint', label: '→ スプリント一覧へ', run: () => void navigate({ to: '/sprint' }) },
     { id: 'go-db', label: '→ データベースへ', run: () => void navigate({ to: '/db' }) },
     { id: 'go-trash', label: '→ ゴミ箱へ', run: () => void navigate({ to: '/trash' }) },
+    { id: 'go-help', label: '→ 使い方を開く', run: () => void navigate({ to: '/help' }) },
   ];
   const actionMatches = ACTIONS.filter((a) => !q || a.label.toLowerCase().includes(q.toLowerCase()));
 
