@@ -68,9 +68,26 @@ export function CommandPalette() {
     setQ('');
     if (hit.type === 'page') {
       void navigate({ to: '/p/$pageId', params: { pageId: hit.id } });
-    } else if (hit.type === 'pbi') {
-      void navigate({ to: '/pbi' });
+    } else {
+      // PBI / sheet はブロック詳細へ直接ジャンプ（PBI-79: 横断ジャンプ）。
+      void navigate({ to: '/b/$blockId', params: { blockId: hit.id } });
     }
+  }
+
+  // アクション（ナビゲーション系コマンド）。クエリで前方一致フィルタ。
+  const ACTIONS: { id: string; label: string; run: () => void }[] = [
+    { id: 'go-pbi', label: '→ PBI 一覧へ', run: () => void navigate({ to: '/pbi' }) },
+    { id: 'go-project', label: '→ プロジェクト一覧へ', run: () => void navigate({ to: '/project' }) },
+    { id: 'go-sprint', label: '→ スプリント一覧へ', run: () => void navigate({ to: '/sprint' }) },
+    { id: 'go-db', label: '→ データベースへ', run: () => void navigate({ to: '/db' }) },
+    { id: 'go-trash', label: '→ ゴミ箱へ', run: () => void navigate({ to: '/trash' }) },
+  ];
+  const actionMatches = ACTIONS.filter((a) => !q || a.label.toLowerCase().includes(q.toLowerCase()));
+
+  function runAction(a: { run: () => void }) {
+    setOpen(false);
+    setQ('');
+    a.run();
   }
 
   if (!open) return null;
@@ -109,9 +126,33 @@ export function CommandPalette() {
           className="w-full border-b border-zinc-200 bg-transparent px-4 py-3 text-sm focus:outline-none dark:border-zinc-800"
         />
         <ul data-testid="command-palette-results" className="max-h-80 overflow-y-auto p-1">
+          {actionMatches.length > 0 ? (
+            <>
+              <li className="px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                移動
+              </li>
+              {actionMatches.map((a) => (
+                <li key={a.id}>
+                  <button
+                    type="button"
+                    onClick={() => runAction(a)}
+                    data-testid={`command-action-${a.id}`}
+                    className="flex w-full items-center rounded px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  >
+                    {a.label}
+                  </button>
+                </li>
+              ))}
+              {q ? (
+                <li className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                  検索結果
+                </li>
+              ) : null}
+            </>
+          ) : null}
           {results.isPending && q ? (
             <li className="px-3 py-2 text-sm text-zinc-500">検索中…</li>
-          ) : hits.length === 0 ? (
+          ) : q && hits.length === 0 ? (
             <li className="px-3 py-2 text-sm text-zinc-500">該当なし</li>
           ) : (
             hits.map((hit, i) => (
