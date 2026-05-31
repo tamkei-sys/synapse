@@ -555,6 +555,7 @@ function ReminderPanel({ pageId, workspaceId }: { pageId: string; workspaceId: s
   const [open, setOpen] = useState(false);
   const [at, setAt] = useState('');
   const [body, setBody] = useState('');
+  const [recurrence, setRecurrence] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
   const ref = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
 
@@ -569,10 +570,18 @@ function ReminderPanel({ pageId, workspaceId }: { pageId: string; workspaceId: s
         blockId: pageId,
         remindAt: new Date(at),
         body: body.trim(),
+        recurrence,
       }),
     onSuccess: async () => {
       setAt('');
       setBody('');
+      setRecurrence('none');
+      await qc.invalidateQueries({ queryKey: ['reminder', 'listMine', workspaceId, pageId] });
+    },
+  });
+  const snooze = useMutation({
+    mutationFn: (reminderId: string) => trpc.reminder.snooze.mutate({ reminderId, minutes: 10 }),
+    onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['reminder', 'listMine', workspaceId, pageId] });
     },
   });
@@ -643,6 +652,17 @@ function ReminderPanel({ pageId, workspaceId }: { pageId: string; workspaceId: s
               data-testid="reminder-body"
               className="w-full rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
             />
+            <select
+              value={recurrence}
+              onChange={(e) => setRecurrence(e.target.value as typeof recurrence)}
+              data-testid="reminder-recurrence"
+              className="w-full rounded border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-800"
+            >
+              <option value="none">繰り返さない</option>
+              <option value="daily">毎日</option>
+              <option value="weekly">毎週</option>
+              <option value="monthly">毎月</option>
+            </select>
             <button
               type="button"
               onClick={() => create.mutate()}
@@ -676,9 +696,22 @@ function ReminderPanel({ pageId, workspaceId }: { pageId: string; workspaceId: s
                   <span className="block truncate">{r.body || '（メッセージなし）'}</span>
                   <span className="text-[10px] text-zinc-400">
                     {new Date(r.remindAt).toLocaleString('ja-JP')}
+                    {r.recurrence && r.recurrence !== 'none'
+                      ? ` · ${{ daily: '毎日', weekly: '毎週', monthly: '毎月' }[r.recurrence] ?? ''}`
+                      : ''}
                     {r.status === 'sent' ? ' · 送信済み' : ''}
                   </span>
                 </span>
+                <button
+                  type="button"
+                  onClick={() => snooze.mutate(r.id)}
+                  disabled={snooze.isPending}
+                  data-testid="reminder-snooze"
+                  className="shrink-0 text-zinc-400 hover:text-violet-600 disabled:opacity-50"
+                  title="10分スヌーズ"
+                >
+                  💤
+                </button>
                 <button
                   type="button"
                   onClick={() => del.mutate(r.id)}

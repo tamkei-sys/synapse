@@ -29,6 +29,9 @@ export const reminder = pgTable(
     remindAt: timestamp('remind_at', { withTimezone: true }).notNull(),
     body: text('body').notNull().default(''),
     status: text('status').notNull().default('pending'), // 'pending' | 'sent'
+    // 繰り返し (PBI-85): 'none' | 'daily' | 'weekly' | 'monthly'。none 以外は配信後に
+    // 次回 remind_at を計算して pending のまま据え置く。
+    recurrence: text('recurrence').notNull().default('none'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({

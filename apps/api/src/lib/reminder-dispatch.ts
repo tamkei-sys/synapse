@@ -16,6 +16,29 @@ import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../db.js';
 
+export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+
+/**
+ * 繰り返しリマインダーの次回時刻を計算する純粋関数 (PBI-85)。
+ * 'none' は null（= 繰り返さない）。月加算は月末を考慮し setMonth に委ねる。
+ */
+export function nextOccurrence(from: Date, recurrence: string): Date | null {
+  const d = new Date(from.getTime());
+  switch (recurrence) {
+    case 'daily':
+      d.setDate(d.getDate() + 1);
+      return d;
+    case 'weekly':
+      d.setDate(d.getDate() + 7);
+      return d;
+    case 'monthly':
+      d.setMonth(d.getMonth() + 1);
+      return d;
+    default:
+      return null;
+  }
+}
+
 export async function dispatchDueReminders(
   db: Database,
   opts: { workspaceId?: string; now?: Date } = {},
@@ -37,9 +60,11 @@ export async function dispatchDueReminders(
   for (const r of due) {
     await db.transaction(async (tx) => {
       // pending→sent を条件付きで奪取。0 行なら他で処理済み → 通知を作らない。
+      // 繰り返しなら次回へ据え置き（pending 維持）、単発なら sent。
+      const next = nextOccurrence(r.remindAt, r.recurrence);
       const claimed = await tx
         .update(schema.reminder)
-        .set({ status: 'sent' })
+        .set(next ? { remindAt: next, status: 'pending' } : { status: 'sent' })
         .where(and(eq(schema.reminder.id, r.id), eq(schema.reminder.status, 'pending')))
         .returning({ id: schema.reminder.id });
       if (claimed.length === 0) return;
