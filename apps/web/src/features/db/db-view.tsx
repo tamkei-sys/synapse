@@ -25,7 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HyperFormula } from 'hyperformula';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { DbCellValue, DbColumn, DbColumnKind, RollupFn } from '@synapse/blocks';
@@ -895,8 +895,8 @@ function ColumnHeaderMenu({
                 </button>
               ) : null}
             </div>
-          </div>
-            </>,
+              </div>
+            </div>,
             document.body,
           )
         : null}
