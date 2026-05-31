@@ -196,10 +196,16 @@ function TimelineView({ items }: { items: readonly PbiRow[] }) {
         dueDate?: string;
         title?: string;
         status?: PbiStatus;
+        estimate?: number;
       },
     }))
-    .filter((x): x is { it: PbiRow; props: { dueDate: string; title?: string; status?: PbiStatus } } =>
-      Boolean(x.props.dueDate),
+    .filter(
+      (
+        x,
+      ): x is {
+        it: PbiRow;
+        props: { dueDate: string; title?: string; status?: PbiStatus; estimate?: number };
+      } => Boolean(x.props.dueDate),
     )
     .sort((a, b) => a.props.dueDate.localeCompare(b.props.dueDate));
   const undatedCount = items.length - dated.length;
@@ -224,7 +230,13 @@ function TimelineView({ items }: { items: readonly PbiRow[] }) {
       </div>
       <ul className="space-y-1">
         {dated.map(({ it, props }) => {
-          const pct = (daysBetween(minDue, props.dueDate) / span) * 100;
+          const endPct = (daysBetween(minDue, props.dueDate) / span) * 100;
+          // estimate(sp) を所要日数とみなし、dueDate を終端に開始点を逆算して
+          // 期間バーにする (PBI-87)。estimate 無しは終端のみの細いマーカー。
+          const durationDays = typeof props.estimate === 'number' ? props.estimate : 0;
+          const startPct = Math.max(0, ((daysBetween(minDue, props.dueDate) - durationDays) / span) * 100);
+          const widthPct = Math.max(2, endPct - startPct);
+          const tone = statusTone[props.status ?? 'backlog'] ?? 'bg-zinc-300';
           return (
             <li
               key={it.id}
@@ -241,16 +253,12 @@ function TimelineView({ items }: { items: readonly PbiRow[] }) {
               </Link>
               <div className="relative h-6 rounded bg-zinc-100 dark:bg-zinc-800">
                 <div
-                  className="absolute top-0 flex h-6 -translate-x-1/2 items-center"
-                  style={{ left: `${pct}%` }}
+                  data-testid={`timeline-bar-${it.id}`}
+                  className={`absolute top-0.5 flex h-5 items-center justify-end overflow-hidden rounded px-1.5 ${tone}`}
+                  style={{ left: `${startPct}%`, width: `${widthPct}%`, minWidth: '3rem' }}
+                  title={`${props.dueDate}${durationDays ? ` · ${durationDays}sp` : ''}`}
                 >
-                  <span
-                    className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] ${
-                      statusTone[props.status ?? 'backlog'] ?? ''
-                    }`}
-                  >
-                    {props.dueDate}
-                  </span>
+                  <span className="whitespace-nowrap text-[10px]">{props.dueDate}</span>
                 </div>
               </div>
             </li>
