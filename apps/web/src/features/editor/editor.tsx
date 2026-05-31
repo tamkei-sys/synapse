@@ -67,6 +67,7 @@ import { PbiRefNode } from './pbi-ref-node.js';
 import { makePbiSlashCommand } from './pbi-slash.js';
 import { PrDiffEmbedNode } from './pr-diff-node.js';
 import { makePrSlashCommand } from './pr-slash.js';
+import { DbEmbedNode } from './db-embed-node.js';
 import { makeDbSlashCommand } from './db-slash.js';
 import { makeProjectSlashCommand } from './project-slash.js';
 import { SheetEmbedNode } from './sheet-embed-node.js';
@@ -176,6 +177,7 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId, onEditorRea
       InlineMathNode,
       MathBlockNode,
       SheetEmbedNode,
+      DbEmbedNode,
       PrDiffEmbedNode,
       SlashCommandExtension.configure({ commands: slashCommands }),
       PageMentionExtension.configure({ workspaceId }),
