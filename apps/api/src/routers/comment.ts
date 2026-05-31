@@ -128,7 +128,41 @@ export const commentRouter = router({
         }
       }
 
-      return rows.map((r) => ({ ...r, reactions: reactionsByComment.get(r.id) ?? [] }));
+      return rows.map((r) => ({
+        ...r,
+        resolved: Boolean((r.props as { resolved?: boolean } | null)?.resolved),
+        reactions: reactionsByComment.get(r.id) ?? [],
+      }));
+    }),
+
+  /**
+   * コメント（スレッドのルート）の解決状態をトグルする (PBI-83)。
+   * props.resolved を立て/外しする。投稿者本人 or admin/owner、または同 WS メンバー
+   * なら解決操作を許可する（コメント解決は協調作業なので member 可）。
+   */
+  setResolved: protectedProcedure
+    .input(z.object({ commentId: z.string().min(1), resolved: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const [row] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.commentId),
+            eq(schema.block.type, 'comment'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!row) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, row.workspaceId, ctx.session.user.id);
+      const props = (row.props ?? {}) as Record<string, unknown>;
+      const next = { ...props, resolved: input.resolved };
+      await ctx.db
+        .update(schema.block)
+        .set({ props: next, version: sql`${schema.block.version} + 1`, updatedAt: new Date() })
+        .where(eq(schema.block.id, input.commentId));
+      return { resolved: input.resolved };
     }),
 
   /**
