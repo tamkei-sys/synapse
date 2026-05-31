@@ -24,6 +24,7 @@ import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { EMPTY_DOC, extractTextPreview } from '../lib/page-doc.js';
+import { purgeOldTrash } from '../lib/purge-trash.js';
 import { generateShareToken, sanitizePublicDoc } from '../lib/public-doc.js';
 import { protectedProcedure, publicProcedure, router } from '../trpc.js';
 
@@ -671,6 +672,21 @@ export const blockRouter = router({
       deletedAt: r.deletedAt,
     }));
   }),
+
+  /**
+   * 古いゴミ箱を今すぐパージする (PBI-90)。本番は Cron Trigger が全 WS を
+   * 自動実行するが、dev には cron が無いので手動 / E2E 用に公開する。
+   */
+  purgeOldTrash: protectedProcedure
+    .input(z.object({ workspaceId: z.string().min(1), retentionDays: z.number().int().min(0).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
+      const purged = await purgeOldTrash(ctx.db, {
+        workspaceId: input.workspaceId,
+        ...(input.retentionDays !== undefined ? { retentionDays: input.retentionDays } : {}),
+      });
+      return { purged };
+    }),
 
   /**
    * ゴミ箱から復元 (PBI-57)。自分 + 子孫ページの deletedAt を外す。

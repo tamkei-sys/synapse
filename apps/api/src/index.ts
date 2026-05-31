@@ -17,6 +17,7 @@ import { createAuth } from './auth.js';
 import { createDb } from './db.js';
 import type { AppBindings, Env } from './env.js';
 import { createGithubWebhookRouter } from './integrations/github/webhook.js';
+import { purgeOldTrash } from './lib/purge-trash.js';
 import { dispatchDueReminders } from './lib/reminder-dispatch.js';
 import { appRouter } from './routers/index.js';
 import { createTrpcContext } from './trpc.js';
@@ -68,6 +69,7 @@ export default {
    */
   scheduled: async (_controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
     const db = createDb(env.DATABASE_URL);
-    ctx.waitUntil(dispatchDueReminders(db, {}));
+    // due リマインダー配信 + 古いゴミ箱の自動パージ (PBI-68 / PBI-90)。
+    ctx.waitUntil(Promise.all([dispatchDueReminders(db, {}), purgeOldTrash(db, {})]));
   },
 };
