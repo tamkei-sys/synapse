@@ -43,7 +43,11 @@ function PageView() {
   const { page } = pageQuery.data;
   const props = (page.props ?? {}) as PageProps;
   return (
+    // key=page.id: 子ページ等へ pageId が変わった時にサブツリーを作り直す。
+    // これが無いと TanStack Router が PageShell を再利用し、useEditor が初期 doc を
+    // 握ったままになって本文が前ページのまま切り替わらない（タイトルだけ変わる）。
     <PageShell
+      key={page.id}
       pageId={page.id}
       workspaceId={page.workspaceId}
       initialTitle={props.title ?? '無題'}
