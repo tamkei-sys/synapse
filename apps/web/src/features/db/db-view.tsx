@@ -26,6 +26,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HyperFormula } from 'hyperformula';
 import { useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import type { DbCellValue, DbColumn, DbColumnKind, RollupFn } from '@synapse/blocks';
 import { ROLLUP_FNS } from '@synapse/blocks';
@@ -831,19 +832,20 @@ function ColumnHeaderMenu({
         <span className="text-[10px] text-zinc-400">({KIND_LABEL[column.kind] ?? column.kind})</span>
         <span aria-hidden className="text-[8px]">▾</span>
       </button>
-      {open ? (
-        <>
-          <button
-            type="button"
-            aria-label="閉じる"
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-40 cursor-default"
-          />
-          <div
-            data-testid={`db-col-editor-${column.id}`}
-            style={{ position: 'fixed', left: coords.left, top: coords.top }}
-            className="z-50 w-56 space-y-2 rounded-md border border-zinc-200 bg-white p-2 normal-case shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
-          >
+      {open
+        ? createPortal(
+            <>
+              <button
+                type="button"
+                aria-label="閉じる"
+                onClick={() => setOpen(false)}
+                className="fixed inset-0 z-40 cursor-default"
+              />
+              <div
+                data-testid={`db-col-editor-${column.id}`}
+                style={{ position: 'fixed', left: coords.left, top: coords.top }}
+                className="z-50 w-56 space-y-2 rounded-md border border-zinc-200 bg-white p-2 normal-case shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+              >
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -904,8 +906,10 @@ function ColumnHeaderMenu({
               ) : null}
             </div>
           </div>
-        </>
-      ) : null}
+            </>,
+            document.body,
+          )
+        : null}
     </span>
   );
 }
