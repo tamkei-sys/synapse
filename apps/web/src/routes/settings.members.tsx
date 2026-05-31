@@ -97,7 +97,7 @@ function MembersPanel({
   const canAdmin = selfRole === 'owner' || selfRole === 'admin';
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-12">
+    <div className="w-full max-w-none px-6 py-12">
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">メンバー · {workspaceName}</h1>

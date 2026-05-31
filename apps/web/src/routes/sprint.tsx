@@ -131,7 +131,7 @@ function SprintsPanel({
   const KANBAN_COLUMNS = SPRINT_STATUSES.map((s) => ({ value: s, label: sprintStatusLabel[s] }));
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-12">
+    <div className="w-full max-w-none px-6 py-12">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">

@@ -91,7 +91,7 @@ function TokensPanel({
   });
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-12">
+    <div className="w-full max-w-none px-6 py-12">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">API トークン · {workspaceName}</h1>

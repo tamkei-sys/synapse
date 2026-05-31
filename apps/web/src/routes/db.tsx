@@ -46,7 +46,7 @@ function DbList({ workspaceId }: { workspaceId: string }) {
   });
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-10">
+    <div className="w-full max-w-none px-6 py-10">
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">データベース</h1>
         <p className="mt-2 text-sm text-zinc-500">

@@ -70,7 +70,7 @@ function ChannelsPanel({ workspaceId }: { workspaceId: string }) {
   });
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-10">
+    <div className="w-full max-w-none px-6 py-10">
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">通知の外部配信</h1>
         <p className="mt-2 text-sm text-zinc-500">

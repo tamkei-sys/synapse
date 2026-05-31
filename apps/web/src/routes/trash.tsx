@@ -66,7 +66,7 @@ function TrashPanel({ workspaceId }: { workspaceId: string }) {
   });
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-6 py-12">
+    <div className="w-full max-w-none px-6 py-12">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">🗑️ ゴミ箱</h1>
         <Link to="/" className="text-sm text-violet-600 hover:underline">

@@ -118,7 +118,7 @@ function BlockShell({
   const typeLabel = blockTypeLabel[block.type] ?? block.type;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-12">
+    <div className="w-full max-w-none px-6 py-12">
       <nav className="mb-6 text-sm text-zinc-500">
         <Link to="/" className="hover:underline">
           ← ワークスペースに戻る
