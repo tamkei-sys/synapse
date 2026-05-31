@@ -35,6 +35,7 @@ import { useMemo, useState } from 'react';
 import type * as Y from 'yjs';
 
 import { makeAiSlashCommand } from './ai-slash.js';
+import { AttachmentPreview } from './attachment-preview.js';
 import { CalloutNode } from './callout-node.js';
 import { CommentMark } from './comment-mark.js';
 import { CommentsPanel, type PendingComment } from './comments-panel.js';
@@ -203,6 +204,7 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId, onEditorRea
         }
       />
       <EditorContent editor={editor} />
+      <AttachmentPreview containerTestId="editor-content" />
       {pageId ? (
         <CommentsPanel
           pageId={pageId}
