@@ -16,6 +16,7 @@ import { Route as SbiRouteImport } from './routes/sbi';
 import { Route as ProjectRouteImport } from './routes/project';
 import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
+import { Route as HelpRouteImport } from './routes/help';
 import { Route as DbRouteImport } from './routes/db';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as ShareTokenRouteImport } from './routes/share.$token';
@@ -60,6 +61,11 @@ const PbiRoute = PbiRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any);
 const DbRoute = DbRouteImport.update({
@@ -116,6 +122,7 @@ const BBlockIdRoute = BBlockIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/db': typeof DbRoute;
+  '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/db': typeof DbRoute;
+  '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
   '/db': typeof DbRoute;
+  '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
   '/pbi': typeof PbiRoute;
   '/project': typeof ProjectRoute;
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/db'
+    | '/help'
     | '/login'
     | '/pbi'
     | '/project'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/db'
+    | '/help'
     | '/login'
     | '/pbi'
     | '/project'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/db'
+    | '/help'
     | '/login'
     | '/pbi'
     | '/project'
@@ -234,6 +246,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   DbRoute: typeof DbRoute;
+  HelpRoute: typeof HelpRoute;
   LoginRoute: typeof LoginRoute;
   PbiRoute: typeof PbiRoute;
   ProjectRoute: typeof ProjectRoute;
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/login';
       fullPath: '/login';
       preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/help': {
+      id: '/help';
+      path: '/help';
+      fullPath: '/help';
+      preLoaderRoute: typeof HelpRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/db': {
@@ -378,6 +398,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DbRoute: DbRoute,
+  HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
   PbiRoute: PbiRoute,
   ProjectRoute: ProjectRoute,
