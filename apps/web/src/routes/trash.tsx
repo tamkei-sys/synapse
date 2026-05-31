@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 
 import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
@@ -65,6 +66,28 @@ function TrashPanel({ workspaceId }: { workspaceId: string }) {
     onSuccess: invalidate,
   });
 
+  // バルク選択 (PBI-90)。チェックした行を一括で復元 / 完全削除する。
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const busy = restore.isPending || purge.isPending;
+  const bulkRestore = async () => {
+    const ids = [...selected];
+    for (const id of ids) await restore.mutateAsync(id).catch(() => undefined);
+    setSelected(new Set());
+  };
+  const bulkPurge = async () => {
+    if (!window.confirm(`選択した ${selected.size} 件を完全に削除しますか？\nこの操作は取り消せません。`)) return;
+    const ids = [...selected];
+    for (const id of ids) await purge.mutateAsync(id).catch(() => undefined);
+    setSelected(new Set());
+  };
+
   return (
     <div className="w-full max-w-none px-6 py-12">
       <div className="mb-6 flex items-center justify-between">
@@ -73,6 +96,40 @@ function TrashPanel({ workspaceId }: { workspaceId: string }) {
           ← ホームへ
         </Link>
       </div>
+
+      {selected.size > 0 ? (
+        <div
+          data-testid="trash-bulk-bar"
+          className="mb-3 flex items-center gap-3 rounded-md border border-violet-200 bg-violet-50 px-3 py-2 text-sm dark:border-violet-900/50 dark:bg-violet-900/20"
+        >
+          <span data-testid="trash-selected-count">{selected.size} 件選択中</span>
+          <button
+            type="button"
+            onClick={bulkRestore}
+            disabled={busy}
+            data-testid="trash-bulk-restore"
+            className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-white disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            選択を復元
+          </button>
+          <button
+            type="button"
+            onClick={bulkPurge}
+            disabled={busy}
+            data-testid="trash-bulk-purge"
+            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/40"
+          >
+            選択を完全削除
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="ml-auto text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            選択解除
+          </button>
+        </div>
+      ) : null}
 
       {trash.isPending ? (
         <p className="text-sm text-zinc-500">読み込み中…</p>
@@ -93,6 +150,14 @@ function TrashPanel({ workspaceId }: { workspaceId: string }) {
               data-testid={`trash-item-${p.id}`}
               className="flex items-center gap-3 px-3 py-2.5"
             >
+              <input
+                type="checkbox"
+                checked={selected.has(p.id)}
+                onChange={() => toggle(p.id)}
+                data-testid={`trash-select-${p.id}`}
+                aria-label={`${p.title} を選択`}
+                className="h-4 w-4 shrink-0"
+              />
               <span className="w-5 text-center">{p.icon || '📄'}</span>
               <span className="min-w-0 flex-1 truncate text-sm">{p.title}</span>
               <button
