@@ -107,6 +107,9 @@ export function Sidebar() {
           <NavLink to="/sbi" icon="🟢" onNavigate={closeMobile}>
             {t('nav.sbi')}
           </NavLink>
+          <NavLink to="/chat" icon="💬" onNavigate={closeMobile}>
+            {t('nav.chat')}
+          </NavLink>
         </NavSection>
 
         <PagesSection workspaceId={current.id} onNavigate={closeMobile} />

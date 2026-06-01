@@ -7,6 +7,7 @@ export * from './pbi.js';
 export * from './sbi.js';
 export * from './sheet.js';
 export * from './comment.js';
+export * from './chat.js';
 export * from './db.js';
 export * from './page-ref.js';
 
@@ -26,7 +27,9 @@ export type BlockType =
   | 'code'
   | 'comment'
   | 'db'
-  | 'db_row';
+  | 'db_row'
+  | 'chat_channel'
+  | 'chat_message';
 
 export type Block = {
   id: string;

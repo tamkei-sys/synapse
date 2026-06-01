@@ -10,6 +10,7 @@ import { auditRouter } from './audit.js';
 import { blockRouter } from './block.js';
 import { bookmarkRouter } from './bookmark.js';
 import { ccRouter } from './cc.js';
+import { chatRouter } from './chat.js';
 import { commentRouter } from './comment.js';
 import { dbRouter } from './db.js';
 import { dependencyRouter } from './dependency.js';
@@ -55,6 +56,7 @@ export const appRouter = router({
   cc: ccRouter,
   audit: auditRouter,
   comment: commentRouter,
+  chat: chatRouter,
   notification: notificationRouter,
   notificationChannel: notificationChannelRouter,
   push: pushRouter,
