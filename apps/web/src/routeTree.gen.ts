@@ -19,6 +19,7 @@ import { Route as PbiRouteImport } from './routes/pbi';
 import { Route as LoginRouteImport } from './routes/login';
 import { Route as HelpRouteImport } from './routes/help';
 import { Route as DbRouteImport } from './routes/db';
+import { Route as ChatRouteImport } from './routes/chat';
 import { Route as IndexRouteImport } from './routes/index';
 import { Route as ShareTokenRouteImport } from './routes/share.$token';
 import { Route as SettingsTokensRouteImport } from './routes/settings.tokens';
@@ -79,6 +80,11 @@ const DbRoute = DbRouteImport.update({
   path: '/db',
   getParentRoute: () => rootRouteImport,
 } as any);
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -127,6 +133,7 @@ const BBlockIdRoute = BBlockIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
+  '/chat': typeof ChatRoute;
   '/db': typeof DbRoute;
   '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
@@ -148,6 +155,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
+  '/chat': typeof ChatRoute;
   '/db': typeof DbRoute;
   '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
@@ -170,6 +178,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   '/': typeof IndexRoute;
+  '/chat': typeof ChatRoute;
   '/db': typeof DbRoute;
   '/help': typeof HelpRoute;
   '/login': typeof LoginRoute;
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
+    | '/chat'
     | '/db'
     | '/help'
     | '/login'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
+    | '/chat'
     | '/db'
     | '/help'
     | '/login'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/chat'
     | '/db'
     | '/help'
     | '/login'
@@ -257,6 +269,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
+  ChatRoute: typeof ChatRoute;
   DbRoute: typeof DbRoute;
   HelpRoute: typeof HelpRoute;
   LoginRoute: typeof LoginRoute;
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DbRouteImport;
       parentRoute: typeof rootRouteImport;
     };
+    '/chat': {
+      id: '/chat';
+      path: '/chat';
+      fullPath: '/chat';
+      preLoaderRoute: typeof ChatRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/': {
       id: '/';
       path: '/';
@@ -417,6 +437,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChatRoute: ChatRoute,
   DbRoute: DbRoute,
   HelpRoute: HelpRoute,
   LoginRoute: LoginRoute,
