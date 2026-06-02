@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addCommentSchema,
   addDependencySchema,
+  auditLogSchema,
   createPbiSchema,
   createProjectSchema,
   createSbiSchema,
@@ -104,6 +105,14 @@ describe('PBI patch & create schemas (PBI-97)', () => {
     expect(ok.patch.projectId).toBeNull();
     expect(ok.patch.assigneeIds).toEqual([]);
     expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
+  });
+});
+
+describe('audit schema (PBI-103)', () => {
+  it('auditLog defaults limit to 20 and rejects an over-cap value', () => {
+    expect(auditLogSchema.parse({}).limit).toBe(20);
+    expect(auditLogSchema.parse({ limit: 50 }).limit).toBe(50);
+    expect(() => auditLogSchema.parse({ limit: 500 })).toThrow();
   });
 });
 

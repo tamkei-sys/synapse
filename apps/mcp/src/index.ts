@@ -20,7 +20,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { record as recordAudit } from './audit.js';
-import { resolveApiToken } from './auth.js';
+import { hasScope, resolveApiToken } from './auth.js';
 import { createDb } from './db.js';
 import { loadEnv } from './env.js';
 import {
@@ -28,6 +28,8 @@ import {
   addCommentSchema,
   addDependency,
   addDependencySchema,
+  auditLog,
+  auditLogSchema,
   createPbi,
   createPbiSchema,
   createProject,
@@ -75,6 +77,39 @@ import {
 } from './tools.js';
 
 const SERVICE_NAME = 'synapse-mcp';
+
+// ---- scope enforcement (PBI-103) --------------------------------------------
+// Token scopes: 'read' | 'write_pbi' | 'write_comment' | 'admin'. 'write' is a
+// legacy super-write scope (predates the granular split) — accepted for all
+// writes for back-compat. 'admin' passes everything (see hasScope).
+const WRITE_PBI_TOOLS = new Set<string>([
+  'synapse_create_pbi',
+  'synapse_update_pbi',
+  'synapse_update_pbi_status',
+  'synapse_create_sbi',
+  'synapse_update_sbi',
+  'synapse_create_project',
+  'synapse_update_project',
+  'synapse_create_sprint',
+  'synapse_update_sprint',
+  'synapse_add_dependency',
+  'synapse_remove_dependency',
+]);
+const WRITE_COMMENT_TOOLS = new Set<string>(['synapse_add_comment']);
+const DESTRUCTIVE_TOOLS = new Set<string>([
+  'synapse_update_pbi_status',
+  'synapse_remove_dependency',
+]);
+
+function isWriteTool(tool: string): boolean {
+  return WRITE_PBI_TOOLS.has(tool) || WRITE_COMMENT_TOOLS.has(tool);
+}
+
+function requiredScopes(tool: string): string[] {
+  if (WRITE_PBI_TOOLS.has(tool)) return ['write_pbi', 'write'];
+  if (WRITE_COMMENT_TOOLS.has(tool)) return ['write_comment', 'write'];
+  return ['read', 'write', 'write_pbi', 'write_comment'];
+}
 
 async function main(): Promise<void> {
   const env = loadEnv();
@@ -440,7 +475,24 @@ async function main(): Promise<void> {
           properties: { key: { type: 'string' } },
         },
       },
-    ],
+      {
+        name: 'synapse_audit_log',
+        description:
+          'List recent MCP tool invocations for the workspace (tool, ok/error, actor, time). Read-only.',
+        inputSchema: {
+          type: 'object',
+          properties: { limit: { type: 'integer', minimum: 1, maximum: 100 } },
+        },
+      },
+    ].map((tool) => ({
+      // readOnlyHint / destructiveHint let cc decide when to confirm before
+      // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
+      ...tool,
+      annotations: {
+        readOnlyHint: !isWriteTool(tool.name),
+        ...(DESTRUCTIVE_TOOLS.has(tool.name) ? { destructiveHint: true } : {}),
+      },
+    })),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
@@ -448,6 +500,12 @@ async function main(): Promise<void> {
     const rawArgs = req.params.arguments ?? {};
 
     try {
+      if (!hasScope(resolved, requiredScopes(name))) {
+        throw new ToolError(
+          'FORBIDDEN',
+          `Token lacks the scope required for ${name} (needs one of: ${requiredScopes(name).join(', ')}).`,
+        );
+      }
       const data = await dispatch(ctx, name, rawArgs);
       await recordAudit(auditCtx, { tool: name, args: rawArgs, result: 'ok' });
       return {
@@ -525,6 +583,8 @@ async function dispatch(
       return searchWorkspace(ctx, searchSchema.parse(args));
     case 'synapse_resolve_key':
       return resolveKey(ctx, resolveKeySchema.parse(args));
+    case 'synapse_audit_log':
+      return auditLog(ctx, auditLogSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
