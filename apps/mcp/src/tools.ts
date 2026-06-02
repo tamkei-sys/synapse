@@ -185,6 +185,11 @@ export const resolveKeySchema = z.object({
   key: z.string().trim().min(1).max(40),
 });
 
+// Audit (read) — recent MCP tool invocations for the workspace. (PBI-103)
+export const auditLogSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(20),
+});
+
 // Discovery (read) — PBI-96. Lets an MCP client orient itself in the
 // Project → Sprint → PBI → SBI hierarchy instead of only seeing a flat
 // PBI list. All are workspace-scoped via the resolved token.
@@ -1057,6 +1062,35 @@ export async function resolveKey(
     default:
       return refBlock(row);
   }
+}
+
+// ---- audit handler (PBI-103) ------------------------------------------------
+
+export async function auditLog(
+  ctx: ToolContext,
+  input: z.infer<typeof auditLogSchema>,
+): Promise<unknown> {
+  const rows = await ctx.db
+    .select({
+      id: schema.auditLog.id,
+      tool: schema.auditLog.tool,
+      result: schema.auditLog.result,
+      errorMessage: schema.auditLog.errorMessage,
+      actorUserId: schema.auditLog.actorUserId,
+      createdAt: schema.auditLog.createdAt,
+    })
+    .from(schema.auditLog)
+    .where(eq(schema.auditLog.workspaceId, ctx.workspaceId))
+    .orderBy(desc(schema.auditLog.createdAt))
+    .limit(input.limit);
+  return rows.map((r) => ({
+    id: r.id,
+    tool: r.tool,
+    result: r.result,
+    ...(r.errorMessage ? { error: r.errorMessage } : {}),
+    actorUserId: r.actorUserId,
+    at: r.createdAt,
+  }));
 }
 
 // ---- discovery handlers (PBI-96) --------------------------------------------

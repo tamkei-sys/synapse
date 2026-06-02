@@ -68,13 +68,14 @@ const SECTIONS: readonly Section[] = [
   {
     icon: '🤖',
     title: 'Claude Code 連携 (MCP)',
-    body: 'SYNAPSE MCP サーバー経由で、Claude Code から PBI の一覧・取得・作成・ステータス更新ができます。接続は stdio (標準入出力) で、追加のサーバー起動は不要です。',
+    body: 'SYNAPSE MCP サーバー経由で、Claude Code からプロジェクト / スプリント / PBI / SBI の閲覧・作成・更新、依存関係、コメント、横断検索まで、プロジェクト管理をひと通り操作できます。接続は stdio (標準入出力) で、追加のサーバー起動は不要です。',
     steps: [
       '「設定 → API トークン」(/settings/tokens) でワークスペース用トークンを発行（作成時に一度だけ表示）',
       'リポジトリ直下に .mcp.json を作成: { "mcpServers": { "synapse": { "type": "stdio", "command": "node", "args": ["<repo>/apps/mcp/dist/index.js"], "env": { "DATABASE_URL": "…", "SYNAPSE_API_TOKEN": "synapse_…" } } } }',
       '.mcp.json はトークンを含むので必ず .gitignore に入れる（コミット厳禁）',
       'Claude Code で「/mcp」を実行し、表示された「synapse」を承認すると接続完了（再起動でも可）',
-      '接続後は synapse_list_pbis / synapse_get_pbi / synapse_create_pbi / synapse_update_pbi_status の 4 ツールが使えます。書き込み系はトークンの write スコープが必要で、全呼び出しは監査ログに記録されます',
+      '接続後は overview・各種一覧・横断検索 (read) と、PBI / SBI / プロジェクト / スプリントの作成・更新、依存関係、コメント (write) など 20 以上のツールが使えます。PBI-42 のような人間 ID から synapse_resolve_key で直接ブロックを引けます',
+      'スコープは read（閲覧）/ write_pbi（PBI・SBI・プロジェクト・スプリント・依存の書き込み）/ write_comment（コメント）/ admin（全許可）。書き込みツールは Claude Code 側で確認を挟み、全呼び出しは監査ログに記録され synapse_audit_log で確認できます',
     ],
   },
 ];
