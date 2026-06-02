@@ -11,7 +11,7 @@
  *   - synapse_create_pbi          write
  *   - synapse_update_pbi_status   write — destructive
  */
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -45,6 +45,16 @@ export const updatePbiStatusSchema = z.object({
   pbiId: z.string().min(1),
   status: pbiStatusSchema,
 });
+
+// Discovery (read) — PBI-96. Lets an MCP client orient itself in the
+// Project → Sprint → PBI → SBI hierarchy instead of only seeing a flat
+// PBI list. All are workspace-scoped via the resolved token.
+export const listProjectsSchema = z.object({});
+export const listSprintsSchema = z.object({});
+export const listSbisSchema = z.object({
+  pbiId: z.string().min(1),
+});
+export const getOverviewSchema = z.object({});
 
 // ---- handlers ---------------------------------------------------------------
 
@@ -171,6 +181,111 @@ export async function updatePbiStatus(
   return projectPbi(updated);
 }
 
+// ---- discovery handlers (PBI-96) --------------------------------------------
+
+export async function listProjects(
+  ctx: ToolContext,
+  _input: z.infer<typeof listProjectsSchema>,
+): Promise<unknown> {
+  const rows = await ctx.db
+    .select({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        eq(schema.block.type, 'project'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .orderBy(asc(schema.block.position));
+  return rows.map((r) => projectProject(r));
+}
+
+export async function listSprints(
+  ctx: ToolContext,
+  _input: z.infer<typeof listSprintsSchema>,
+): Promise<unknown> {
+  const rows = await ctx.db
+    .select({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        eq(schema.block.type, 'sprint'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .orderBy(asc(schema.block.position));
+  return rows.map((r) => projectSprint(r));
+}
+
+export async function listSbis(
+  ctx: ToolContext,
+  input: z.infer<typeof listSbisSchema>,
+): Promise<unknown> {
+  // SBIs are children of a PBI. Scope by workspace AND parentId so a
+  // foreign pbiId simply yields an empty list (no cross-workspace leak).
+  const rows = await ctx.db
+    .select({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        eq(schema.block.type, 'sbi'),
+        eq(schema.block.parentId, input.pbiId),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .orderBy(asc(schema.block.position));
+  return rows.map((r) => projectSbi(r));
+}
+
+export async function getOverview(
+  ctx: ToolContext,
+  _input: z.infer<typeof getOverviewSchema>,
+): Promise<unknown> {
+  // One pass over the PM block types so an agent can size up the
+  // workspace before drilling in.
+  const rows = await ctx.db
+    .select({ type: schema.block.type, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        isNull(schema.block.deletedAt),
+        inArray(schema.block.type, ['project', 'sprint', 'pbi', 'sbi']),
+      ),
+    );
+  const counts = { projects: 0, sprints: 0, pbis: 0, sbis: 0 };
+  const pbisByStatus: Record<string, number> = {};
+  const sbisByStatus: Record<string, number> = {};
+  for (const r of rows) {
+    const status = ((r.props ?? {}) as { status?: string }).status ?? 'unknown';
+    if (r.type === 'project') counts.projects += 1;
+    else if (r.type === 'sprint') counts.sprints += 1;
+    else if (r.type === 'pbi') {
+      counts.pbis += 1;
+      pbisByStatus[status] = (pbisByStatus[status] ?? 0) + 1;
+    } else if (r.type === 'sbi') {
+      counts.sbis += 1;
+      sbisByStatus[status] = (sbisByStatus[status] ?? 0) + 1;
+    }
+  }
+  return { ...counts, pbisByStatus, sbisByStatus };
+}
+
 // ---- helpers ----------------------------------------------------------------
 
 type BlockProjection = {
@@ -179,17 +294,102 @@ type BlockProjection = {
   updatedAt: Date | string;
 };
 
-function projectPbi(row: BlockProjection) {
+export function projectPbi(row: BlockProjection) {
   const p = (row.props ?? {}) as {
     title?: string;
     status?: PbiStatus;
+    priority?: string;
+    estimate?: number;
     storyPoints?: number;
+    assigneeIds?: string[];
+    dueDate?: string;
+    projectId?: string;
+    sprintId?: string;
+    number?: number;
   };
   return {
     id: row.id,
+    ...(typeof p.number === 'number' ? { key: `PBI-${p.number}` } : {}),
     title: p.title ?? 'Untitled',
     status: p.status ?? 'backlog',
+    priority: p.priority ?? 'should',
+    ...(typeof p.estimate === 'number' ? { estimate: p.estimate } : {}),
     ...(typeof p.storyPoints === 'number' ? { storyPoints: p.storyPoints } : {}),
+    ...(Array.isArray(p.assigneeIds) && p.assigneeIds.length ? { assigneeIds: p.assigneeIds } : {}),
+    ...(p.dueDate ? { dueDate: p.dueDate } : {}),
+    ...(p.projectId ? { projectId: p.projectId } : {}),
+    ...(p.sprintId ? { sprintId: p.sprintId } : {}),
+    updatedAt: row.updatedAt,
+  };
+}
+
+export function projectProject(row: BlockProjection) {
+  const p = (row.props ?? {}) as {
+    name?: string;
+    status?: string;
+    priority?: string;
+    ownerId?: string;
+    startDate?: string;
+    plannedDate?: string;
+    completedDate?: string;
+    number?: number;
+  };
+  return {
+    id: row.id,
+    ...(typeof p.number === 'number' ? { key: `PRJ-${p.number}` } : {}),
+    name: p.name ?? 'Untitled',
+    status: p.status ?? 'backlog',
+    priority: p.priority ?? 'should',
+    ...(p.ownerId ? { ownerId: p.ownerId } : {}),
+    ...(p.startDate ? { startDate: p.startDate } : {}),
+    ...(p.plannedDate ? { plannedDate: p.plannedDate } : {}),
+    ...(p.completedDate ? { completedDate: p.completedDate } : {}),
+    updatedAt: row.updatedAt,
+  };
+}
+
+export function projectSprint(row: BlockProjection) {
+  const p = (row.props ?? {}) as {
+    name?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    goal?: string;
+    number?: number;
+  };
+  return {
+    id: row.id,
+    ...(typeof p.number === 'number' ? { key: `SP-${p.number}` } : {}),
+    name: p.name ?? 'Untitled',
+    status: p.status ?? 'planning',
+    ...(p.startDate ? { startDate: p.startDate } : {}),
+    ...(p.endDate ? { endDate: p.endDate } : {}),
+    ...(p.goal ? { goal: p.goal } : {}),
+    updatedAt: row.updatedAt,
+  };
+}
+
+export function projectSbi(row: BlockProjection) {
+  const p = (row.props ?? {}) as {
+    title?: string;
+    status?: string;
+    assigneeId?: string;
+    estimateHours?: number;
+    actualHours?: number;
+    dueDate?: string;
+    pbiId?: string;
+    number?: number;
+  };
+  return {
+    id: row.id,
+    ...(typeof p.number === 'number' ? { key: `SBI-${p.number}` } : {}),
+    title: p.title ?? 'Untitled',
+    status: p.status ?? 'todo',
+    ...(p.assigneeId ? { assigneeId: p.assigneeId } : {}),
+    ...(typeof p.estimateHours === 'number' ? { estimateHours: p.estimateHours } : {}),
+    ...(typeof p.actualHours === 'number' ? { actualHours: p.actualHours } : {}),
+    ...(p.dueDate ? { dueDate: p.dueDate } : {}),
+    ...(p.pbiId ? { pbiId: p.pbiId } : {}),
     updatedAt: row.updatedAt,
   };
 }

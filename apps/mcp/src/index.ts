@@ -26,10 +26,18 @@ import { loadEnv } from './env.js';
 import {
   createPbi,
   createPbiSchema,
+  getOverview,
+  getOverviewSchema,
   getPbi,
   getPbiSchema,
   listPbis,
   listPbisSchema,
+  listProjects,
+  listProjectsSchema,
+  listSbis,
+  listSbisSchema,
+  listSprints,
+  listSprintsSchema,
   ToolError,
   updatePbiStatus,
   updatePbiStatusSchema,
@@ -115,6 +123,33 @@ async function main(): Promise<void> {
           },
         },
       },
+      {
+        name: 'synapse_get_overview',
+        description:
+          'Summarize the workspace: counts of projects, sprints, PBIs, and SBIs, plus PBI/SBI status breakdowns. Call this first to orient.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_list_projects',
+        description:
+          'List all projects in the workspace with key (PRJ-n), name, status, priority, and dates.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_list_sprints',
+        description:
+          'List all sprints in the workspace with key (SP-n), name, status, start/end dates, and goal.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_list_sbis',
+        description: 'List the SBIs (sub-tasks) under a given PBI, by the PBI block id.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId'],
+          properties: { pbiId: { type: 'string' } },
+        },
+      },
     ],
   }));
 
@@ -162,6 +197,14 @@ async function dispatch(
       return createPbi(ctx, createPbiSchema.parse(args));
     case 'synapse_update_pbi_status':
       return updatePbiStatus(ctx, updatePbiStatusSchema.parse(args));
+    case 'synapse_get_overview':
+      return getOverview(ctx, getOverviewSchema.parse(args));
+    case 'synapse_list_projects':
+      return listProjects(ctx, listProjectsSchema.parse(args));
+    case 'synapse_list_sprints':
+      return listSprints(ctx, listSprintsSchema.parse(args));
+    case 'synapse_list_sbis':
+      return listSbis(ctx, listSbisSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
