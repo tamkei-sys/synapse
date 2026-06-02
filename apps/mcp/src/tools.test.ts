@@ -11,6 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addCommentSchema,
   addDependencySchema,
   createPbiSchema,
   createProjectSchema,
@@ -18,6 +19,7 @@ import {
   createSprintSchema,
   getOverviewSchema,
   getPbiSchema,
+  listCommentsSchema,
   listDependenciesSchema,
   listPbisSchema,
   listProjectsSchema,
@@ -100,6 +102,19 @@ describe('PBI patch & create schemas (PBI-97)', () => {
     expect(ok.patch.projectId).toBeNull();
     expect(ok.patch.assigneeIds).toEqual([]);
     expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
+  });
+});
+
+describe('comment schemas (PBI-101)', () => {
+  it('addComment requires blockId and a non-empty body', () => {
+    expect(() => addCommentSchema.parse({ blockId: 'a' })).toThrow();
+    expect(() => addCommentSchema.parse({ blockId: 'a', body: '   ' })).toThrow();
+    expect(addCommentSchema.parse({ blockId: 'a', body: 'hi' }).body).toBe('hi');
+  });
+
+  it('listComments requires blockId', () => {
+    expect(() => listCommentsSchema.parse({})).toThrow();
+    expect(listCommentsSchema.parse({ blockId: 'a' })).toEqual({ blockId: 'a' });
   });
 });
 

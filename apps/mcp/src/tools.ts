@@ -16,6 +16,8 @@ import { ulid } from 'ulid';
 import { z } from 'zod';
 
 import {
+  commentPropsSchema,
+  extractMentions,
   pbiEstimateSchema,
   pbiPropsSchema,
   pbiStatusSchema,
@@ -159,6 +161,16 @@ export const removeDependencySchema = z.object({
 });
 
 export const listDependenciesSchema = z.object({
+  blockId: z.string().min(1),
+});
+
+// Comments & collaboration. (PBI-101)
+export const addCommentSchema = z.object({
+  blockId: z.string().min(1),
+  body: z.string().trim().min(1).max(4_000),
+});
+
+export const listCommentsSchema = z.object({
   blockId: z.string().min(1),
 });
 
@@ -845,6 +857,108 @@ export async function listDependencies(
   return { blockedBy: blockedByEdges.map(enrich), blocks: blocksEdges.map(enrich) };
 }
 
+// ---- comment handlers (PBI-101) ---------------------------------------------
+
+export async function addComment(
+  ctx: ToolContext,
+  input: z.infer<typeof addCommentSchema>,
+): Promise<unknown> {
+  const [parent] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(and(eq(schema.block.id, input.blockId), isNull(schema.block.deletedAt)))
+    .limit(1);
+  if (!parent) throw new ToolError('NOT_FOUND', `block ${input.blockId} not found`);
+  if (parent.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'block belongs to a different workspace');
+  }
+
+  const mentions = extractMentions(input.body);
+  const props = commentPropsSchema.parse({
+    body: input.body,
+    ...(mentions.length > 0 ? { mentions } : {}),
+  });
+  const id = ulid();
+  const [row] = await ctx.db
+    .insert(schema.block)
+    .values({
+      id,
+      workspaceId: ctx.workspaceId,
+      parentId: input.blockId,
+      type: 'comment',
+      position: id,
+      props,
+      createdBy: ctx.userId,
+    })
+    .returning({ id: schema.block.id, createdAt: schema.block.createdAt });
+  if (!row) throw new ToolError('INTERNAL', 'insert failed');
+
+  await fanoutMentions(ctx, {
+    blockId: input.blockId,
+    commentId: row.id,
+    mentions,
+    body: input.body,
+  });
+
+  return {
+    id: row.id,
+    body: input.body,
+    ...(mentions.length > 0 ? { mentions } : {}),
+    createdAt: row.createdAt,
+  };
+}
+
+export async function listComments(
+  ctx: ToolContext,
+  input: z.infer<typeof listCommentsSchema>,
+): Promise<unknown> {
+  const [parent] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(and(eq(schema.block.id, input.blockId), isNull(schema.block.deletedAt)))
+    .limit(1);
+  if (!parent) throw new ToolError('NOT_FOUND', `block ${input.blockId} not found`);
+  if (parent.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'block belongs to a different workspace');
+  }
+
+  const rows = await ctx.db
+    .select({
+      id: schema.block.id,
+      props: schema.block.props,
+      createdAt: schema.block.createdAt,
+      authorName: schema.user.name,
+    })
+    .from(schema.block)
+    .innerJoin(schema.user, eq(schema.block.createdBy, schema.user.id))
+    .where(
+      and(
+        eq(schema.block.parentId, input.blockId),
+        eq(schema.block.type, 'comment'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .orderBy(asc(schema.block.createdAt));
+
+  return rows.map((r) => {
+    const p = (r.props ?? {}) as {
+      body?: string;
+      mentions?: string[];
+      resolved?: boolean;
+      parentCommentId?: string;
+    };
+    return {
+      id: r.id,
+      body: p.body ?? '',
+      author: r.authorName ?? null,
+      createdAt: r.createdAt,
+      resolved: Boolean(p.resolved),
+      ...(Array.isArray(p.mentions) && p.mentions.length > 0 ? { mentions: p.mentions } : {}),
+      ...(p.parentCommentId ? { parentCommentId: p.parentCommentId } : {}),
+    };
+  });
+}
+
 // ---- discovery handlers (PBI-96) --------------------------------------------
 
 export async function listProjects(
@@ -1076,6 +1190,48 @@ function refBlock(row: { id: string; type: string; props: unknown }) {
     title: p.title ?? p.name ?? 'Untitled',
     ...(p.status ? { status: p.status } : {}),
   };
+}
+
+/**
+ * Mention → notification fan-out for a new comment. Mirrors the API's
+ * fanoutMentionNotifications: only workspace members are notified, the
+ * author never notifies themselves.
+ */
+async function fanoutMentions(
+  ctx: ToolContext,
+  args: { blockId: string; commentId: string; mentions: string[]; body: string },
+): Promise<void> {
+  if (args.mentions.length === 0) return;
+  const targets = await ctx.db
+    .select({ userId: schema.workspaceMember.userId })
+    .from(schema.workspaceMember)
+    .where(
+      and(
+        eq(schema.workspaceMember.workspaceId, ctx.workspaceId),
+        inArray(schema.workspaceMember.userId, args.mentions),
+      ),
+    );
+  const recipients = targets.map((t) => t.userId).filter((uid) => uid !== ctx.userId);
+  if (recipients.length === 0) return;
+
+  const [actor] = await ctx.db
+    .select({ name: schema.user.name })
+    .from(schema.user)
+    .where(eq(schema.user.id, ctx.userId))
+    .limit(1);
+  const actorName = actor?.name ?? 'Someone';
+  const snippet = args.body.slice(0, 140);
+  const rows = recipients.map((recipientId) => ({
+    id: ulid(),
+    workspaceId: ctx.workspaceId,
+    recipientId,
+    actorUserId: ctx.userId,
+    kind: 'mention',
+    blockId: args.blockId,
+    commentId: args.commentId,
+    body: `${actorName} さんからメンション：${snippet}`,
+  }));
+  await ctx.db.insert(schema.notification).values(rows);
 }
 
 /**
