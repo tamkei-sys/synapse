@@ -9,8 +9,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
+import { uploadFile } from '../features/editor/file-upload.js';
+import { uploadImage } from '../features/editor/image-upload.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { trpc } from '../lib/trpc.js';
+
+type Attachment = { kind: 'image' | 'file'; url: string; name: string; mime: string };
 
 export const Route = createFileRoute('/chat')({
   component: ChatRoute,
@@ -114,6 +118,7 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
 function ChannelView({ channelId }: { channelId: string }) {
   const qc = useQueryClient();
   const [body, setBody] = useState('');
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const messages = useQuery({
@@ -124,9 +129,34 @@ function ChannelView({ channelId }: { channelId: string }) {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['chat', 'listMessages', channelId] });
   const send = useMutation({
-    mutationFn: (text: string) => trpc.chat.sendMessage.mutate({ channelId, body: text }),
+    mutationFn: (input: { body: string; attachment: Attachment | null }) =>
+      trpc.chat.sendMessage.mutate({
+        channelId,
+        body: input.body,
+        ...(input.attachment ? { attachment: input.attachment } : {}),
+      }),
     onSuccess: invalidate,
   });
+
+  const pickImage = () => {
+    const el = document.createElement('input');
+    el.type = 'file';
+    el.accept = 'image/*';
+    el.onchange = () => {
+      const f = el.files?.[0];
+      if (f) void uploadImage(f).then((url) => url && setAttachment({ kind: 'image', url, name: f.name, mime: f.type }));
+    };
+    el.click();
+  };
+  const pickFile = () => {
+    const el = document.createElement('input');
+    el.type = 'file';
+    el.onchange = () => {
+      const f = el.files?.[0];
+      if (f) void uploadFile(f).then((u) => u && setAttachment({ kind: 'file', url: u.href, name: u.name, mime: u.mime }));
+    };
+    el.click();
+  };
   const react = useMutation({
     mutationFn: (input: { messageId: string; emoji: (typeof REACTIONS)[number] }) =>
       trpc.chat.toggleReaction.mutate(input),
@@ -156,7 +186,30 @@ function ChannelView({ channelId }: { channelId: string }) {
                   </span>{' '}
                   {new Date(m.createdAt).toLocaleString('ja-JP')}
                 </p>
-                <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
+                {m.body ? (
+                  <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
+                ) : null}
+                {m.attachment ? (
+                  m.attachment.kind === 'image' ? (
+                    <a href={m.attachment.url} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={m.attachment.url}
+                        alt={m.attachment.name}
+                        data-testid={`chat-image-${m.id}`}
+                        className="mt-1 max-h-64 max-w-sm rounded-md border border-zinc-200 object-contain dark:border-zinc-700"
+                      />
+                    </a>
+                  ) : (
+                    <a
+                      href={m.attachment.url}
+                      download={m.attachment.name}
+                      data-testid={`chat-file-${m.id}`}
+                      className="mt-1 inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                      📎 {m.attachment.name || 'ファイル'}
+                    </a>
+                  )
+                ) : null}
                 <div className="mt-1 flex flex-wrap items-center gap-1">
                   {m.reactions.map((r) => (
                     <button
@@ -204,28 +257,65 @@ function ChannelView({ channelId }: { channelId: string }) {
         onSubmit={(e) => {
           e.preventDefault();
           const t = body.trim();
-          if (t) {
-            send.mutate(t);
-            setBody('');
-          }
+          if (!t && !attachment) return;
+          send.mutate({ body: t, attachment });
+          setBody('');
+          setAttachment(null);
         }}
-        className="flex gap-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800"
+        className="border-t border-zinc-200 px-4 py-3 dark:border-zinc-800"
       >
-        <input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="メッセージを入力…（@ユーザーID でメンション）"
-          data-testid="chat-input"
-          className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-        />
-        <button
-          type="submit"
-          disabled={!body.trim() || send.isPending}
-          data-testid="chat-send"
-          className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
-        >
-          送信
-        </button>
+        {attachment ? (
+          <div
+            data-testid="chat-attachment-preview"
+            className="mb-2 flex items-center gap-2 rounded-md border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700"
+          >
+            <span>{attachment.kind === 'image' ? '🖼️' : '📎'}</span>
+            <span className="min-w-0 flex-1 truncate">{attachment.name || '添付'}</span>
+            <button
+              type="button"
+              onClick={() => setAttachment(null)}
+              data-testid="chat-attachment-remove"
+              className="shrink-0 text-zinc-400 hover:text-red-600"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={pickImage}
+            data-testid="chat-attach-image"
+            className="rounded-md border border-zinc-300 px-2 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            title="画像を添付"
+          >
+            🖼️
+          </button>
+          <button
+            type="button"
+            onClick={pickFile}
+            data-testid="chat-attach-file"
+            className="rounded-md border border-zinc-300 px-2 py-2 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            title="ファイルを添付"
+          >
+            📎
+          </button>
+          <input
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="メッセージを入力…（@ユーザーID でメンション）"
+            data-testid="chat-input"
+            className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          />
+          <button
+            type="submit"
+            disabled={(!body.trim() && !attachment) || send.isPending}
+            data-testid="chat-send"
+            className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+          >
+            送信
+          </button>
+        </div>
       </form>
     </>
   );

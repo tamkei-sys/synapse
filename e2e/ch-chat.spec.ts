@@ -54,5 +54,18 @@ test('create a channel, send a message, react to it', async ({ browser }) => {
   await expect(page.getByTestId(`chat-reaction-${msgId}-👍`)).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId(`chat-reaction-${msgId}-👍`)).toHaveAttribute('data-active', 'true');
 
+  // ---- 画像を添付して送信 → メッセージに img 表示 ---------------------
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByTestId('chat-attach-image').click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: `pic-${unique()}.png`, mimeType: 'image/png', buffer: PNG });
+  await expect(page.getByTestId('chat-attachment-preview')).toBeVisible({ timeout: 10_000 });
+  await page.getByTestId('chat-send').click();
+  await expect(page.locator('[data-testid^="chat-image-"]').first()).toBeVisible({ timeout: 10_000 });
+
   await context.close();
 });

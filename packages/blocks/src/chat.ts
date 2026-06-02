@@ -17,9 +17,24 @@ export const chatChannelPropsSchema = z.object({
 });
 export type ChatChannelProps = z.infer<typeof chatChannelPropsSchema>;
 
-export const chatMessagePropsSchema = z.object({
-  body: z.string().trim().min(1).max(4_000),
-  /** @user-id メンション（extractMentions で抽出）。 */
-  mentions: z.array(z.string()).max(32).optional(),
+/** 1 メッセージにつき 1 添付。kind で画像（img 表示）/ ファイル（DL リンク）を分岐。 */
+export const chatAttachmentSchema = z.object({
+  kind: z.enum(['image', 'file']),
+  url: z.string().min(1),
+  name: z.string().max(200).default(''),
+  mime: z.string().max(120).default(''),
 });
+export type ChatAttachment = z.infer<typeof chatAttachmentSchema>;
+
+export const chatMessagePropsSchema = z
+  .object({
+    // 添付があれば本文は空でも可（画像だけ投稿を許す）。
+    body: z.string().trim().max(4_000).default(''),
+    /** @user-id メンション（extractMentions で抽出）。 */
+    mentions: z.array(z.string()).max(32).optional(),
+    attachment: chatAttachmentSchema.optional(),
+  })
+  .refine((p) => p.body.length > 0 || p.attachment !== undefined, {
+    message: '本文か添付のいずれかが必要です',
+  });
 export type ChatMessageProps = z.infer<typeof chatMessagePropsSchema>;
