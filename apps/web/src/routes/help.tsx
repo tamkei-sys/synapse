@@ -65,6 +65,18 @@ const SECTIONS: readonly Section[] = [
     title: '共有とコラボレーション',
     body: 'ページは「公開共有」で読み取り専用リンクを発行できます (社内向け埋め込みは自動で非表示)。本文中の選択範囲にインラインコメントを付けたり、メンションで通知を送れます。',
   },
+  {
+    icon: '🤖',
+    title: 'Claude Code 連携 (MCP)',
+    body: 'SYNAPSE MCP サーバー経由で、Claude Code から PBI の一覧・取得・作成・ステータス更新ができます。接続は stdio (標準入出力) で、追加のサーバー起動は不要です。',
+    steps: [
+      '「設定 → API トークン」(/settings/tokens) でワークスペース用トークンを発行（作成時に一度だけ表示）',
+      'リポジトリ直下に .mcp.json を作成: { "mcpServers": { "synapse": { "type": "stdio", "command": "node", "args": ["<repo>/apps/mcp/dist/index.js"], "env": { "DATABASE_URL": "…", "SYNAPSE_API_TOKEN": "synapse_…" } } } }',
+      '.mcp.json はトークンを含むので必ず .gitignore に入れる（コミット厳禁）',
+      'Claude Code で「/mcp」を実行し、表示された「synapse」を承認すると接続完了（再起動でも可）',
+      '接続後は synapse_list_pbis / synapse_get_pbi / synapse_create_pbi / synapse_update_pbi_status の 4 ツールが使えます。書き込み系はトークンの write スコープが必要で、全呼び出しは監査ログに記録されます',
+    ],
+  },
 ];
 
 function HelpPage() {
