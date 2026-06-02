@@ -26,6 +26,8 @@ import { loadEnv } from './env.js';
 import {
   createPbi,
   createPbiSchema,
+  createSbi,
+  createSbiSchema,
   getOverview,
   getOverviewSchema,
   getPbi,
@@ -43,6 +45,8 @@ import {
   updatePbiSchema,
   updatePbiStatus,
   updatePbiStatusSchema,
+  updateSbi,
+  updateSbiSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -186,6 +190,46 @@ async function main(): Promise<void> {
           properties: { pbiId: { type: 'string' } },
         },
       },
+      {
+        name: 'synapse_create_sbi',
+        description: 'Create an SBI (sub-task, sized in hours) under a PBI. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId', 'title'],
+          properties: {
+            pbiId: { type: 'string' },
+            title: { type: 'string' },
+            estimateHours: { type: 'number', minimum: 0, maximum: 200 },
+            assigneeId: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'synapse_update_sbi',
+        description:
+          'Patch an SBI (title, status, assignee, estimate/actual hours, due date). status→in_progress/done auto-stamps started/completed. Send null to clear a field. Write tool — cc should confirm.',
+        inputSchema: {
+          type: 'object',
+          required: ['sbiId', 'patch'],
+          properties: {
+            sbiId: { type: 'string' },
+            patch: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                status: {
+                  type: 'string',
+                  enum: ['todo', 'in_progress', 'review', 'done', 'archived'],
+                },
+                assigneeId: { type: ['string', 'null'] },
+                estimateHours: { type: ['number', 'null'], minimum: 0, maximum: 200 },
+                actualHours: { type: ['number', 'null'], minimum: 0, maximum: 2000 },
+                dueDate: { type: ['string', 'null'] },
+              },
+            },
+          },
+        },
+      },
     ],
   }));
 
@@ -243,6 +287,10 @@ async function dispatch(
       return listSprints(ctx, listSprintsSchema.parse(args));
     case 'synapse_list_sbis':
       return listSbis(ctx, listSbisSchema.parse(args));
+    case 'synapse_create_sbi':
+      return createSbi(ctx, createSbiSchema.parse(args));
+    case 'synapse_update_sbi':
+      return updateSbi(ctx, updateSbiSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
