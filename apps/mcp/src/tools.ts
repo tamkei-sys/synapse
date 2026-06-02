@@ -15,7 +15,14 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
-import { pbiPropsSchema, pbiStatusSchema, type PbiProps, type PbiStatus } from '@synapse/blocks';
+import {
+  pbiEstimateSchema,
+  pbiPropsSchema,
+  pbiStatusSchema,
+  prioritySchema,
+  type PbiProps,
+  type PbiStatus,
+} from '@synapse/blocks';
 
 import { type Database, schema } from './db.js';
 
@@ -38,12 +45,35 @@ export const getPbiSchema = z.object({
 export const createPbiSchema = z.object({
   title: z.string().trim().min(1).max(200),
   status: pbiStatusSchema.default('backlog'),
+  priority: prioritySchema.optional(),
+  estimate: pbiEstimateSchema.optional(),
   storyPoints: z.number().int().min(0).max(100).optional(),
+  projectId: z.string().optional(),
+  sprintId: z.string().optional(),
+  dueDate: z.string().date().optional(),
 });
 
 export const updatePbiStatusSchema = z.object({
   pbiId: z.string().min(1),
   status: pbiStatusSchema,
+});
+
+// Full patch — title/priority/estimate/links/assignees, not just status.
+// Mirrors tRPC `pbi.update`: explicit `null` clears a field, `undefined`
+// leaves it untouched. (PBI-97)
+export const updatePbiSchema = z.object({
+  pbiId: z.string().min(1),
+  patch: z.object({
+    title: z.string().trim().min(1).max(200).optional(),
+    status: pbiStatusSchema.optional(),
+    priority: prioritySchema.optional(),
+    estimate: pbiEstimateSchema.optional(),
+    storyPoints: z.number().int().min(0).max(100).nullable().optional(),
+    projectId: z.string().nullable().optional(),
+    sprintId: z.string().nullable().optional(),
+    dueDate: z.string().date().nullable().optional(),
+    assigneeIds: z.array(z.string()).max(16).optional(),
+  }),
 });
 
 // Discovery (read) — PBI-96. Lets an MCP client orient itself in the
@@ -118,7 +148,12 @@ export async function createPbi(
   const props: PbiProps = pbiPropsSchema.parse({
     title: input.title,
     status: input.status,
+    ...(input.priority ? { priority: input.priority } : {}),
+    ...(typeof input.estimate === 'number' ? { estimate: input.estimate } : {}),
     ...(typeof input.storyPoints === 'number' ? { storyPoints: input.storyPoints } : {}),
+    ...(input.projectId ? { projectId: input.projectId } : {}),
+    ...(input.sprintId ? { sprintId: input.sprintId } : {}),
+    ...(input.dueDate ? { dueDate: input.dueDate } : {}),
   });
 
   const [row] = await ctx.db
@@ -163,6 +198,66 @@ export async function updatePbiStatus(
 
   const current = (existing.props ?? {}) as Record<string, unknown>;
   const validated = pbiPropsSchema.parse({ ...current, status: input.status });
+
+  const [updated] = await ctx.db
+    .update(schema.block)
+    .set({
+      props: validated,
+      version: sql`${schema.block.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.block.id, input.pbiId))
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!updated) throw new ToolError('INTERNAL', 'update failed');
+  return projectPbi(updated);
+}
+
+export async function updatePbi(
+  ctx: ToolContext,
+  input: z.infer<typeof updatePbiSchema>,
+): Promise<unknown> {
+  const [existing] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.id, input.pbiId),
+        eq(schema.block.type, 'pbi'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!existing) throw new ToolError('NOT_FOUND', `PBI ${input.pbiId} not found`);
+  if (existing.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'PBI belongs to a different workspace');
+  }
+
+  const current = (existing.props ?? {}) as Record<string, unknown>;
+  const p = input.patch;
+  // `null` clears the field, a value overwrites, `undefined` keeps it.
+  const merged: Record<string, unknown> = { ...current };
+  if (p.title !== undefined) merged['title'] = p.title;
+  if (p.status !== undefined) merged['status'] = p.status;
+  if (p.priority !== undefined) merged['priority'] = p.priority;
+  if (p.estimate !== undefined) merged['estimate'] = p.estimate;
+  if (p.storyPoints === null) delete merged['storyPoints'];
+  else if (typeof p.storyPoints === 'number') merged['storyPoints'] = p.storyPoints;
+  if (p.projectId === null) delete merged['projectId'];
+  else if (typeof p.projectId === 'string') merged['projectId'] = p.projectId;
+  if (p.sprintId === null) delete merged['sprintId'];
+  else if (typeof p.sprintId === 'string') merged['sprintId'] = p.sprintId;
+  if (p.dueDate === null) delete merged['dueDate'];
+  else if (typeof p.dueDate === 'string') merged['dueDate'] = p.dueDate;
+  if (p.assigneeIds !== undefined) {
+    if (p.assigneeIds.length === 0) delete merged['assigneeIds'];
+    else merged['assigneeIds'] = p.assigneeIds;
+  }
+
+  const validated = pbiPropsSchema.parse(merged);
 
   const [updated] = await ctx.db
     .update(schema.block)

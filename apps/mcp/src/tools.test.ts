@@ -23,6 +23,7 @@ import {
   projectSbi,
   projectSprint,
   ToolError,
+  updatePbiSchema,
   updatePbiStatusSchema,
 } from './tools.js';
 
@@ -57,6 +58,41 @@ describe('tool input schemas', () => {
       pbiId: 'a',
       status: 'done',
     });
+  });
+});
+
+describe('PBI patch & create schemas (PBI-97)', () => {
+  it('createPbi accepts priority / estimate / links / dueDate', () => {
+    const parsed = createPbiSchema.parse({
+      title: 'x',
+      priority: 'must',
+      estimate: 5,
+      projectId: 'prj',
+      sprintId: 'sp',
+      dueDate: '2026-01-01',
+    });
+    expect(parsed.priority).toBe('must');
+    expect(parsed.estimate).toBe(5);
+    expect(parsed.projectId).toBe('prj');
+  });
+
+  it('createPbi rejects a non-Fibonacci estimate', () => {
+    expect(() => createPbiSchema.parse({ title: 'x', estimate: 4 })).toThrow();
+  });
+
+  it('updatePbi requires both pbiId and patch', () => {
+    expect(() => updatePbiSchema.parse({ patch: {} })).toThrow();
+    expect(() => updatePbiSchema.parse({ pbiId: 'a' })).toThrow();
+  });
+
+  it('updatePbi allows null to clear links and rejects a bad priority', () => {
+    const ok = updatePbiSchema.parse({
+      pbiId: 'a',
+      patch: { projectId: null, sprintId: null, assigneeIds: [] },
+    });
+    expect(ok.patch.projectId).toBeNull();
+    expect(ok.patch.assigneeIds).toEqual([]);
+    expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
   });
 });
 

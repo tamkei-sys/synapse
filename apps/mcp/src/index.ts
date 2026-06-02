@@ -39,6 +39,8 @@ import {
   listSprints,
   listSprintsSchema,
   ToolError,
+  updatePbi,
+  updatePbiSchema,
   updatePbiStatus,
   updatePbiStatusSchema,
   type ToolContext,
@@ -104,7 +106,41 @@ async function main(): Promise<void> {
               type: 'string',
               enum: ['backlog', 'ready', 'in_progress', 'review', 'done'],
             },
+            priority: { type: 'string', enum: ['must', 'should', 'could', 'wont'] },
+            estimate: { type: 'integer', enum: [1, 2, 3, 5, 8, 13, 21] },
             storyPoints: { type: 'integer', minimum: 0, maximum: 100 },
+            projectId: { type: 'string', description: 'Parent project block id (PRJ).' },
+            sprintId: { type: 'string', description: 'Parent sprint block id (SP).' },
+            dueDate: { type: 'string', description: 'ISO date (YYYY-MM-DD).' },
+          },
+        },
+      },
+      {
+        name: 'synapse_update_pbi',
+        description:
+          'Patch a PBI (title, status, priority, estimate, story points, project/sprint links, assignees, due date). Send a field as null to clear it. Write tool — cc should confirm.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId', 'patch'],
+          properties: {
+            pbiId: { type: 'string' },
+            patch: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                status: {
+                  type: 'string',
+                  enum: ['backlog', 'ready', 'in_progress', 'review', 'done'],
+                },
+                priority: { type: 'string', enum: ['must', 'should', 'could', 'wont'] },
+                estimate: { type: 'integer', enum: [1, 2, 3, 5, 8, 13, 21] },
+                storyPoints: { type: ['integer', 'null'], minimum: 0, maximum: 100 },
+                projectId: { type: ['string', 'null'] },
+                sprintId: { type: ['string', 'null'] },
+                dueDate: { type: ['string', 'null'] },
+                assigneeIds: { type: 'array', items: { type: 'string' } },
+              },
+            },
           },
         },
       },
@@ -197,6 +233,8 @@ async function dispatch(
       return createPbi(ctx, createPbiSchema.parse(args));
     case 'synapse_update_pbi_status':
       return updatePbiStatus(ctx, updatePbiStatusSchema.parse(args));
+    case 'synapse_update_pbi':
+      return updatePbi(ctx, updatePbiSchema.parse(args));
     case 'synapse_get_overview':
       return getOverview(ctx, getOverviewSchema.parse(args));
     case 'synapse_list_projects':
