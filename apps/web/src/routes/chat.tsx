@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { uploadFile } from '../features/editor/file-upload.js';
 import { uploadImage } from '../features/editor/image-upload.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
+import { useT } from '../lib/i18n.js';
 import { trpc } from '../lib/trpc.js';
 
 type Attachment = { kind: 'image' | 'file'; url: string; name: string; mime: string };
@@ -33,6 +34,7 @@ function ChatRoute() {
 }
 
 function ChatPanel({ workspaceId }: { workspaceId: string }) {
+  const t = useT();
   const qc = useQueryClient();
   const [channelId, setChannelId] = useState<string | null>(null);
 
@@ -61,7 +63,7 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
       {/* チャンネル一覧 */}
       <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center justify-between px-3 py-3">
-          <h1 className="text-sm font-semibold">💬 チャンネル</h1>
+          <h1 className="text-sm font-semibold">💬 {t('page.chat.channels')}</h1>
           <button
             type="button"
             onClick={() => {
@@ -116,6 +118,7 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
 }
 
 function ChannelView({ channelId }: { channelId: string }) {
+  const t = useT();
   const qc = useQueryClient();
   const [body, setBody] = useState('');
   const [attachment, setAttachment] = useState<Attachment | null>(null);
@@ -247,7 +250,7 @@ function ChannelView({ channelId }: { channelId: string }) {
           ))
         ) : (
           <p className="text-sm text-zinc-400" data-testid="chat-empty">
-            まだメッセージがありません。最初の投稿をどうぞ。
+            {t('page.chat.empty')}
           </p>
         )}
         <div ref={bottomRef} />
@@ -303,7 +306,7 @@ function ChannelView({ channelId }: { channelId: string }) {
           <input
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="メッセージを入力…（@ユーザーID でメンション）"
+            placeholder={t('page.chat.placeholder')}
             data-testid="chat-input"
             className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
