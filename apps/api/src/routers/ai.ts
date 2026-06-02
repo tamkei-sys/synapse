@@ -7,7 +7,7 @@
  *   - ai.summarizeSprint  sprint id → stub-of-sprint-completion-report
  */
 import { TRPCError } from '@trpc/server';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -17,6 +17,7 @@ import { db as schema } from '@synapse/schema';
 import { ask } from '../integrations/anthropic/client.js';
 import { allocateHumanId } from '../lib/human-id.js';
 import { assertCanWrite } from '../lib/access.js';
+import { extractTextPreview } from '../lib/page-doc.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const aiRouter = router({
@@ -57,6 +58,49 @@ export const aiRouter = router({
       const { system, prompt } = buildTransformPrompt(input);
       const result = await ask(ctx.env, prompt, { maxTokens: 1024, system });
       return result;
+    }),
+
+  /**
+   * ページ本文の AI 要点（大和心 Notion の「要点」相当）を生成し、
+   * props.aiSummary に保存して返す (PBI-108)。本文が空なら何もしない。
+   * ANTHROPIC_API_KEY 未設定なら ask() が stub を返す。
+   */
+  summarizePage: protectedProcedure
+    .input(z.object({ workspaceId: z.string().min(1), pageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      await assertCanWrite(ctx.db, input.workspaceId, ctx.session.user.id);
+      const [page] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!page) throw new TRPCError({ code: 'NOT_FOUND' });
+      if (page.workspaceId !== input.workspaceId) throw new TRPCError({ code: 'FORBIDDEN' });
+
+      const props = (page.props ?? {}) as Record<string, unknown>;
+      const text = extractTextPreview(props['doc'], 6_000);
+      if (!text.trim()) return { summary: '', stub: false, empty: true };
+
+      const result = await ask(
+        ctx.env,
+        `次のドキュメントの要点を、日本語の箇条書き3〜5項目で簡潔にまとめてください。前置きや結びは不要です。\n\n---\n${text}`,
+        { maxTokens: 400 },
+      );
+      await ctx.db
+        .update(schema.block)
+        .set({
+          props: { ...props, aiSummary: result.text },
+          version: sql`${schema.block.version} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.block.id, input.pageId));
+      return { summary: result.text, stub: result.stub, empty: false };
     }),
 
   /**
