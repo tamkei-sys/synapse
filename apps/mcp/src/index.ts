@@ -24,6 +24,8 @@ import { resolveApiToken } from './auth.js';
 import { createDb } from './db.js';
 import { loadEnv } from './env.js';
 import {
+  addComment,
+  addCommentSchema,
   addDependency,
   addDependencySchema,
   createPbi,
@@ -38,6 +40,8 @@ import {
   getOverviewSchema,
   getPbi,
   getPbiSchema,
+  listComments,
+  listCommentsSchema,
   listDependencies,
   listDependenciesSchema,
   listPbis,
@@ -388,6 +392,26 @@ async function main(): Promise<void> {
           properties: { blockId: { type: 'string' } },
         },
       },
+      {
+        name: 'synapse_add_comment',
+        description:
+          'Add a comment to any block (PBI, page, project, etc.). `@user-id` mentions fan out as notifications. Write tool — cc should confirm.',
+        inputSchema: {
+          type: 'object',
+          required: ['blockId', 'body'],
+          properties: { blockId: { type: 'string' }, body: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_list_comments',
+        description:
+          'List comments on a block (oldest first) with author name, resolved flag, and mentions.',
+        inputSchema: {
+          type: 'object',
+          required: ['blockId'],
+          properties: { blockId: { type: 'string' } },
+        },
+      },
     ],
   }));
 
@@ -465,6 +489,10 @@ async function dispatch(
       return removeDependency(ctx, removeDependencySchema.parse(args));
     case 'synapse_list_dependencies':
       return listDependencies(ctx, listDependenciesSchema.parse(args));
+    case 'synapse_add_comment':
+      return addComment(ctx, addCommentSchema.parse(args));
+    case 'synapse_list_comments':
+      return listComments(ctx, listCommentsSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
