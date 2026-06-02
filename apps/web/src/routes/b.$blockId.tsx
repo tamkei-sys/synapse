@@ -54,6 +54,7 @@ import {
   sprintStatusLabel,
   statusTone,
 } from '../lib/labels.js';
+import { SbiAlertBadges, sbiNeedsAttention, type SbiAlertInput } from '../lib/sbi-alerts.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/b/$blockId')({
@@ -375,6 +376,8 @@ function SbiHeader({ block }: { block: BlockRow }) {
     status?: SbiStatus;
     estimateHours?: number;
     actualHours?: number;
+    startedAt?: string;
+    completedAt?: string;
     pbiId?: string;
     assigneeId?: string;
   };
@@ -411,6 +414,16 @@ function SbiHeader({ block }: { block: BlockRow }) {
         {typeof p.actualHours === 'number' ? (
           <span className="font-mono text-xs text-zinc-500">実績 {p.actualHours}h</span>
         ) : null}
+        <SbiAlertBadges
+          sbi={{
+            id: block.id,
+            status: p.status,
+            estimateHours: p.estimateHours,
+            actualHours: p.actualHours,
+            startedAt: p.startedAt,
+            completedAt: p.completedAt,
+          }}
+        />
         <AssigneePicker
           workspaceId={block.workspaceId}
           selected={p.assigneeId ? [p.assigneeId] : []}
@@ -520,10 +533,25 @@ function PbiChildren({ pbiId, workspaceId }: { pbiId: string; workspaceId: strin
     },
   });
 
+  const flagged = (list.data ?? []).filter((r) =>
+    sbiNeedsAttention((r.props ?? {}) as SbiAlertInput),
+  ).length;
+
   return (
     <section>
       <header className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">配下の SBI</h2>
+        <h2 className="flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-zinc-500">
+          配下の SBI
+          {flagged > 0 ? (
+            <span
+              data-testid="pbi-sbi-alert-count"
+              title="超過 / 停滞 の SBI 件数"
+              className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal normal-case text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+            >
+              ⚠ {flagged} 件要注意
+            </span>
+          ) : null}
+        </h2>
         <form
           onSubmit={(e) => {
             e.preventDefault();
