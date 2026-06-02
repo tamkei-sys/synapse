@@ -12,7 +12,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createPbiSchema,
+  createProjectSchema,
   createSbiSchema,
+  createSprintSchema,
   getOverviewSchema,
   getPbiSchema,
   listPbisSchema,
@@ -23,6 +25,7 @@ import {
   projectProject,
   projectSbi,
   projectSprint,
+  sprintMetricsSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -95,6 +98,26 @@ describe('PBI patch & create schemas (PBI-97)', () => {
     expect(ok.patch.projectId).toBeNull();
     expect(ok.patch.assigneeIds).toEqual([]);
     expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
+  });
+});
+
+describe('project & sprint schemas (PBI-99)', () => {
+  it('createProject requires a name and validates status', () => {
+    expect(() => createProjectSchema.parse({})).toThrow();
+    expect(createProjectSchema.parse({ name: 'P', status: 'in_progress' }).status).toBe(
+      'in_progress',
+    );
+    expect(() => createProjectSchema.parse({ name: 'P', status: 'nope' })).toThrow();
+  });
+
+  it('createSprint allows omitting dates (handler applies defaults)', () => {
+    expect(createSprintSchema.parse({ name: 'S' })).toEqual({ name: 'S' });
+    expect(() => createSprintSchema.parse({ name: 'S', status: 'sprinting' })).toThrow();
+  });
+
+  it('sprintMetrics requires sprintId', () => {
+    expect(() => sprintMetricsSchema.parse({})).toThrow();
+    expect(sprintMetricsSchema.parse({ sprintId: 's' })).toEqual({ sprintId: 's' });
   });
 });
 

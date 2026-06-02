@@ -26,8 +26,12 @@ import { loadEnv } from './env.js';
 import {
   createPbi,
   createPbiSchema,
+  createProject,
+  createProjectSchema,
   createSbi,
   createSbiSchema,
+  createSprint,
+  createSprintSchema,
   getOverview,
   getOverviewSchema,
   getPbi,
@@ -40,13 +44,19 @@ import {
   listSbisSchema,
   listSprints,
   listSprintsSchema,
+  sprintMetrics,
+  sprintMetricsSchema,
   ToolError,
   updatePbi,
   updatePbiSchema,
   updatePbiStatus,
   updatePbiStatusSchema,
+  updateProject,
+  updateProjectSchema,
   updateSbi,
   updateSbiSchema,
+  updateSprint,
+  updateSprintSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -230,6 +240,115 @@ async function main(): Promise<void> {
           },
         },
       },
+      {
+        name: 'synapse_create_project',
+        description: 'Create a project (PRJ-n). Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string' },
+            status: {
+              type: 'string',
+              enum: [
+                'backlog',
+                'planned',
+                'in_progress',
+                'paused',
+                'review',
+                'done',
+                'cancelled',
+                'archived',
+              ],
+            },
+            priority: { type: 'string', enum: ['must', 'should', 'could', 'wont'] },
+          },
+        },
+      },
+      {
+        name: 'synapse_update_project',
+        description:
+          'Patch a project (name, status, priority, owner, start/planned/completed dates). Send null to clear. Write tool — cc should confirm.',
+        inputSchema: {
+          type: 'object',
+          required: ['projectId', 'patch'],
+          properties: {
+            projectId: { type: 'string' },
+            patch: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                status: {
+                  type: 'string',
+                  enum: [
+                    'backlog',
+                    'planned',
+                    'in_progress',
+                    'paused',
+                    'review',
+                    'done',
+                    'cancelled',
+                    'archived',
+                  ],
+                },
+                priority: { type: 'string', enum: ['must', 'should', 'could', 'wont'] },
+                ownerId: { type: ['string', 'null'] },
+                startDate: { type: ['string', 'null'] },
+                plannedDate: { type: ['string', 'null'] },
+                completedDate: { type: ['string', 'null'] },
+              },
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_create_sprint',
+        description:
+          'Create a sprint (SP-n). Defaults to a two-week window from today when dates are omitted. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string' },
+            startDate: { type: 'string', description: 'ISO date (YYYY-MM-DD).' },
+            endDate: { type: 'string', description: 'ISO date (YYYY-MM-DD).' },
+            goal: { type: 'string' },
+            status: { type: 'string', enum: ['planning', 'active', 'review', 'done'] },
+          },
+        },
+      },
+      {
+        name: 'synapse_update_sprint',
+        description:
+          'Patch a sprint (name, status, start/end dates, goal). startDate must be ≤ endDate. Send goal null to clear. Write tool — cc should confirm.',
+        inputSchema: {
+          type: 'object',
+          required: ['sprintId', 'patch'],
+          properties: {
+            sprintId: { type: 'string' },
+            patch: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                status: { type: 'string', enum: ['planning', 'active', 'review', 'done'] },
+                startDate: { type: 'string' },
+                endDate: { type: 'string' },
+                goal: { type: ['string', 'null'] },
+              },
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_sprint_metrics',
+        description:
+          'Sprint progress summary: total/completed/remaining hours, PBI counts, and percent complete.',
+        inputSchema: {
+          type: 'object',
+          required: ['sprintId'],
+          properties: { sprintId: { type: 'string' } },
+        },
+      },
     ],
   }));
 
@@ -291,6 +410,16 @@ async function dispatch(
       return createSbi(ctx, createSbiSchema.parse(args));
     case 'synapse_update_sbi':
       return updateSbi(ctx, updateSbiSchema.parse(args));
+    case 'synapse_create_project':
+      return createProject(ctx, createProjectSchema.parse(args));
+    case 'synapse_update_project':
+      return updateProject(ctx, updateProjectSchema.parse(args));
+    case 'synapse_create_sprint':
+      return createSprint(ctx, createSprintSchema.parse(args));
+    case 'synapse_update_sprint':
+      return updateSprint(ctx, updateSprintSchema.parse(args));
+    case 'synapse_sprint_metrics':
+      return sprintMetrics(ctx, sprintMetricsSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

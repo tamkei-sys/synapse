@@ -20,8 +20,13 @@ import {
   pbiPropsSchema,
   pbiStatusSchema,
   prioritySchema,
+  projectPropsSchema,
+  projectStatusSchema,
   sbiPropsSchema,
   sbiStatusSchema,
+  SPRINT_LENGTH_DAYS,
+  sprintPropsSchema,
+  sprintStatusSchema,
   type PbiProps,
   type PbiStatus,
 } from '@synapse/blocks';
@@ -96,6 +101,49 @@ export const updateSbiSchema = z.object({
     actualHours: z.number().min(0).max(2000).nullable().optional(),
     dueDate: z.string().date().nullable().optional(),
   }),
+});
+
+// Project & Sprint management. (PBI-99)
+export const createProjectSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  status: projectStatusSchema.optional(),
+  priority: prioritySchema.optional(),
+});
+
+export const updateProjectSchema = z.object({
+  projectId: z.string().min(1),
+  patch: z.object({
+    name: z.string().trim().min(1).max(200).optional(),
+    status: projectStatusSchema.optional(),
+    priority: prioritySchema.optional(),
+    ownerId: z.string().nullable().optional(),
+    startDate: z.string().date().nullable().optional(),
+    plannedDate: z.string().date().nullable().optional(),
+    completedDate: z.string().date().nullable().optional(),
+  }),
+});
+
+export const createSprintSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  startDate: z.string().date().optional(),
+  endDate: z.string().date().optional(),
+  goal: z.string().max(2_000).optional(),
+  status: sprintStatusSchema.optional(),
+});
+
+export const updateSprintSchema = z.object({
+  sprintId: z.string().min(1),
+  patch: z.object({
+    name: z.string().trim().min(1).max(200).optional(),
+    status: sprintStatusSchema.optional(),
+    startDate: z.string().date().optional(),
+    endDate: z.string().date().optional(),
+    goal: z.string().max(2_000).nullable().optional(),
+  }),
+});
+
+export const sprintMetricsSchema = z.object({
+  sprintId: z.string().min(1),
 });
 
 // Discovery (read) — PBI-96. Lets an MCP client orient itself in the
@@ -410,6 +458,274 @@ export async function updateSbi(
     });
   if (!row) throw new ToolError('INTERNAL', 'update failed');
   return projectSbi(row);
+}
+
+// ---- project & sprint handlers (PBI-99) -------------------------------------
+
+export async function createProject(
+  ctx: ToolContext,
+  input: z.infer<typeof createProjectSchema>,
+): Promise<unknown> {
+  const number = await allocateNumber(ctx, 'project');
+  const id = ulid();
+  const props = projectPropsSchema.parse({
+    name: input.name,
+    number,
+    ...(input.status ? { status: input.status } : {}),
+    ...(input.priority ? { priority: input.priority } : {}),
+  });
+  const [row] = await ctx.db
+    .insert(schema.block)
+    .values({
+      id,
+      workspaceId: ctx.workspaceId,
+      parentId: null,
+      type: 'project',
+      position: id,
+      props,
+      createdBy: ctx.userId,
+    })
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!row) throw new ToolError('INTERNAL', 'insert failed');
+  return projectProject(row);
+}
+
+export async function updateProject(
+  ctx: ToolContext,
+  input: z.infer<typeof updateProjectSchema>,
+): Promise<unknown> {
+  const [existing] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.id, input.projectId),
+        eq(schema.block.type, 'project'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!existing) throw new ToolError('NOT_FOUND', `Project ${input.projectId} not found`);
+  if (existing.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'Project belongs to a different workspace');
+  }
+
+  const current = (existing.props ?? {}) as Record<string, unknown>;
+  const p = input.patch;
+  const merged: Record<string, unknown> = { ...current };
+  if (p.name !== undefined) merged['name'] = p.name;
+  if (p.status !== undefined) merged['status'] = p.status;
+  if (p.priority !== undefined) merged['priority'] = p.priority;
+  if (p.ownerId === null) delete merged['ownerId'];
+  else if (typeof p.ownerId === 'string') merged['ownerId'] = p.ownerId;
+  if (p.startDate === null) delete merged['startDate'];
+  else if (typeof p.startDate === 'string') merged['startDate'] = p.startDate;
+  if (p.plannedDate === null) delete merged['plannedDate'];
+  else if (typeof p.plannedDate === 'string') merged['plannedDate'] = p.plannedDate;
+  if (p.completedDate === null) delete merged['completedDate'];
+  else if (typeof p.completedDate === 'string') merged['completedDate'] = p.completedDate;
+
+  const validated = projectPropsSchema.parse(merged);
+  const [row] = await ctx.db
+    .update(schema.block)
+    .set({
+      props: validated,
+      version: sql`${schema.block.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.block.id, input.projectId))
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!row) throw new ToolError('INTERNAL', 'update failed');
+  return projectProject(row);
+}
+
+export async function createSprint(
+  ctx: ToolContext,
+  input: z.infer<typeof createSprintSchema>,
+): Promise<unknown> {
+  const number = await allocateNumber(ctx, 'sprint');
+  const id = ulid();
+  const now = new Date();
+  const startDate = input.startDate ?? now.toISOString().slice(0, 10);
+  const endDate =
+    input.endDate ??
+    new Date(now.getTime() + SPRINT_LENGTH_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const props = sprintPropsSchema.parse({
+    name: input.name,
+    startDate,
+    endDate,
+    number,
+    ...(input.goal !== undefined ? { goal: input.goal } : {}),
+    ...(input.status ? { status: input.status } : {}),
+  });
+  const [row] = await ctx.db
+    .insert(schema.block)
+    .values({
+      id,
+      workspaceId: ctx.workspaceId,
+      parentId: null,
+      type: 'sprint',
+      position: id,
+      props,
+      createdBy: ctx.userId,
+    })
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!row) throw new ToolError('INTERNAL', 'insert failed');
+  return projectSprint(row);
+}
+
+export async function updateSprint(
+  ctx: ToolContext,
+  input: z.infer<typeof updateSprintSchema>,
+): Promise<unknown> {
+  const [existing] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.id, input.sprintId),
+        eq(schema.block.type, 'sprint'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!existing) throw new ToolError('NOT_FOUND', `Sprint ${input.sprintId} not found`);
+  if (existing.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'Sprint belongs to a different workspace');
+  }
+
+  const current = (existing.props ?? {}) as Record<string, unknown>;
+  const p = input.patch;
+  const merged: Record<string, unknown> = { ...current };
+  if (p.name !== undefined) merged['name'] = p.name;
+  if (p.status !== undefined) merged['status'] = p.status;
+  if (p.startDate !== undefined) merged['startDate'] = p.startDate;
+  if (p.endDate !== undefined) merged['endDate'] = p.endDate;
+  if (p.goal === null) delete merged['goal'];
+  else if (typeof p.goal === 'string') merged['goal'] = p.goal;
+
+  // sprintPropsSchema enforces startDate <= endDate.
+  const validated = sprintPropsSchema.parse(merged);
+  const [row] = await ctx.db
+    .update(schema.block)
+    .set({
+      props: validated,
+      version: sql`${schema.block.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.block.id, input.sprintId))
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!row) throw new ToolError('INTERNAL', 'update failed');
+  return projectSprint(row);
+}
+
+/**
+ * Sprint progress summary for agent reporting. Unlike tRPC `sprint.metrics`
+ * (which returns a per-day burndown series for charting), this returns the
+ * roll-up an agent reasons about: hours total/done/remaining, PBI counts,
+ * and percent complete.
+ */
+export async function sprintMetrics(
+  ctx: ToolContext,
+  input: z.infer<typeof sprintMetricsSchema>,
+): Promise<unknown> {
+  const [sprint] = await ctx.db
+    .select({
+      workspaceId: schema.block.workspaceId,
+      props: schema.block.props,
+    })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.id, input.sprintId),
+        eq(schema.block.type, 'sprint'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!sprint) throw new ToolError('NOT_FOUND', `Sprint ${input.sprintId} not found`);
+  if (sprint.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'Sprint belongs to a different workspace');
+  }
+  const sp = (sprint.props ?? {}) as { startDate?: string; endDate?: string; number?: number };
+
+  const allPbis = await ctx.db
+    .select({ id: schema.block.id, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        eq(schema.block.type, 'pbi'),
+        isNull(schema.block.deletedAt),
+      ),
+    );
+  const sprintPbis = allPbis.filter(
+    (pbi) => (pbi.props as { sprintId?: string } | null)?.sprintId === input.sprintId,
+  );
+
+  let totalHours = 0;
+  let completedHours = 0;
+  if (sprintPbis.length > 0) {
+    const sbis = await ctx.db
+      .select({ props: schema.block.props })
+      .from(schema.block)
+      .where(
+        and(
+          inArray(
+            schema.block.parentId,
+            sprintPbis.map((pbi) => pbi.id),
+          ),
+          eq(schema.block.type, 'sbi'),
+          isNull(schema.block.deletedAt),
+        ),
+      );
+    for (const s of sbis) {
+      const sprops = (s.props ?? {}) as { status?: string; estimateHours?: number };
+      const hours = sprops.estimateHours ?? 0;
+      totalHours += hours;
+      if (sprops.status === 'done') completedHours += hours;
+    }
+  }
+
+  const completedPbis = sprintPbis.filter(
+    (pbi) => (pbi.props as { status?: string } | null)?.status === 'done',
+  ).length;
+  const remainingHours = Math.max(0, totalHours - completedHours);
+  const pctComplete =
+    totalHours > 0
+      ? Math.round((completedHours / totalHours) * 100)
+      : sprintPbis.length > 0
+        ? Math.round((completedPbis / sprintPbis.length) * 100)
+        : 0;
+
+  return {
+    sprintId: input.sprintId,
+    ...(typeof sp.number === 'number' ? { key: `SP-${sp.number}` } : {}),
+    startDate: sp.startDate ?? null,
+    endDate: sp.endDate ?? null,
+    totalPbis: sprintPbis.length,
+    completedPbis,
+    totalHours,
+    completedHours,
+    remainingHours,
+    pctComplete,
+  };
 }
 
 // ---- discovery handlers (PBI-96) --------------------------------------------
