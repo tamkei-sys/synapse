@@ -20,6 +20,8 @@ import {
   pbiPropsSchema,
   pbiStatusSchema,
   prioritySchema,
+  sbiPropsSchema,
+  sbiStatusSchema,
   type PbiProps,
   type PbiStatus,
 } from '@synapse/blocks';
@@ -73,6 +75,26 @@ export const updatePbiSchema = z.object({
     sprintId: z.string().nullable().optional(),
     dueDate: z.string().date().nullable().optional(),
     assigneeIds: z.array(z.string()).max(16).optional(),
+  }),
+});
+
+// SBI management — concrete tasks under a PBI, sized in hours. (PBI-98)
+export const createSbiSchema = z.object({
+  pbiId: z.string().min(1),
+  title: z.string().trim().min(1).max(200),
+  estimateHours: z.number().min(0).max(200).optional(),
+  assigneeId: z.string().optional(),
+});
+
+export const updateSbiSchema = z.object({
+  sbiId: z.string().min(1),
+  patch: z.object({
+    title: z.string().trim().min(1).max(200).optional(),
+    status: sbiStatusSchema.optional(),
+    assigneeId: z.string().nullable().optional(),
+    estimateHours: z.number().min(0).max(200).nullable().optional(),
+    actualHours: z.number().min(0).max(2000).nullable().optional(),
+    dueDate: z.string().date().nullable().optional(),
   }),
 });
 
@@ -145,9 +167,11 @@ export async function createPbi(
   input: z.infer<typeof createPbiSchema>,
 ): Promise<unknown> {
   const id = ulid();
+  const number = await allocateNumber(ctx, 'pbi');
   const props: PbiProps = pbiPropsSchema.parse({
     title: input.title,
     status: input.status,
+    number,
     ...(input.priority ? { priority: input.priority } : {}),
     ...(typeof input.estimate === 'number' ? { estimate: input.estimate } : {}),
     ...(typeof input.storyPoints === 'number' ? { storyPoints: input.storyPoints } : {}),
@@ -274,6 +298,118 @@ export async function updatePbi(
     });
   if (!updated) throw new ToolError('INTERNAL', 'update failed');
   return projectPbi(updated);
+}
+
+// ---- SBI handlers (PBI-98) --------------------------------------------------
+
+export async function createSbi(
+  ctx: ToolContext,
+  input: z.infer<typeof createSbiSchema>,
+): Promise<unknown> {
+  const [pbi] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.id, input.pbiId),
+        eq(schema.block.type, 'pbi'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!pbi) throw new ToolError('NOT_FOUND', `PBI ${input.pbiId} not found`);
+  if (pbi.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'PBI belongs to a different workspace');
+  }
+
+  const number = await allocateNumber(ctx, 'sbi');
+  const id = ulid();
+  const props = sbiPropsSchema.parse({
+    title: input.title,
+    pbiId: input.pbiId,
+    number,
+    ...(typeof input.estimateHours === 'number' ? { estimateHours: input.estimateHours } : {}),
+    ...(input.assigneeId ? { assigneeId: input.assigneeId } : {}),
+  });
+
+  const [row] = await ctx.db
+    .insert(schema.block)
+    .values({
+      id,
+      workspaceId: ctx.workspaceId,
+      parentId: input.pbiId,
+      type: 'sbi',
+      position: id,
+      props,
+      createdBy: ctx.userId,
+    })
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!row) throw new ToolError('INTERNAL', 'insert failed');
+  return projectSbi(row);
+}
+
+export async function updateSbi(
+  ctx: ToolContext,
+  input: z.infer<typeof updateSbiSchema>,
+): Promise<unknown> {
+  const [existing] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.id, input.sbiId),
+        eq(schema.block.type, 'sbi'),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!existing) throw new ToolError('NOT_FOUND', `SBI ${input.sbiId} not found`);
+  if (existing.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'SBI belongs to a different workspace');
+  }
+
+  const current = (existing.props ?? {}) as Record<string, unknown>;
+  const p = input.patch;
+  const merged: Record<string, unknown> = { ...current };
+  if (p.title !== undefined) merged['title'] = p.title;
+  if (p.status !== undefined) merged['status'] = p.status;
+  if (p.assigneeId === null) delete merged['assigneeId'];
+  else if (typeof p.assigneeId === 'string') merged['assigneeId'] = p.assigneeId;
+  if (p.estimateHours === null) delete merged['estimateHours'];
+  else if (typeof p.estimateHours === 'number') merged['estimateHours'] = p.estimateHours;
+  if (p.actualHours === null) delete merged['actualHours'];
+  else if (typeof p.actualHours === 'number') merged['actualHours'] = p.actualHours;
+  if (p.dueDate === null) delete merged['dueDate'];
+  else if (typeof p.dueDate === 'string') merged['dueDate'] = p.dueDate;
+  // Auto-stamp lifecycle dates on status transitions (mirrors tRPC sbi.update).
+  if (p.status === 'in_progress' && !current['startedAt']) {
+    merged['startedAt'] = new Date().toISOString();
+  }
+  if (p.status === 'done' && !current['completedAt']) {
+    merged['completedAt'] = new Date().toISOString();
+  }
+
+  const validated = sbiPropsSchema.parse(merged);
+
+  const [row] = await ctx.db
+    .update(schema.block)
+    .set({
+      props: validated,
+      version: sql`${schema.block.version} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(eq(schema.block.id, input.sbiId))
+    .returning({
+      id: schema.block.id,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    });
+  if (!row) throw new ToolError('INTERNAL', 'update failed');
+  return projectSbi(row);
 }
 
 // ---- discovery handlers (PBI-96) --------------------------------------------
@@ -487,6 +623,26 @@ export function projectSbi(row: BlockProjection) {
     ...(p.pbiId ? { pbiId: p.pbiId } : {}),
     updatedAt: row.updatedAt,
   };
+}
+
+/**
+ * Allocate the next human number for a workspace + entity kind via the
+ * shared `entity_sequence` table. Atomic upsert — mirrors the API's
+ * allocateHumanId so MCP-created PBIs/SBIs get the same PBI-n / SBI-n keys.
+ */
+async function allocateNumber(
+  ctx: ToolContext,
+  kind: 'pbi' | 'sbi' | 'project' | 'sprint',
+): Promise<number> {
+  const [row] = await ctx.db
+    .insert(schema.entitySequence)
+    .values({ workspaceId: ctx.workspaceId, kind, nextId: 2 })
+    .onConflictDoUpdate({
+      target: [schema.entitySequence.workspaceId, schema.entitySequence.kind],
+      set: { nextId: sql`${schema.entitySequence.nextId} + 1`, updatedAt: new Date() },
+    })
+    .returning({ nextId: schema.entitySequence.nextId });
+  return (row?.nextId ?? 2) - 1;
 }
 
 export class ToolError extends Error {

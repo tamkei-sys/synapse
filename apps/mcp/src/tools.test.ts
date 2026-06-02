@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createPbiSchema,
+  createSbiSchema,
   getOverviewSchema,
   getPbiSchema,
   listPbisSchema,
@@ -25,6 +26,7 @@ import {
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
+  updateSbiSchema,
 } from './tools.js';
 
 describe('tool input schemas', () => {
@@ -93,6 +95,25 @@ describe('PBI patch & create schemas (PBI-97)', () => {
     expect(ok.patch.projectId).toBeNull();
     expect(ok.patch.assigneeIds).toEqual([]);
     expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
+  });
+});
+
+describe('SBI schemas (PBI-98)', () => {
+  it('createSbi requires both pbiId and title', () => {
+    expect(() => createSbiSchema.parse({ title: 'x' })).toThrow();
+    expect(() => createSbiSchema.parse({ pbiId: 'p' })).toThrow();
+    const ok = createSbiSchema.parse({ pbiId: 'p', title: 'x', estimateHours: 4 });
+    expect(ok.estimateHours).toBe(4);
+  });
+
+  it('updateSbi enforces the status enum and allows null to clear', () => {
+    expect(() => updateSbiSchema.parse({ sbiId: 's', patch: { status: 'frozen' } })).toThrow();
+    const ok = updateSbiSchema.parse({
+      sbiId: 's',
+      patch: { status: 'done', assigneeId: null, estimateHours: null },
+    });
+    expect(ok.patch.status).toBe('done');
+    expect(ok.patch.assigneeId).toBeNull();
   });
 });
 
