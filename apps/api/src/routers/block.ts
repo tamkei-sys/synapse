@@ -15,7 +15,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
-import { sheetCellsSchema, sheetPropsSchema } from '@synapse/blocks';
+import { pageMetaPatchSchema, sheetCellsSchema, sheetPropsSchema } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../db.js';
@@ -918,6 +918,47 @@ export const blockRouter = router({
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
+        .where(eq(schema.block.id, input.pageId))
+        .returning();
+      if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await indexAfterWrite(ctx.env, updated);
+      return updated;
+    }),
+
+  /**
+   * ドキュメント・メタ（ステータス/種別/レビュアー/タグ/AI要点）を更新 (PBI-107)。
+   * doc / title には触れず、指定フィールドだけ props にマージする。`null` で
+   * フィールドをクリア、`undefined` で据え置き。
+   */
+  updatePageMeta: protectedProcedure
+    .input(z.object({ pageId: z.string().min(1), patch: pageMetaPatchSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
+
+      const next = { ...((existing.props ?? {}) as Record<string, unknown>) };
+      const p = input.patch;
+      for (const key of ['docStatus', 'docType', 'reviewerIds', 'tags', 'aiSummary'] as const) {
+        const v = p[key];
+        if (v === undefined) continue;
+        if (v === null) delete next[key];
+        else next[key] = v;
+      }
+
+      const [updated] = await ctx.db
+        .update(schema.block)
+        .set({ props: next, version: sql`${schema.block.version} + 1`, updatedAt: new Date() })
         .where(eq(schema.block.id, input.pageId))
         .returning();
       if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
