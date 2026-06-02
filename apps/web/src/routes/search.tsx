@@ -10,6 +10,7 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
+import { useT } from '../lib/i18n.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/search')({
@@ -34,6 +35,7 @@ function SearchRoute() {
 }
 
 function SearchPanel({ workspaceId }: { workspaceId: string }) {
+  const t = useT();
   const [input, setInput] = useState('');
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<TypeFilter>('all');
@@ -56,7 +58,7 @@ function SearchPanel({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="w-full max-w-none px-6 py-12">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">🔍 検索</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">🔍 {t('page.search.title')}</h1>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           ワークスペース内のページ・PBI・シートを横断検索します。
         </p>
@@ -67,7 +69,7 @@ function SearchPanel({ workspaceId }: { workspaceId: string }) {
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="キーワードを入力…"
+        placeholder={t('page.search.placeholder')}
         data-testid="search-input"
         className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-base focus:border-violet-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-900"
       />
@@ -98,12 +100,12 @@ function SearchPanel({ workspaceId }: { workspaceId: string }) {
 
       <div className="mt-4" data-testid="search-results">
         {q.length === 0 ? (
-          <p className="py-12 text-center text-sm text-zinc-400">キーワードを入力してください。</p>
+          <p className="py-12 text-center text-sm text-zinc-400">{t('page.search.prompt')}</p>
         ) : results.isPending ? (
           <p className="py-12 text-center text-sm text-zinc-500">検索中…</p>
         ) : hits.length === 0 ? (
           <p className="py-12 text-center text-sm text-zinc-500" data-testid="search-empty">
-            「{q}」に一致する結果はありません。
+            「{q}」— {t('page.search.empty')}
           </p>
         ) : (
           <ul className="space-y-2">

@@ -101,6 +101,25 @@ const ja: Dict = {
   // ユーザーメニュー
   'userMenu.label': 'ユーザーメニュー',
   'userMenu.language': '言語',
+
+  // 画面見出し / 主要ラベル (PBI-92)
+  'page.search.title': '検索',
+  'page.search.placeholder': 'キーワードを入力…',
+  'page.search.empty': '一致する結果はありません。',
+  'page.search.prompt': 'キーワードを入力してください。',
+  'page.trash.title': 'ゴミ箱',
+  'page.trash.empty': 'ゴミ箱は空です',
+  'page.chat.channels': 'チャンネル',
+  'page.chat.placeholder': 'メッセージを入力…',
+  'page.chat.send': '送信',
+  'page.chat.empty': 'まだメッセージがありません。最初の投稿をどうぞ。',
+  'page.home.welcome': 'SYNAPSE へようこそ',
+  'page.pbi.title': 'PBI 一覧',
+  'dash.due': '期限間近の PBI',
+  'dash.unread': '未読通知',
+  'dash.pbiStatus': 'PBI ステータス',
+  'common.newPbi': '+ 新規 PBI',
+  'common.restore': '復元',
 };
 
 const en: Dict = {
@@ -183,6 +202,25 @@ const en: Dict = {
   // User menu
   'userMenu.label': 'User menu',
   'userMenu.language': 'Language',
+
+  // Page headings / key labels (PBI-92)
+  'page.search.title': 'Search',
+  'page.search.placeholder': 'Type a keyword…',
+  'page.search.empty': 'No matching results.',
+  'page.search.prompt': 'Enter a keyword to search.',
+  'page.trash.title': 'Trash',
+  'page.trash.empty': 'Trash is empty',
+  'page.chat.channels': 'Channels',
+  'page.chat.placeholder': 'Type a message…',
+  'page.chat.send': 'Send',
+  'page.chat.empty': 'No messages yet. Be the first to post.',
+  'page.home.welcome': 'Welcome to SYNAPSE',
+  'page.pbi.title': 'PBIs',
+  'dash.due': 'PBIs due soon',
+  'dash.unread': 'Unread notifications',
+  'dash.pbiStatus': 'PBI status',
+  'common.newPbi': '+ New PBI',
+  'common.restore': 'Restore',
 };
 
 export const messages: Record<Locale, Dict> = { ja, en };

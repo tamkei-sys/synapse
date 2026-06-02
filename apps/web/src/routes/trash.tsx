@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
+import { useT } from '../lib/i18n.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/trash')({
@@ -45,6 +46,7 @@ function TrashRoute() {
 }
 
 function TrashPanel({ workspaceId }: { workspaceId: string }) {
+  const t = useT();
   const qc = useQueryClient();
   const trash = useQuery({
     queryKey: ['block', 'listTrash', workspaceId],
@@ -91,7 +93,7 @@ function TrashPanel({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="w-full max-w-none px-6 py-12">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">🗑️ ゴミ箱</h1>
+        <h1 className="text-xl font-semibold">🗑️ {t('page.trash.title')}</h1>
         <Link to="/" className="text-sm text-violet-600 hover:underline">
           ← ホームへ
         </Link>
@@ -140,7 +142,7 @@ function TrashPanel({ workspaceId }: { workspaceId: string }) {
           data-testid="trash-empty"
           className="rounded-md border border-dashed border-zinc-300 px-3 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700"
         >
-          ゴミ箱は空です
+          {t('page.trash.empty')}
         </p>
       ) : (
         <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
