@@ -11,12 +11,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addDependencySchema,
   createPbiSchema,
   createProjectSchema,
   createSbiSchema,
   createSprintSchema,
   getOverviewSchema,
   getPbiSchema,
+  listDependenciesSchema,
   listPbisSchema,
   listProjectsSchema,
   listSbisSchema,
@@ -98,6 +100,18 @@ describe('PBI patch & create schemas (PBI-97)', () => {
     expect(ok.patch.projectId).toBeNull();
     expect(ok.patch.assigneeIds).toEqual([]);
     expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
+  });
+});
+
+describe('dependency schemas (PBI-100)', () => {
+  it('addDependency requires both blockId and dependsOnId', () => {
+    expect(() => addDependencySchema.parse({ blockId: 'a' })).toThrow();
+    expect(addDependencySchema.parse({ blockId: 'a', dependsOnId: 'b', note: 'x' }).note).toBe('x');
+  });
+
+  it('listDependencies requires blockId', () => {
+    expect(() => listDependenciesSchema.parse({})).toThrow();
+    expect(listDependenciesSchema.parse({ blockId: 'a' })).toEqual({ blockId: 'a' });
   });
 });
 

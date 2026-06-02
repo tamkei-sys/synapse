@@ -146,6 +146,22 @@ export const sprintMetricsSchema = z.object({
   sprintId: z.string().min(1),
 });
 
+// Dependencies — "blockId is blocked by dependsOnId". (PBI-100)
+export const addDependencySchema = z.object({
+  blockId: z.string().min(1),
+  dependsOnId: z.string().min(1),
+  note: z.string().max(500).optional(),
+});
+
+export const removeDependencySchema = z.object({
+  blockId: z.string().min(1),
+  dependsOnId: z.string().min(1),
+});
+
+export const listDependenciesSchema = z.object({
+  blockId: z.string().min(1),
+});
+
 // Discovery (read) — PBI-96. Lets an MCP client orient itself in the
 // Project → Sprint → PBI → SBI hierarchy instead of only seeing a flat
 // PBI list. All are workspace-scoped via the resolved token.
@@ -728,6 +744,107 @@ export async function sprintMetrics(
   };
 }
 
+// ---- dependency handlers (PBI-100) ------------------------------------------
+
+export async function addDependency(
+  ctx: ToolContext,
+  input: z.infer<typeof addDependencySchema>,
+): Promise<unknown> {
+  if (input.blockId === input.dependsOnId) {
+    throw new ToolError('INVALID', 'A block cannot depend on itself.');
+  }
+  const rows = await ctx.db
+    .select({ id: schema.block.id, workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(
+      and(
+        inArray(schema.block.id, [input.blockId, input.dependsOnId]),
+        isNull(schema.block.deletedAt),
+      ),
+    );
+  if (rows.length !== 2) throw new ToolError('NOT_FOUND', 'one or both blocks not found');
+  for (const r of rows) {
+    if (r.workspaceId !== ctx.workspaceId) {
+      throw new ToolError('FORBIDDEN', 'block belongs to a different workspace');
+    }
+  }
+  await ctx.db
+    .insert(schema.blockDependency)
+    .values({
+      blockId: input.blockId,
+      dependsOnId: input.dependsOnId,
+      ...(input.note !== undefined ? { note: input.note } : {}),
+    })
+    .onConflictDoNothing();
+  return { ok: true, blockId: input.blockId, dependsOnId: input.dependsOnId };
+}
+
+export async function removeDependency(
+  ctx: ToolContext,
+  input: z.infer<typeof removeDependencySchema>,
+): Promise<unknown> {
+  const [block] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(eq(schema.block.id, input.blockId))
+    .limit(1);
+  if (!block) throw new ToolError('NOT_FOUND', `block ${input.blockId} not found`);
+  if (block.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'block belongs to a different workspace');
+  }
+  await ctx.db
+    .delete(schema.blockDependency)
+    .where(
+      and(
+        eq(schema.blockDependency.blockId, input.blockId),
+        eq(schema.blockDependency.dependsOnId, input.dependsOnId),
+      ),
+    );
+  return { ok: true };
+}
+
+export async function listDependencies(
+  ctx: ToolContext,
+  input: z.infer<typeof listDependenciesSchema>,
+): Promise<unknown> {
+  const [block] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(and(eq(schema.block.id, input.blockId), isNull(schema.block.deletedAt)))
+    .limit(1);
+  if (!block) throw new ToolError('NOT_FOUND', `block ${input.blockId} not found`);
+  if (block.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'block belongs to a different workspace');
+  }
+
+  const blockedByEdges = await ctx.db
+    .select({ id: schema.blockDependency.dependsOnId, note: schema.blockDependency.note })
+    .from(schema.blockDependency)
+    .where(eq(schema.blockDependency.blockId, input.blockId));
+  const blocksEdges = await ctx.db
+    .select({ id: schema.blockDependency.blockId, note: schema.blockDependency.note })
+    .from(schema.blockDependency)
+    .where(eq(schema.blockDependency.dependsOnId, input.blockId));
+
+  const refIds = [...new Set([...blockedByEdges.map((e) => e.id), ...blocksEdges.map((e) => e.id)])];
+  const refMap = new Map<string, { id: string; type: string; props: unknown }>();
+  if (refIds.length > 0) {
+    const refs = await ctx.db
+      .select({ id: schema.block.id, type: schema.block.type, props: schema.block.props })
+      .from(schema.block)
+      .where(and(eq(schema.block.workspaceId, ctx.workspaceId), inArray(schema.block.id, refIds)));
+    for (const r of refs) refMap.set(r.id, r);
+  }
+  const enrich = (e: { id: string; note: string | null }) => {
+    const ref = refMap.get(e.id);
+    return {
+      ...(ref ? refBlock(ref) : { id: e.id }),
+      ...(e.note ? { note: e.note } : {}),
+    };
+  };
+  return { blockedBy: blockedByEdges.map(enrich), blocks: blocksEdges.map(enrich) };
+}
+
 // ---- discovery handlers (PBI-96) --------------------------------------------
 
 export async function listProjects(
@@ -938,6 +1055,26 @@ export function projectSbi(row: BlockProjection) {
     ...(p.dueDate ? { dueDate: p.dueDate } : {}),
     ...(p.pbiId ? { pbiId: p.pbiId } : {}),
     updatedAt: row.updatedAt,
+  };
+}
+
+const KEY_PREFIX: Record<string, string> = { pbi: 'PBI', sbi: 'SBI', project: 'PRJ', sprint: 'SP' };
+
+/** Compact reference to a block (for dependency edges, etc.). */
+function refBlock(row: { id: string; type: string; props: unknown }) {
+  const p = (row.props ?? {}) as {
+    title?: string;
+    name?: string;
+    status?: string;
+    number?: number;
+  };
+  const prefix = KEY_PREFIX[row.type];
+  return {
+    id: row.id,
+    type: row.type,
+    ...(prefix && typeof p.number === 'number' ? { key: `${prefix}-${p.number}` } : {}),
+    title: p.title ?? p.name ?? 'Untitled',
+    ...(p.status ? { status: p.status } : {}),
   };
 }
 

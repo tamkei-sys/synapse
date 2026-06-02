@@ -24,6 +24,8 @@ import { resolveApiToken } from './auth.js';
 import { createDb } from './db.js';
 import { loadEnv } from './env.js';
 import {
+  addDependency,
+  addDependencySchema,
   createPbi,
   createPbiSchema,
   createProject,
@@ -36,6 +38,8 @@ import {
   getOverviewSchema,
   getPbi,
   getPbiSchema,
+  listDependencies,
+  listDependenciesSchema,
   listPbis,
   listPbisSchema,
   listProjects,
@@ -44,6 +48,8 @@ import {
   listSbisSchema,
   listSprints,
   listSprintsSchema,
+  removeDependency,
+  removeDependencySchema,
   sprintMetrics,
   sprintMetricsSchema,
   ToolError,
@@ -349,6 +355,39 @@ async function main(): Promise<void> {
           properties: { sprintId: { type: 'string' } },
         },
       },
+      {
+        name: 'synapse_add_dependency',
+        description:
+          'Record that one block is blocked by another (blockId is blocked by dependsOnId). Both must be in the workspace. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['blockId', 'dependsOnId'],
+          properties: {
+            blockId: { type: 'string' },
+            dependsOnId: { type: 'string' },
+            note: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'synapse_remove_dependency',
+        description: 'Remove a dependency edge (blockId blocked by dependsOnId). Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['blockId', 'dependsOnId'],
+          properties: { blockId: { type: 'string' }, dependsOnId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_list_dependencies',
+        description:
+          "List a block's dependency edges: blockedBy (what it waits on) and blocks (what waits on it), each resolved to key/title/status.",
+        inputSchema: {
+          type: 'object',
+          required: ['blockId'],
+          properties: { blockId: { type: 'string' } },
+        },
+      },
     ],
   }));
 
@@ -420,6 +459,12 @@ async function dispatch(
       return updateSprint(ctx, updateSprintSchema.parse(args));
     case 'synapse_sprint_metrics':
       return sprintMetrics(ctx, sprintMetricsSchema.parse(args));
+    case 'synapse_add_dependency':
+      return addDependency(ctx, addDependencySchema.parse(args));
+    case 'synapse_remove_dependency':
+      return removeDependency(ctx, removeDependencySchema.parse(args));
+    case 'synapse_list_dependencies':
+      return listDependencies(ctx, listDependenciesSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
