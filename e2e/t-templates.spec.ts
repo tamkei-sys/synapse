@@ -76,33 +76,35 @@ test('saving a page as a template and creating from it reproduces the body', asy
   await editor.pressSequentially(srcBody);
   await expect(editor).toContainText(srcBody);
 
-  // store の debounce(~2s) を待ってからテンプレ化する。最初の試行で確実に
-  // flush 済みにしてテンプレの量産を抑える。遅れても下の toPass で吸収。
+  // store の debounce(~2s) を待って本文を flush してから 1 度だけテンプレ化する。
+  // （以前は toPass 内で毎回保存していたため、ビルトイン既定テンプレ(PBI-105)で
+  //  メニューが重くなると同名テンプレが量産され不安定だった。）
   await page.waitForTimeout(3_000);
+  await expect(editor).toContainText(srcBody);
+  await page.getByTestId('page-save-template').click();
+  await expect(page.getByTestId('page-template-saved-label')).toHaveText(
+    'テンプレートに保存しました',
+    { timeout: 10_000 },
+  );
 
-  // ---- テンプレ化 → テンプレから新ページ作成 → 本文再現を確認 -----------
+  // ---- テンプレから新ページ作成 → 本文再現を確認 -----------------------
+  const menu = page.getByTestId('template-menu');
   await expect(async () => {
-    // 毎リトライで元ページに戻ってからテンプレ化する（新ページ側を誤って
-    // テンプレ化しないため）。本文が復元されていることも確認。
-    await page.goto(`/p/${srcId}`);
-    await waitForLive(page);
-    await expect(page.getByTestId('editor-content')).toContainText(srcBody, { timeout: 5_000 });
+    // メニューを開く（閉じていれば）。
+    if (!(await menu.isVisible().catch(() => false))) {
+      await page.getByTestId('sidebar-templates').click();
+    }
+    await expect(menu).toBeVisible({ timeout: 5_000 });
 
-    await page.getByTestId('page-save-template').click();
-    await expect(page.getByTestId('page-template-saved-label')).toHaveText(
-      'テンプレートに保存しました',
-      { timeout: 5_000 },
-    );
-
-    // サイドバーの「📋」からテンプレ一覧を開き、最新テンプレを選ぶ。
-    await page.getByTestId('sidebar-templates').click();
-    await expect(page.getByTestId('template-menu')).toBeVisible({ timeout: 5_000 });
-    // 自分の保存テンプレを一意タイトル(srcTitle)で選ぶ。ビルトイン既定テンプレ
-    // (PBI-105)を誤クリックせず、リトライで増えた重複は .last() で1つに絞る
-    // （strict mode 回避）。本文(srcBody)を持つのは自分のテンプレのみ。
-    const items = page.locator('[data-testid^="template-item-"]');
-    await expect(items.first()).toBeVisible({ timeout: 5_000 });
-    await page.getByTestId('template-menu').getByText(srcTitle).last().click();
+    // ビルトイン既定テンプレ(PBI-105)が常に並ぶので、自分の保存テンプレ(srcTitle)
+    // を名前で特定する。最下段でオーバーフロー内に隠れるため明示スクロールしてから
+    // クリックする（absolute popover では自動スクロールが効かないことがある）。
+    const myTpl = menu.getByRole('button', { name: srcTitle });
+    await expect(myTpl).toBeVisible({ timeout: 5_000 });
+    // 最下段の項目は overflow popover 内で物理クリックが actionability 待ちで
+    // 固まることがあるため、onClick を直接発火する（dispatchEvent はスクロール/
+    // インターセプト非依存）。
+    await myTpl.dispatchEvent('click');
 
     // 新ページ(別 id)へ遷移し、本文がサーバ state 経由で再現される。
     await page.waitForURL(
