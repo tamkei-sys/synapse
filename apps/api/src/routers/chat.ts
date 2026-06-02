@@ -13,6 +13,7 @@ import { ulid } from 'ulid';
 import { z } from 'zod';
 
 import {
+  chatAttachmentSchema,
   chatChannelPropsSchema,
   chatMessagePropsSchema,
   extractMentions,
@@ -132,22 +133,38 @@ export const chatRouter = router({
 
       // 新しい順で取得 → 表示用に昇順へ。
       return rows
-        .map((r) => ({
-          id: r.id,
-          body: ((r.props ?? {}) as { body?: string }).body ?? '',
-          authorName: r.authorName,
-          authorImage: r.authorImage,
-          createdBy: r.createdBy,
-          createdAt: r.createdAt,
-          reactions: byMsg.get(r.id) ?? [],
-        }))
+        .map((r) => {
+          const p = (r.props ?? {}) as {
+            body?: string;
+            attachment?: { kind: 'image' | 'file'; url: string; name: string; mime: string };
+          };
+          return {
+            id: r.id,
+            body: p.body ?? '',
+            attachment: p.attachment ?? null,
+            authorName: r.authorName,
+            authorImage: r.authorImage,
+            createdBy: r.createdBy,
+            createdAt: r.createdAt,
+            reactions: byMsg.get(r.id) ?? [],
+          };
+        })
         .reverse();
     }),
 
   /** メッセージ送信。メンションは通知 fan-out。 */
   sendMessage: protectedProcedure
-    .input(z.object({ channelId: z.string().min(1), body: z.string().trim().min(1).max(4_000) }))
+    .input(
+      z.object({
+        channelId: z.string().min(1),
+        body: z.string().trim().max(4_000).default(''),
+        attachment: chatAttachmentSchema.optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
+      if (!input.body && !input.attachment) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: '本文か添付が必要です' });
+      }
       const [channel] = await ctx.db
         .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
         .from(schema.block)
@@ -161,6 +178,7 @@ export const chatRouter = router({
       const props = chatMessagePropsSchema.parse({
         body: input.body,
         ...(mentions.length > 0 ? { mentions } : {}),
+        ...(input.attachment ? { attachment: input.attachment } : {}),
       });
       await ctx.db.insert(schema.block).values({
         id,
