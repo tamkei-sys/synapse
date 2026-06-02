@@ -11,7 +11,7 @@
  *   - synapse_create_pbi          write
  *   - synapse_update_pbi_status   write — destructive
  */
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -172,6 +172,17 @@ export const addCommentSchema = z.object({
 
 export const listCommentsSchema = z.object({
   blockId: z.string().min(1),
+});
+
+// Search & human-id resolution. (PBI-102)
+export const searchSchema = z.object({
+  query: z.string().trim().min(1).max(200),
+  types: z.array(z.string()).max(10).optional(),
+  limit: z.number().int().min(1).max(50).default(20),
+});
+
+export const resolveKeySchema = z.object({
+  key: z.string().trim().min(1).max(40),
 });
 
 // Discovery (read) — PBI-96. Lets an MCP client orient itself in the
@@ -957,6 +968,95 @@ export async function listComments(
       ...(p.parentCommentId ? { parentCommentId: p.parentCommentId } : {}),
     };
   });
+}
+
+// ---- search & resolve handlers (PBI-102) ------------------------------------
+
+export async function searchWorkspace(
+  ctx: ToolContext,
+  input: z.infer<typeof searchSchema>,
+): Promise<unknown> {
+  // DB-backed substring search over block props. MCP has no Typesense
+  // credentials (env is DB + token only), so we match title/name/body
+  // directly. The query value is parameterized by the sql template.
+  const like = `%${input.query}%`;
+  const filters = [
+    eq(schema.block.workspaceId, ctx.workspaceId),
+    isNull(schema.block.deletedAt),
+    sql`(
+      (${schema.block.props}->>'title') ILIKE ${like}
+      OR (${schema.block.props}->>'name') ILIKE ${like}
+      OR (${schema.block.props}->>'body') ILIKE ${like}
+    )`,
+  ];
+  if (input.types && input.types.length > 0) {
+    filters.push(inArray(schema.block.type, input.types));
+  }
+  const rows = await ctx.db
+    .select({
+      id: schema.block.id,
+      type: schema.block.type,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    })
+    .from(schema.block)
+    .where(and(...filters))
+    .orderBy(desc(schema.block.updatedAt))
+    .limit(input.limit);
+  return rows.map((r) => ({ ...refBlock(r), updatedAt: r.updatedAt }));
+}
+
+export async function resolveKey(
+  ctx: ToolContext,
+  input: z.infer<typeof resolveKeySchema>,
+): Promise<unknown> {
+  const KEY_TO_TYPE: Record<string, string> = {
+    PBI: 'pbi',
+    SBI: 'sbi',
+    PRJ: 'project',
+    SP: 'sprint',
+  };
+  const m = /^(PBI|SBI|PRJ|SP)-(\d+)$/i.exec(input.key.trim());
+  if (!m) {
+    throw new ToolError(
+      'INVALID',
+      `Unrecognized key "${input.key}". Expected PBI-n / SBI-n / PRJ-n / SP-n.`,
+    );
+  }
+  const [, rawPrefix, num] = m;
+  const type = rawPrefix ? KEY_TO_TYPE[rawPrefix.toUpperCase()] : undefined;
+  if (!type || !num) throw new ToolError('INVALID', `Unrecognized key "${input.key}".`);
+
+  const [row] = await ctx.db
+    .select({
+      id: schema.block.id,
+      type: schema.block.type,
+      props: schema.block.props,
+      updatedAt: schema.block.updatedAt,
+    })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        eq(schema.block.type, type),
+        isNull(schema.block.deletedAt),
+        sql`(${schema.block.props}->>'number') = ${num}`,
+      ),
+    )
+    .limit(1);
+  if (!row) throw new ToolError('NOT_FOUND', `${input.key} not found`);
+  switch (type) {
+    case 'pbi':
+      return projectPbi(row);
+    case 'project':
+      return projectProject(row);
+    case 'sprint':
+      return projectSprint(row);
+    case 'sbi':
+      return projectSbi(row);
+    default:
+      return refBlock(row);
+  }
 }
 
 // ---- discovery handlers (PBI-96) --------------------------------------------

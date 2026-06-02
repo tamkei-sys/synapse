@@ -54,6 +54,10 @@ import {
   listSprintsSchema,
   removeDependency,
   removeDependencySchema,
+  resolveKey,
+  resolveKeySchema,
+  searchSchema,
+  searchWorkspace,
   sprintMetrics,
   sprintMetricsSchema,
   ToolError,
@@ -412,6 +416,30 @@ async function main(): Promise<void> {
           properties: { blockId: { type: 'string' } },
         },
       },
+      {
+        name: 'synapse_search',
+        description:
+          'Substring search across the workspace by block title/name/body. Optional type filter (pbi, sbi, project, sprint, page, …).',
+        inputSchema: {
+          type: 'object',
+          required: ['query'],
+          properties: {
+            query: { type: 'string' },
+            types: { type: 'array', items: { type: 'string' } },
+            limit: { type: 'integer', minimum: 1, maximum: 50 },
+          },
+        },
+      },
+      {
+        name: 'synapse_resolve_key',
+        description:
+          'Resolve a human key (PBI-42, SBI-161, PRJ-9, SP-3) to its block with full detail.',
+        inputSchema: {
+          type: 'object',
+          required: ['key'],
+          properties: { key: { type: 'string' } },
+        },
+      },
     ],
   }));
 
@@ -493,6 +521,10 @@ async function dispatch(
       return addComment(ctx, addCommentSchema.parse(args));
     case 'synapse_list_comments':
       return listComments(ctx, listCommentsSchema.parse(args));
+    case 'synapse_search':
+      return searchWorkspace(ctx, searchSchema.parse(args));
+    case 'synapse_resolve_key':
+      return resolveKey(ctx, resolveKeySchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

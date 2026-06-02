@@ -29,6 +29,8 @@ import {
   projectProject,
   projectSbi,
   projectSprint,
+  resolveKeySchema,
+  searchSchema,
   sprintMetricsSchema,
   ToolError,
   updatePbiSchema,
@@ -102,6 +104,19 @@ describe('PBI patch & create schemas (PBI-97)', () => {
     expect(ok.patch.projectId).toBeNull();
     expect(ok.patch.assigneeIds).toEqual([]);
     expect(() => updatePbiSchema.parse({ pbiId: 'a', patch: { priority: 'urgent' } })).toThrow();
+  });
+});
+
+describe('search & resolve schemas (PBI-102)', () => {
+  it('search requires a query and defaults the limit to 20', () => {
+    expect(() => searchSchema.parse({})).toThrow();
+    expect(searchSchema.parse({ query: 'x' }).limit).toBe(20);
+    expect(searchSchema.parse({ query: 'x', limit: 5 }).limit).toBe(5);
+  });
+
+  it('resolveKey requires a key', () => {
+    expect(() => resolveKeySchema.parse({})).toThrow();
+    expect(resolveKeySchema.parse({ key: 'PBI-42' })).toEqual({ key: 'PBI-42' });
   });
 });
 
