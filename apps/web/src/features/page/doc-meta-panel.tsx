@@ -23,6 +23,7 @@ type Meta = {
   docType?: DocType;
   reviewerIds?: string[];
   tags?: string[];
+  aiSummary?: string;
 };
 
 export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspaceId: string }) {
@@ -42,6 +43,12 @@ export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspac
 
   const update = useMutation({
     mutationFn: (patch: PageMetaPatch) => trpc.block.updatePageMeta.mutate({ pageId, patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getPage', pageId] }),
+  });
+
+  // AI 要点（PBI-108）。本文から自動生成し props.aiSummary に保存する。
+  const summarize = useMutation({
+    mutationFn: () => trpc.ai.summarizePage.mutate({ workspaceId, pageId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getPage', pageId] }),
   });
 
@@ -201,6 +208,31 @@ export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspac
               data-testid="doc-tag-input"
               className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-700 dark:bg-zinc-900"
             />
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs font-medium text-zinc-500">要点 (AI)</span>
+              <button
+                type="button"
+                onClick={() => summarize.mutate()}
+                disabled={summarize.isPending}
+                data-testid="doc-summarize-button"
+                className="rounded border border-zinc-300 px-2 py-0.5 text-[10px] hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              >
+                {summarize.isPending ? '生成中…' : meta.aiSummary ? '再生成' : '生成'}
+              </button>
+            </div>
+            {meta.aiSummary ? (
+              <p
+                data-testid="doc-ai-summary"
+                className="whitespace-pre-wrap rounded bg-zinc-50 p-2 text-xs text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300"
+              >
+                {meta.aiSummary}
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-400">本文から要点を自動生成します。</p>
+            )}
           </div>
         </div>
       ) : null}
