@@ -20,6 +20,7 @@ import type * as Y from 'yjs';
 
 import { parseDocumentName } from './auth.js';
 import { schema, type Database } from './db.js';
+import { seedStateFromDoc } from './template-schema.js';
 
 /** 自動版スナップショットの最小間隔（前回 auto 版からこの時間空けば新版を積む）。 */
 const AUTO_SNAPSHOT_INTERVAL_MS = 5 * 60_000;
@@ -35,7 +36,18 @@ export function createPersistenceExtension(db: Database) {
         .from(schema.blockYjsState)
         .where(sql`${schema.blockYjsState.blockId} = ${blockId}`)
         .limit(1);
-      return row ? row.state : null;
+      if (row) return row.state;
+
+      // No stored CRDT state yet. Seed from the page's doc snapshot when it
+      // has content — built-in templates and pages created from them carry a
+      // `props.doc` but no Yjs state until first edit. (PBI-105)
+      const [block] = await db
+        .select({ props: schema.block.props })
+        .from(schema.block)
+        .where(eq(schema.block.id, blockId))
+        .limit(1);
+      const doc = (block?.props as { doc?: unknown } | null)?.doc;
+      return seedStateFromDoc(doc);
     },
 
     store: async ({ documentName, state, document }) => {

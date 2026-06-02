@@ -42,6 +42,9 @@ function idFromUrl(url: string): string {
 test('saving a page as a template and creating from it reproduces the body', async ({
   browser,
 }) => {
+  // toPass のリトライ予算(45s)が Playwright 既定のテスト上限30sを超えるため明示的に伸ばす。
+  // ビルトイン既定テンプレ追加(PBI-105)でメニューが9項目になり、30s 上限に当たりやすくなった。
+  test.setTimeout(60_000);
   const email = `e2e-tpl-${unique()}@synapse.test`;
   const password = 'correct horse battery staple';
   const srcTitle = `TplSrc${unique()}`;
@@ -94,9 +97,12 @@ test('saving a page as a template and creating from it reproduces the body', asy
     // サイドバーの「📋」からテンプレ一覧を開き、最新テンプレを選ぶ。
     await page.getByTestId('sidebar-templates').click();
     await expect(page.getByTestId('template-menu')).toBeVisible({ timeout: 5_000 });
+    // 自分の保存テンプレを一意タイトル(srcTitle)で選ぶ。ビルトイン既定テンプレ
+    // (PBI-105)を誤クリックせず、リトライで増えた重複は .last() で1つに絞る
+    // （strict mode 回避）。本文(srcBody)を持つのは自分のテンプレのみ。
     const items = page.locator('[data-testid^="template-item-"]');
     await expect(items.first()).toBeVisible({ timeout: 5_000 });
-    await items.last().click();
+    await page.getByTestId('template-menu').getByText(srcTitle).last().click();
 
     // 新ページ(別 id)へ遷移し、本文がサーバ state 経由で再現される。
     await page.waitForURL(

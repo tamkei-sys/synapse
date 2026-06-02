@@ -23,6 +23,7 @@ import { z } from 'zod';
 import { db as schema } from '@synapse/schema';
 
 import { assertIsOwner, assertWorkspaceMember } from '../lib/access.js';
+import { seedDefaultTemplates } from '../lib/default-templates.js';
 import { slugify, suffixedSlug } from '../lib/slug.js';
 import { protectedProcedure, router } from '../trpc.js';
 
@@ -108,6 +109,15 @@ export const workspaceRouter = router({
 
         return row;
       });
+
+      // Seed built-in default templates (best-effort — never block workspace
+      // creation if templating fails). The editable body is hydrated from
+      // props.doc by the sync server on first open. (PBI-105)
+      try {
+        await seedDefaultTemplates(ctx.db, created.id, ctx.session.user.id);
+      } catch (err) {
+        console.warn('[templates] default seed failed:', err);
+      }
 
       return created;
     }),

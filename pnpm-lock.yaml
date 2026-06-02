@@ -169,6 +169,30 @@ importers:
       '@synapse/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@tiptap/core':
+        specifier: ^2.10.3
+        version: 2.27.2(@tiptap/pm@2.27.2)
+      '@tiptap/extension-table':
+        specifier: ^2.27.2
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
+      '@tiptap/extension-table-cell':
+        specifier: ^2.27.2
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table-header':
+        specifier: ^2.27.2
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-table-row':
+        specifier: ^2.27.2
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/extension-task-item':
+        specifier: ^2.27.2
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))(@tiptap/pm@2.27.2)
+      '@tiptap/extension-task-list':
+        specifier: ^2.27.2
+        version: 2.27.2(@tiptap/core@2.27.2(@tiptap/pm@2.27.2))
+      '@tiptap/starter-kit':
+        specifier: ^2.10.3
+        version: 2.27.2
       drizzle-orm:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20260527.1)(@types/pg@8.20.0)(@types/react@19.2.15)(kysely@0.28.17)(pg@8.21.0)(react@19.2.6)
