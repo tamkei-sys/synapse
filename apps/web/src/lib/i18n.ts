@@ -90,6 +90,19 @@ const ja: Dict = {
   'priority.could': '可能',
   'priority.wont': '先送り',
 
+  // ドキュメント・ライフサイクル (PBI-107)
+  'status.docStatus.draft': '下書き',
+  'status.docStatus.in_review': 'レビュー待ち',
+  'status.docStatus.approved': '承認済み',
+  'status.docStatus.archived': 'アーカイブ',
+  'docType.spec': '仕様書',
+  'docType.design': '設計資料',
+  'docType.plan': '計画書',
+  'docType.report': '報告書',
+  'docType.runbook': '手順書',
+  'docType.notes': '議事録',
+  'docType.other': 'その他',
+
   // Block 種別
   'block.page': 'ページ',
   'block.project': 'プロジェクト',
@@ -190,6 +203,19 @@ const en: Dict = {
   'priority.should': 'Should',
   'priority.could': 'Could',
   'priority.wont': "Won't",
+
+  // Document lifecycle (PBI-107)
+  'status.docStatus.draft': 'Draft',
+  'status.docStatus.in_review': 'In review',
+  'status.docStatus.approved': 'Approved',
+  'status.docStatus.archived': 'Archived',
+  'docType.spec': 'Spec',
+  'docType.design': 'Design doc',
+  'docType.plan': 'Plan',
+  'docType.report': 'Report',
+  'docType.runbook': 'Runbook',
+  'docType.notes': 'Meeting notes',
+  'docType.other': 'Other',
 
   // Block kinds
   'block.page': 'Page',

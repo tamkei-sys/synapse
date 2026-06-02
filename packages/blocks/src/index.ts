@@ -10,6 +10,7 @@ export * from './comment.js';
 export * from './chat.js';
 export * from './db.js';
 export * from './page-ref.js';
+export * from './page-meta.js';
 
 export type BlockType =
   | 'page'

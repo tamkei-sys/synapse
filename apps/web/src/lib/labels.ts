@@ -11,7 +11,15 @@
  * 互換 export として残す（locale を「跨ぐ」場面が無いコンポーネントは
  * useLabels() に置き換え予定）。
  */
-import type { PbiStatus, Priority, ProjectStatus, SbiStatus, SprintStatus } from '@synapse/blocks';
+import type {
+  DocStatus,
+  DocType,
+  PbiStatus,
+  Priority,
+  ProjectStatus,
+  SbiStatus,
+  SprintStatus,
+} from '@synapse/blocks';
 
 import { type Locale, tFor, useLocale } from './i18n.js';
 
@@ -48,6 +56,25 @@ export const sprintStatusLabel: Record<SprintStatus, string> = build('ja', 'stat
 export const pbiStatusLabel: Record<PbiStatus, string> = build('ja', 'status.pbi', PBI_KEYS);
 export const sbiStatusLabel: Record<SbiStatus, string> = build('ja', 'status.sbi', SBI_KEYS);
 export const priorityLabel: Record<Priority, string> = build('ja', 'priority', PRIORITY_KEYS);
+
+// ドキュメント・ライフサイクル (PBI-107)
+const DOC_STATUS_KEYS = [
+  'draft',
+  'in_review',
+  'approved',
+  'archived',
+] as const satisfies readonly DocStatus[];
+const DOC_TYPE_KEYS = [
+  'spec',
+  'design',
+  'plan',
+  'report',
+  'runbook',
+  'notes',
+  'other',
+] as const satisfies readonly DocType[];
+export const docStatusLabel: Record<DocStatus, string> = build('ja', 'status.docStatus', DOC_STATUS_KEYS);
+export const docTypeLabel: Record<DocType, string> = build('ja', 'docType', DOC_TYPE_KEYS);
 
 /**
  * 現 locale の全 enum ラベルをまとめて返す hook。新規コンポーネントは
@@ -87,6 +114,10 @@ export const statusTone: Record<string, string> = {
   done: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   cancelled: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
   archived: 'bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500',
+  // ドキュメント・ステータス (PBI-107)
+  draft: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
+  in_review: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+  approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
 };
 
 export const priorityTone: Record<Priority, string> = {

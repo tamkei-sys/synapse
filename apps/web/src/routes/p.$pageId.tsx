@@ -8,6 +8,7 @@ import { EmojiPicker } from '../features/editor/emoji-picker.js';
 import { uploadImage } from '../features/editor/image-upload.js';
 import { diffWords, docToText, type DiffPart } from '../features/editor/text-diff.js';
 import { useCollabDoc, type CollabStatus } from '../features/editor/use-collab-doc.js';
+import { DocMetaPanel } from '../features/page/doc-meta-panel.js';
 import { useSession } from '../lib/auth-client.js';
 import { trpc } from '../lib/trpc.js';
 
@@ -220,6 +221,7 @@ function PageShell({
           <SharePopover pageId={pageId} />
           <HistoryPanel pageId={pageId} editor={editor} />
           <ReminderPanel pageId={pageId} workspaceId={workspaceId} />
+          <DocMetaPanel pageId={pageId} workspaceId={workspaceId} />
           <button
             type="button"
             onClick={() => saveAsTemplate.mutate()}
