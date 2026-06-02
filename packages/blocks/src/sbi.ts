@@ -69,3 +69,20 @@ export function isStale(
   if (Number.isNaN(started)) return null;
   return now.getTime() - started > threshold;
 }
+
+/**
+ * 着手からの経過日数。Notion の `経過日数` 相当を client 側で再計算する。
+ * 進行中は now まで、完了済みは completedAt まで（実所要日数）で測る。
+ * startedAt が無い（未着手）場合は null。
+ */
+export function elapsedDays(
+  p: Pick<SbiProps, 'startedAt' | 'completedAt'>,
+  now: Date = new Date(),
+): number | null {
+  if (!p.startedAt) return null;
+  const started = Date.parse(p.startedAt);
+  if (Number.isNaN(started)) return null;
+  const end = p.completedAt ? Date.parse(p.completedAt) : now.getTime();
+  if (Number.isNaN(end)) return null;
+  return Math.max(0, Math.floor((end - started) / (24 * 60 * 60 * 1000)));
+}

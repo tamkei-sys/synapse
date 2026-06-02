@@ -11,17 +11,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 
-import {
-  SBI_STATUS_ORDER,
-  isOverEstimate,
-  isStale,
-  nextSbiStatus,
-  type SbiStatus,
-} from '@synapse/blocks';
+import { SBI_STATUS_ORDER, nextSbiStatus, type SbiStatus } from '@synapse/blocks';
 
 import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { sbiStatusLabel, statusTone } from '../lib/labels.js';
+import { SbiAlertBadges } from '../lib/sbi-alerts.js';
 import { trpc } from '../lib/trpc.js';
 
 export const Route = createFileRoute('/sbi')({
@@ -37,6 +32,7 @@ type SbiPropsRead = {
   estimateHours?: number;
   actualHours?: number;
   startedAt?: string;
+  completedAt?: string;
   pbiId: string;
   number?: number;
   assigneeId?: string;
@@ -50,6 +46,7 @@ function readSbiProps(row: SbiRow): SbiPropsRead {
     ...(typeof p.estimateHours === 'number' ? { estimateHours: p.estimateHours } : {}),
     ...(typeof p.actualHours === 'number' ? { actualHours: p.actualHours } : {}),
     ...(p.startedAt ? { startedAt: p.startedAt } : {}),
+    ...(p.completedAt ? { completedAt: p.completedAt } : {}),
     pbiId: p.pbiId ?? '',
     ...(typeof p.number === 'number' ? { number: p.number } : {}),
     ...(p.assigneeId ? { assigneeId: p.assigneeId } : {}),
@@ -177,8 +174,6 @@ function SbiPanel({ workspaceId, workspaceName }: { workspaceId: string; workspa
                 <ul className="space-y-2">
                   {cards.map((row) => {
                     const p = readSbiProps(row);
-                    const over = isOverEstimate(p);
-                    const stale = isStale(p);
                     const parent = pbiById.get(p.pbiId);
                     const parentProps = (parent?.props ?? {}) as {
                       number?: number;
@@ -223,22 +218,16 @@ function SbiPanel({ workspaceId, workspaceName }: { workspaceId: string; workspa
                           {typeof p.actualHours === 'number' ? (
                             <span className="text-zinc-500">実績 {p.actualHours}h</span>
                           ) : null}
-                          {over ? (
-                            <span
-                              data-testid={`sbi-over-${row.id}`}
-                              className="rounded bg-amber-100 px-1 font-mono text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                            >
-                              超過
-                            </span>
-                          ) : null}
-                          {stale ? (
-                            <span
-                              data-testid={`sbi-stale-${row.id}`}
-                              className="rounded bg-red-100 px-1 font-mono text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                            >
-                              停滞
-                            </span>
-                          ) : null}
+                          <SbiAlertBadges
+                            sbi={{
+                              id: row.id,
+                              status: p.status,
+                              estimateHours: p.estimateHours,
+                              actualHours: p.actualHours,
+                              startedAt: p.startedAt,
+                              completedAt: p.completedAt,
+                            }}
+                          />
                           {p.assigneeId ? (
                             <SbiAssigneeChip workspaceId={workspaceId} userId={p.assigneeId} />
                           ) : null}
