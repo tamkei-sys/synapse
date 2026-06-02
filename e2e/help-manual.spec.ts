@@ -38,6 +38,7 @@ test('new workspace can open the how-to manual from the sidebar', async ({ brows
   await expect(page.getByTestId('help-sections')).toContainText('ページとドキュメント');
   await expect(page.getByTestId('help-sections')).toContainText('PBI');
   await expect(page.getByTestId('help-sections')).toContainText('検索');
+  await expect(page.getByTestId('help-sections')).toContainText('MCP');
 
   await context.close();
 });
