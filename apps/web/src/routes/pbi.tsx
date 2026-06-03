@@ -29,6 +29,7 @@ import {
   applyItemFilters,
   type FilterValue,
 } from '../features/board/filter-controls.js';
+import { ImplementButton } from '../features/cc/implement-button.js';
 import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import {
@@ -709,6 +710,9 @@ function KanbanBoard({ items, workspaceId }: { items: PbiRow[]; workspaceId: str
                       onClick={() => update.mutate({ pbiId: row.id, status: nextStatus(p.status) })}
                       disabled={update.isPending}
                     />
+                    <div className="mt-2">
+                      <ImplementButton pbiId={row.id} />
+                    </div>
                   </li>
                 );
               })}
@@ -762,56 +766,6 @@ function GithubBadge({ pbiId, link }: { pbiId: string; link: PbiGithubLink }) {
         {link.owner}/{link.repo}#{link.issueNumber}
       </span>
     </a>
-  );
-}
-
-function ImplementButton({ pbiId }: { pbiId: string }) {
-  const queryClient = useQueryClient();
-  const session = useQuery({
-    queryKey: ['cc', 'getForPbi', pbiId],
-    queryFn: () => trpc.cc.getForPbi.query({ pbiId }),
-    refetchInterval: (q) => {
-      const data = q.state.data as { status?: string } | null | undefined;
-      if (!data) return false;
-      return data.status === 'queued' || data.status === 'running' ? 1_000 : false;
-    },
-  });
-
-  const start = useMutation({
-    mutationFn: () => trpc.cc.startForPbi.mutate({ pbiId }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cc', 'getForPbi', pbiId] }),
-  });
-
-  const status = session.data?.status as string | undefined;
-  const prUrl = session.data?.prUrl as string | null | undefined;
-  const inFlight = status === 'queued' || status === 'running';
-  const succeeded = status === 'succeeded';
-
-  if (succeeded && prUrl) {
-    return (
-      <a
-        href={prUrl}
-        target="_blank"
-        rel="noreferrer"
-        data-testid={`pbi-cc-pr-${pbiId}`}
-        className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-300"
-      >
-        PR を開く ↗
-      </a>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => start.mutate()}
-      disabled={start.isPending || inFlight}
-      data-testid={`pbi-implement-${pbiId}`}
-      data-cc-status={status ?? 'idle'}
-      className="rounded-md border border-violet-300 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-60 dark:border-violet-700/60 dark:bg-violet-900/30 dark:text-violet-300"
-    >
-      {inFlight ? '実装中…' : 'cc で実装'}
-    </button>
   );
 }
 
