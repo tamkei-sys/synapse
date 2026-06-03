@@ -45,4 +45,16 @@ export type PageMeta = {
   reviewerIds?: string[];
   tags?: string[];
   aiSummary?: string;
+  /** どの組み込みテンプレ由来か（createFromTemplate が記録）。 */
+  fromTemplateKey?: string;
+  /** 「計画書→報告書」生成で張られる、元ドキュメントへのリンク。 */
+  linkedFromPageId?: string;
+};
+
+/**
+ * 計画書テンプレ → 対応する報告書テンプレの対応表（PBI-109）。
+ * このマップに載る builtinKey のページには「報告書を作成」を出す。
+ */
+export const PLAN_TO_REPORT: Record<string, string> = {
+  'work-plan': 'work-report',
 };
