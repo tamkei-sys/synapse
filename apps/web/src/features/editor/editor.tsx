@@ -52,6 +52,7 @@ import { makeFileSlashCommand } from './file-slash.js';
 import { AudioNode, VideoNode } from './media-node.js';
 import { makeAudioSlashCommand, makeVideoSlashCommand } from './media-slash.js';
 import { InlineMathNode, MathBlockNode } from './math-node.js';
+import { MermaidBlockNode } from './mermaid-node.js';
 import { FindBar } from './find-bar.js';
 import { FindExtension } from './find.js';
 import { FormatToolbar } from './format-toolbar.js';
@@ -176,6 +177,7 @@ export function PageEditor({ doc, workspaceId, parentPageId, pageId, onEditorRea
       DateMentionNode,
       InlineMathNode,
       MathBlockNode,
+      MermaidBlockNode,
       SheetEmbedNode,
       DbEmbedNode,
       PrDiffEmbedNode,

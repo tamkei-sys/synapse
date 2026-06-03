@@ -49,6 +49,7 @@ const ALLOWED_NODES = new Set<string>([
   'tocBlock',
   'inlineMath',
   'mathBlock',
+  'mermaidBlock',
   'dateMention',
   'bookmark',
   'columnList',
@@ -159,6 +160,13 @@ function sanitizeNode(node: PmNode): PmNode | null {
     const favicon = safeImageSrc(node.attrs?.['favicon']);
     if (favicon) attrs['favicon'] = favicon;
     return { type: 'bookmark', attrs };
+  }
+
+  // mermaidBlock は code 属性（mermaid ソース文字列）だけを通す。描画は
+  // read-only エディタが securityLevel:'strict' で行い <script> 等を除去する。
+  if (node.type === 'mermaidBlock') {
+    const code = node.attrs?.['code'];
+    return { type: 'mermaidBlock', attrs: { code: typeof code === 'string' ? code.slice(0, 20_000) : '' } };
   }
 
   // columnList / column は構造ノード。空 column や 2 列未満は schema
