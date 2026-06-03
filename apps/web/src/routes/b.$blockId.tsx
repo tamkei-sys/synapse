@@ -36,6 +36,7 @@ import {
   type FilterValue,
 } from '../features/board/filter-controls.js';
 import { KanbanBoard } from '../features/board/kanban-board.js';
+import { ImplementButton } from '../features/cc/implement-button.js';
 import { BurndownChart } from '../features/charts/burndown-chart.js';
 import { DbView } from '../features/db/db-view.js';
 import { PageEditor } from '../features/editor/editor.js';
@@ -364,6 +365,7 @@ function PbiHeader({ block }: { block: BlockRow }) {
         />
         {p.projectId ? <ParentLink type="project" id={p.projectId} /> : null}
         {p.sprintId ? <ParentLink type="sprint" id={p.sprintId} /> : null}
+        <ImplementButton pbiId={block.id} />
       </div>
     </>
   );
@@ -655,12 +657,23 @@ function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
           renderCard={(row) => {
             const p = (row.props ?? {}) as { title?: string; number?: number };
             return (
-              <Link to="/b/$blockId" params={{ blockId: row.id }} className="block hover:underline">
-                <span className="mr-1 font-mono text-xs text-zinc-400">
-                  {prefix}-{p.number ?? '–'}
-                </span>
-                {p.title ?? '(無題)'}
-              </Link>
+              <>
+                <Link
+                  to="/b/$blockId"
+                  params={{ blockId: row.id }}
+                  className="block hover:underline"
+                >
+                  <span className="mr-1 font-mono text-xs text-zinc-400">
+                    {prefix}-{p.number ?? '–'}
+                  </span>
+                  {p.title ?? '(無題)'}
+                </Link>
+                {kind === 'pbi' ? (
+                  <div className="mt-2">
+                    <ImplementButton pbiId={row.id} />
+                  </div>
+                ) : null}
+              </>
             );
           }}
         />
@@ -692,13 +705,16 @@ function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
                     {p.title ?? '(無題)'}
                   </Link>
                 </div>
-                <span
-                  className={`rounded px-1.5 py-0.5 font-mono text-xs ${
-                    statusTone[p.status ?? 'backlog'] ?? statusTone['backlog']
-                  }`}
-                >
-                  {statusJp}
-                </span>
+                <div className="flex items-center gap-2">
+                  {kind === 'pbi' ? <ImplementButton pbiId={row.id} /> : null}
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-xs ${
+                      statusTone[p.status ?? 'backlog'] ?? statusTone['backlog']
+                    }`}
+                  >
+                    {statusJp}
+                  </span>
+                </div>
               </li>
             );
           })}
