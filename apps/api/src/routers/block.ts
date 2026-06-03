@@ -15,7 +15,12 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
-import { pageMetaPatchSchema, sheetCellsSchema, sheetPropsSchema } from '@synapse/blocks';
+import {
+  PLAN_TO_REPORT,
+  pageMetaPatchSchema,
+  sheetCellsSchema,
+  sheetPropsSchema,
+} from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../db.js';
@@ -489,8 +494,13 @@ export const blockRouter = router({
 
       const newId = ulid();
       // isTemplate を外して通常ページに。title / doc / icon / cover は引き継ぐ。
+      // 由来の組み込みテンプレは fromTemplateKey として記録する（builtinKey は
+      // テンプレ専用なので持ち込まない）。計画書→報告書 生成の判定に使う (PBI-109)。
       const props = { ...tplProps };
       delete props['isTemplate'];
+      const originKey = props['builtinKey'];
+      delete props['builtinKey'];
+      if (typeof originKey === 'string') props['fromTemplateKey'] = originKey;
       const [page] = await ctx.db
         .insert(schema.block)
         .values({
@@ -506,6 +516,85 @@ export const blockRouter = router({
       if (!page) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       // 本文 (Yjs バイナリ) を複製してから検索インデックスへ。
       await copyYjsState(ctx.db, input.templateId, newId);
+      await indexAfterWrite(ctx.env, page);
+      return page;
+    }),
+
+  /**
+   * 計画書ページから、対応する報告書テンプレで報告書ページを生成する (PBI-109)。
+   * 元計画書へ `linkedFromPageId` で相互リンクを張る。本文は報告テンプレの
+   * props.doc を引き継ぎ（Yjs state はテンプレに無いので sync が seed: PBI-105）。
+   */
+  createReportFromPlan: protectedProcedure
+    .input(z.object({ planPageId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [plan] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.planPageId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!plan) throw new TRPCError({ code: 'NOT_FOUND' });
+      await assertCanWrite(ctx.db, plan.workspaceId, ctx.session.user.id);
+
+      const planProps = (plan.props ?? {}) as Record<string, unknown>;
+      const planKey = planProps['fromTemplateKey'];
+      const reportKey = typeof planKey === 'string' ? PLAN_TO_REPORT[planKey] : undefined;
+      if (!reportKey) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'このドキュメントに対応する報告書テンプレートがありません。',
+        });
+      }
+
+      // 同一 WS の報告書テンプレ（builtinKey=reportKey）を探す。
+      const [tpl] = await ctx.db
+        .select({ id: schema.block.id, props: schema.block.props })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.workspaceId, plan.workspaceId),
+            eq(schema.block.type, 'page'),
+            isNull(schema.block.deletedAt),
+            sql`(${schema.block.props}->>'isTemplate') = 'true'`,
+            sql`(${schema.block.props}->>'builtinKey') = ${reportKey}`,
+          ),
+        )
+        .limit(1);
+      if (!tpl) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: '報告書テンプレートが見つかりません。' });
+      }
+      const tplProps = (tpl.props ?? {}) as Record<string, unknown>;
+
+      const newId = ulid();
+      const props = { ...tplProps };
+      delete props['isTemplate'];
+      delete props['builtinKey'];
+      props['fromTemplateKey'] = reportKey;
+      props['linkedFromPageId'] = input.planPageId;
+      const planTitle = typeof planProps['title'] === 'string' ? planProps['title'] : '';
+      const baseTitle = typeof tplProps['title'] === 'string' ? tplProps['title'] : '報告書';
+      if (planTitle) props['title'] = `${baseTitle} — ${planTitle}`;
+
+      const [page] = await ctx.db
+        .insert(schema.block)
+        .values({
+          id: newId,
+          workspaceId: plan.workspaceId,
+          parentId: null,
+          type: 'page',
+          position: newId,
+          props,
+          createdBy: ctx.session.user.id,
+        })
+        .returning();
+      if (!page) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await copyYjsState(ctx.db, tpl.id, newId);
       await indexAfterWrite(ctx.env, page);
       return page;
     }),

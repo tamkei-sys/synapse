@@ -8,11 +8,13 @@
 import {
   DOC_STATUSES,
   DOC_TYPES,
+  PLAN_TO_REPORT,
   type DocStatus,
   type DocType,
   type PageMetaPatch,
 } from '@synapse/blocks';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { docStatusLabel, docTypeLabel, statusTone } from '../../lib/labels.js';
@@ -24,6 +26,8 @@ type Meta = {
   reviewerIds?: string[];
   tags?: string[];
   aiSummary?: string;
+  fromTemplateKey?: string;
+  linkedFromPageId?: string;
 };
 
 export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspaceId: string }) {
@@ -50,6 +54,19 @@ export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspac
   const summarize = useMutation({
     mutationFn: () => trpc.ai.summarizePage.mutate({ workspaceId, pageId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getPage', pageId] }),
+  });
+
+  // 計画書→報告書（PBI-109）。対応する報告テンプレからページを生成して遷移する。
+  const navigate = useNavigate();
+  const reportKey = meta.fromTemplateKey ? PLAN_TO_REPORT[meta.fromTemplateKey] : undefined;
+  const createReport = useMutation({
+    mutationFn: () => trpc.block.createReportFromPlan.mutate({ planPageId: pageId }),
+    onSuccess: async (row) => {
+      setOpen(false);
+      await qc.invalidateQueries({ queryKey: ['block', 'listAllPages', workspaceId] });
+      await qc.invalidateQueries({ queryKey: ['block', 'listPages', workspaceId] });
+      await navigate({ to: '/p/$pageId', params: { pageId: row.id } });
+    },
   });
 
   const members = useQuery({
@@ -234,6 +251,34 @@ export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspac
               <p className="text-xs text-zinc-400">本文から要点を自動生成します。</p>
             )}
           </div>
+
+          {reportKey || meta.linkedFromPageId ? (
+            <div>
+              <span className="mb-1 block text-xs font-medium text-zinc-500">関連</span>
+              {reportKey ? (
+                <button
+                  type="button"
+                  onClick={() => createReport.mutate()}
+                  disabled={createReport.isPending}
+                  data-testid="create-report-button"
+                  className="block w-full rounded border border-zinc-300 px-2 py-1 text-left text-xs hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                >
+                  {createReport.isPending ? '作成中…' : '📝 この計画書から報告書を作成'}
+                </button>
+              ) : null}
+              {meta.linkedFromPageId ? (
+                <Link
+                  to="/p/$pageId"
+                  params={{ pageId: meta.linkedFromPageId }}
+                  onClick={() => setOpen(false)}
+                  data-testid="linked-plan-link"
+                  className="mt-1 block rounded px-2 py-1 text-xs text-violet-600 hover:bg-zinc-50 dark:text-violet-300 dark:hover:bg-zinc-800"
+                >
+                  ← 元の計画書を開く
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
