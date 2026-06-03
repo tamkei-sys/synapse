@@ -54,6 +54,7 @@
     "katex": "^0.16.47",
     "lowlight": "^3.3.0",
     "marked": "^14.1.4",
+    "mermaid": "^11.15.0",
     "react": "catalog:",
     "react-dom": "catalog:",
     "superjson": "^2.2.1",

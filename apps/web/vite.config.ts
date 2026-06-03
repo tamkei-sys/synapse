@@ -22,6 +22,11 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  optimizeDeps: {
+    // mermaid は大きく遅延 import される（ADR-0010）。起動時にプリバンドルして
+    // おくと、初回描画時の依存最適化に伴うフルリロードを避けられる。
+    include: ['mermaid'],
+  },
   build: {
     target: 'es2023',
     sourcemap: true,

@@ -167,6 +167,8 @@ function renderBlock(node: Node, depth = 0): string {
       return renderTable(node);
     case 'mathBlock':
       return `$$\n${node.attrs?.['latex'] ?? ''}\n$$`;
+    case 'mermaidBlock':
+      return `\`\`\`mermaid\n${node.attrs?.['code'] ?? ''}\n\`\`\``;
     default:
       // 未対応はテキスト抽出だけ
       return renderInline(node.content);

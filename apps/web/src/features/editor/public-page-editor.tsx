@@ -29,6 +29,7 @@ import { CalloutNode } from './callout-node.js';
 import { CodeBlockHighlighted } from './code-block.js';
 import { DateMentionNode } from './date-mention-node.js';
 import { InlineMathNode, MathBlockNode } from './math-node.js';
+import { MermaidBlockNode } from './mermaid-node.js';
 import { TocNode } from './toc-node.js';
 import { ToggleDetails, ToggleNode, ToggleSummary } from './toggle-node.js';
 
@@ -68,6 +69,7 @@ export function PublicPageEditor({ doc }: { doc: unknown }) {
       TocNode,
       InlineMathNode,
       MathBlockNode,
+      MermaidBlockNode,
       DateMentionNode,
     ],
     editorProps: {

@@ -162,6 +162,13 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     keywords: ['imath', 'inline math', 'インライン数式', 'katex', 'latex'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).insertInlineMath('').run(),
   },
+  {
+    id: 'mermaid',
+    title: 'Mermaid 図',
+    description: 'フローチャート / シーケンス図などをコードから描画',
+    keywords: ['mermaid', 'マーメイド', 'diagram', '図', 'フローチャート', 'flowchart', 'sequence', 'gantt', 'ダイアグラム'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertMermaidBlock().run(),
+  },
 ];
 
 /** Generic filter that works against any command list (built-in or user). */
