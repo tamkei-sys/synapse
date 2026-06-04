@@ -132,6 +132,18 @@ import {
   dbReorderRowsSchema,
   dbDeleteRow,
   dbDeleteRowSchema,
+  listChannels,
+  listChannelsSchema,
+  createChannel,
+  createChannelSchema,
+  listMessages,
+  listMessagesSchema,
+  sendMessage,
+  sendMessageSchema,
+  deleteMessage,
+  deleteMessageSchema,
+  reactMessage,
+  reactMessageSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -188,6 +200,14 @@ const WRITE_DB_TOOLS = new Set<string>([
   'synapse_db_reorder_rows',
   'synapse_db_delete_row',
 ]);
+// Chat write tools — gated by 'write_chat'. (PBI-123)
+// list_channels / list_messages are read-only and not listed here.
+const WRITE_CHAT_TOOLS = new Set<string>([
+  'synapse_create_channel',
+  'synapse_send_message',
+  'synapse_delete_message',
+  'synapse_react_message',
+]);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
@@ -195,6 +215,7 @@ const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_delete_comment',
   'synapse_db_delete_column',
   'synapse_db_delete_row',
+  'synapse_delete_message',
   'synapse_trash_page',
   'synapse_set_doc',
 ]);
@@ -205,7 +226,8 @@ function isWriteTool(tool: string): boolean {
     WRITE_COMMENT_TOOLS.has(tool) ||
     WRITE_PAGE_TOOLS.has(tool) ||
     WRITE_FAVORITE_TOOLS.has(tool) ||
-    WRITE_DB_TOOLS.has(tool)
+    WRITE_DB_TOOLS.has(tool) ||
+    WRITE_CHAT_TOOLS.has(tool)
   );
 }
 
@@ -215,7 +237,17 @@ function requiredScopes(tool: string): string[] {
   if (WRITE_PAGE_TOOLS.has(tool)) return ['write_page', 'write'];
   if (WRITE_FAVORITE_TOOLS.has(tool)) return ['write_favorite', 'write'];
   if (WRITE_DB_TOOLS.has(tool)) return ['write_db', 'write'];
-  return ['read', 'write', 'write_pbi', 'write_comment', 'write_page', 'write_favorite', 'write_db'];
+  if (WRITE_CHAT_TOOLS.has(tool)) return ['write_chat', 'write'];
+  return [
+    'read',
+    'write',
+    'write_pbi',
+    'write_comment',
+    'write_page',
+    'write_favorite',
+    'write_db',
+    'write_chat',
+  ];
 }
 
 // JSON Schema fragments for a DB column and a cell value, reused across the db
@@ -948,6 +980,83 @@ async function main(): Promise<void> {
           properties: { rowId: { type: 'string' } },
         },
       },
+      // ---- chat (PBI-123) ---------------------------------------------------
+      {
+        name: 'synapse_list_channels',
+        description: 'List the chat channels in the workspace (id, name, description). Read-only.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_create_channel',
+        description: 'Create a chat channel. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string' },
+            description: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'synapse_list_messages',
+        description:
+          'List recent messages in a channel (oldest-first after the limit), with author and reactions. Read-only.',
+        inputSchema: {
+          type: 'object',
+          required: ['channelId'],
+          properties: {
+            channelId: { type: 'string' },
+            limit: { type: 'integer', minimum: 1, maximum: 100 },
+          },
+        },
+      },
+      {
+        name: 'synapse_send_message',
+        description:
+          'Post a message to a channel. Provide body and/or an attachment (at least one). @user-id mentions notify members. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['channelId'],
+          properties: {
+            channelId: { type: 'string' },
+            body: { type: 'string', description: 'Message text (body or attachment required).' },
+            attachment: {
+              type: 'object',
+              required: ['kind', 'url', 'name', 'mime'],
+              properties: {
+                kind: { type: 'string', enum: ['image', 'file'] },
+                url: { type: 'string' },
+                name: { type: 'string' },
+                mime: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_delete_message',
+        description:
+          'Delete a chat message (soft delete). Only the author or a workspace admin/owner may delete. Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['messageId'],
+          properties: { messageId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_react_message',
+        description:
+          'Toggle an emoji reaction on a chat message (one of 👍 🎉 👀 ✅ 🤔 ❤️). Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['messageId', 'emoji'],
+          properties: {
+            messageId: { type: 'string' },
+            emoji: { type: 'string', enum: ['👍', '🎉', '👀', '✅', '🤔', '❤️'] },
+          },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -1109,6 +1218,19 @@ async function dispatch(
       return dbReorderRows(ctx, dbReorderRowsSchema.parse(args));
     case 'synapse_db_delete_row':
       return dbDeleteRow(ctx, dbDeleteRowSchema.parse(args));
+    // ---- chat (PBI-123) -----------------------------------------------------
+    case 'synapse_list_channels':
+      return listChannels(ctx, listChannelsSchema.parse(args));
+    case 'synapse_create_channel':
+      return createChannel(ctx, createChannelSchema.parse(args));
+    case 'synapse_list_messages':
+      return listMessages(ctx, listMessagesSchema.parse(args));
+    case 'synapse_send_message':
+      return sendMessage(ctx, sendMessageSchema.parse(args));
+    case 'synapse_delete_message':
+      return deleteMessage(ctx, deleteMessageSchema.parse(args));
+    case 'synapse_react_message':
+      return reactMessage(ctx, reactMessageSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

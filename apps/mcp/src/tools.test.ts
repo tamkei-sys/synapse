@@ -60,6 +60,11 @@ import {
   dbUpdateCellSchema,
   dbReorderRowsSchema,
   dbDeleteRowSchema,
+  createChannelSchema,
+  listMessagesSchema,
+  sendMessageSchema,
+  deleteMessageSchema,
+  reactMessageSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -498,5 +503,26 @@ describe('user-defined DB schemas (PBI-121)', () => {
     expect(dbAddRowSchema.parse({ dbId: 'd1' })).toEqual({ dbId: 'd1' });
     expect(dbUpdateCellSchema.parse({ rowId: 'r1', columnId: 'c1', value: null }).value).toBeNull();
     expect(() => dbReorderRowsSchema.parse({ dbId: 'd1', orderedRowIds: [] })).toThrow();
+  });
+});
+
+describe('chat schemas (PBI-123)', () => {
+  it('createChannel requires a name; listMessages requires channelId', () => {
+    expect(() => createChannelSchema.parse({})).toThrow();
+    expect(createChannelSchema.parse({ name: 'general' }).name).toBe('general');
+    expect(() => listMessagesSchema.parse({})).toThrow();
+    expect(listMessagesSchema.parse({ channelId: 'ch1' }).channelId).toBe('ch1');
+  });
+
+  it('sendMessage requires channelId; body and attachment are optional', () => {
+    expect(() => sendMessageSchema.parse({})).toThrow();
+    expect(sendMessageSchema.parse({ channelId: 'ch1', body: 'hi' }).body).toBe('hi');
+  });
+
+  it('reactMessage allows the six emojis and rejects others', () => {
+    expect(reactMessageSchema.parse({ messageId: 'm1', emoji: '❤️' }).emoji).toBe('❤️');
+    expect(() => reactMessageSchema.parse({ messageId: 'm1', emoji: '🚀' })).toThrow();
+    expect(() => deleteMessageSchema.parse({})).toThrow();
+    expect(deleteMessageSchema.parse({ messageId: 'm1' })).toEqual({ messageId: 'm1' });
   });
 });

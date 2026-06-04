@@ -18,6 +18,7 @@ import { z } from 'zod';
 import type { ServiceCaller } from '@synapse/api/server';
 
 import {
+  chatAttachmentSchema,
   commentPropsSchema,
   dbCellValueSchema,
   dbColumnSchema,
@@ -361,6 +362,38 @@ export const dbReorderRowsSchema = z.object({
 
 export const dbDeleteRowSchema = z.object({
   rowId: z.string().min(1),
+});
+
+// Chat (PBI-123). Wraps the chat router through the caller. Channel/message ids
+// are block ids; workspace scope is checked locally. Reactions use the chat
+// router's six emojis (note: one more than comment's five).
+const CHAT_REACTION_EMOJIS = ['👍', '🎉', '👀', '✅', '🤔', '❤️'] as const;
+
+export const listChannelsSchema = z.object({});
+
+export const createChannelSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  description: z.string().max(280).optional(),
+});
+
+export const listMessagesSchema = z.object({
+  channelId: z.string().min(1),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export const sendMessageSchema = z.object({
+  channelId: z.string().min(1),
+  body: z.string().trim().max(4_000).optional(),
+  attachment: chatAttachmentSchema.optional(),
+});
+
+export const deleteMessageSchema = z.object({
+  messageId: z.string().min(1),
+});
+
+export const reactMessageSchema = z.object({
+  messageId: z.string().min(1),
+  emoji: z.enum(CHAT_REACTION_EMOJIS),
 });
 
 // ---- handlers ---------------------------------------------------------------
@@ -749,6 +782,73 @@ export async function dbDeleteRow(
 ): Promise<unknown> {
   await assertBlockInWorkspace(ctx, input.rowId, 'db row');
   return viaCaller(ctx.caller.db.deleteRow({ rowId: input.rowId }));
+}
+
+// ---- chat (PBI-123) ---------------------------------------------------------
+// All delegate to the chat router via the caller; channel / message ids are
+// block ids checked locally for workspace scope first.
+
+export async function listChannels(
+  ctx: ToolContext,
+  _input: z.infer<typeof listChannelsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.chat.listChannels({ workspaceId: ctx.workspaceId }));
+}
+
+export async function createChannel(
+  ctx: ToolContext,
+  input: z.infer<typeof createChannelSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.chat.createChannel({
+      workspaceId: ctx.workspaceId,
+      name: input.name,
+      ...(input.description ? { description: input.description } : {}),
+    }),
+  );
+}
+
+export async function listMessages(
+  ctx: ToolContext,
+  input: z.infer<typeof listMessagesSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.channelId, 'channel');
+  return viaCaller(
+    ctx.caller.chat.listMessages({
+      channelId: input.channelId,
+      ...(typeof input.limit === 'number' ? { limit: input.limit } : {}),
+    }),
+  );
+}
+
+export async function sendMessage(
+  ctx: ToolContext,
+  input: z.infer<typeof sendMessageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.channelId, 'channel');
+  return viaCaller(
+    ctx.caller.chat.sendMessage({
+      channelId: input.channelId,
+      ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(input.attachment ? { attachment: input.attachment } : {}),
+    }),
+  );
+}
+
+export async function deleteMessage(
+  ctx: ToolContext,
+  input: z.infer<typeof deleteMessageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.messageId, 'message');
+  return viaCaller(ctx.caller.chat.deleteMessage({ messageId: input.messageId }));
+}
+
+export async function reactMessage(
+  ctx: ToolContext,
+  input: z.infer<typeof reactMessageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.messageId, 'message');
+  return viaCaller(ctx.caller.chat.toggleReaction({ messageId: input.messageId, emoji: input.emoji }));
 }
 
 export async function listPbis(
