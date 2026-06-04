@@ -12,6 +12,7 @@ import type { Hocuspocus } from '@hocuspocus/server';
 
 import type { Database } from './db.js';
 import { applyDocWrite, DocWriteError, type DocWriteRequest, type PmDoc } from './doc-write.js';
+import { markdownToPmDoc } from './markdown.js';
 
 const PATH = '/internal/doc/write';
 const MAX_BODY_BYTES = 2_000_000;
@@ -45,12 +46,24 @@ function parseRequest(raw: unknown): DocWriteRequest {
   if (b['mode'] !== 'append' && b['mode'] !== 'replace') {
     throw new DocWriteError(400, 'mode must be append or replace');
   }
-  const doc = b['doc'] as { type?: unknown; content?: unknown } | undefined;
-  if (!doc || doc.type !== 'doc') throw new DocWriteError(400, 'doc must be a ProseMirror doc');
-  if (doc.content !== undefined && !Array.isArray(doc.content)) {
-    throw new DocWriteError(400, 'doc.content must be an array');
+
+  // Content is either `markdown` (converted server-side) or a raw ProseMirror
+  // `doc`. The MCP tools send markdown.
+  let doc: PmDoc;
+  if (typeof b['markdown'] === 'string') {
+    if (b['markdown'].trim().length === 0) throw new DocWriteError(400, 'markdown is empty');
+    doc = markdownToPmDoc(b['markdown']);
+  } else {
+    const raw = b['doc'] as { type?: unknown; content?: unknown } | undefined;
+    if (!raw || raw.type !== 'doc') {
+      throw new DocWriteError(400, 'provide `markdown` or a ProseMirror `doc`');
+    }
+    if (raw.content !== undefined && !Array.isArray(raw.content)) {
+      throw new DocWriteError(400, 'doc.content must be an array');
+    }
+    doc = raw as PmDoc;
   }
-  return { blockId: b['blockId'], actorUserId: b['actorUserId'], mode: b['mode'], doc: doc as PmDoc };
+  return { blockId: b['blockId'], actorUserId: b['actorUserId'], mode: b['mode'], doc };
 }
 
 export function startInternalServer(opts: {

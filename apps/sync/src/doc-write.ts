@@ -20,8 +20,8 @@ import { schema, type Database } from './db.js';
 
 export type DocWriteMode = 'append' | 'replace';
 
-type PmMark = { type: string; attrs?: Record<string, unknown> };
-type PmNode = {
+export type PmMark = { type: string; attrs?: Record<string, unknown> };
+export type PmNode = {
   type: string;
   text?: string;
   attrs?: Record<string, unknown>;
