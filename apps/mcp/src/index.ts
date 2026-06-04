@@ -172,6 +172,16 @@ import {
   setMemberRoleSchema,
   removeMember,
   removeMemberSchema,
+  aiAsk,
+  aiAskSchema,
+  aiTransform,
+  aiTransformSchema,
+  aiSummarizePage,
+  aiSummarizePageSchema,
+  aiSynthesizePbi,
+  aiSynthesizePbiSchema,
+  aiSummarizeSprint,
+  aiSummarizeSprintSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -253,6 +263,14 @@ const WRITE_MEMBER_TOOLS = new Set<string>([
   'synapse_set_member_role',
   'synapse_remove_member',
 ]);
+// AI tools — gated by 'write_ai' (every call may incur Anthropic cost). (PBI-128)
+const WRITE_AI_TOOLS = new Set<string>([
+  'synapse_ai_ask',
+  'synapse_ai_transform',
+  'synapse_ai_summarize_page',
+  'synapse_ai_synthesize_pbi',
+  'synapse_ai_summarize_sprint',
+]);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
@@ -277,7 +295,8 @@ function isWriteTool(tool: string): boolean {
     WRITE_DB_TOOLS.has(tool) ||
     WRITE_CHAT_TOOLS.has(tool) ||
     WRITE_INBOX_TOOLS.has(tool) ||
-    WRITE_MEMBER_TOOLS.has(tool)
+    WRITE_MEMBER_TOOLS.has(tool) ||
+    WRITE_AI_TOOLS.has(tool)
   );
 }
 
@@ -290,6 +309,7 @@ function requiredScopes(tool: string): string[] {
   if (WRITE_CHAT_TOOLS.has(tool)) return ['write_chat', 'write'];
   if (WRITE_INBOX_TOOLS.has(tool)) return ['write_inbox', 'write'];
   if (WRITE_MEMBER_TOOLS.has(tool)) return ['write_member', 'write'];
+  if (WRITE_AI_TOOLS.has(tool)) return ['write_ai', 'write'];
   return [
     'read',
     'write',
@@ -301,6 +321,7 @@ function requiredScopes(tool: string): string[] {
     'write_chat',
     'write_inbox',
     'write_member',
+    'write_ai',
   ];
 }
 
@@ -1249,6 +1270,66 @@ async function main(): Promise<void> {
           properties: { userId: { type: 'string' } },
         },
       },
+      // ---- AI (PBI-128) -----------------------------------------------------
+      {
+        name: 'synapse_ai_ask',
+        description:
+          'Ask Claude a free-form prompt (returns text + a stub flag when no API key is configured). Write tool (may incur AI cost).',
+        inputSchema: {
+          type: 'object',
+          required: ['prompt'],
+          properties: { prompt: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_ai_transform',
+        description:
+          'Transform text with Claude: write / summarize / translate / rewrite. Write tool (may incur AI cost).',
+        inputSchema: {
+          type: 'object',
+          required: ['mode'],
+          properties: {
+            mode: { type: 'string', enum: ['write', 'summarize', 'translate', 'rewrite'] },
+            text: { type: 'string' },
+            instruction: { type: 'string' },
+            targetLang: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'synapse_ai_summarize_page',
+        description:
+          "Generate a page's AI summary and store it on the page (props.aiSummary). Write tool (may incur AI cost).",
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: { pageId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_ai_synthesize_pbi',
+        description:
+          'Synthesize a PBI + N SBIs from a free-text information source, optionally under a project/sprint. Creates the PBI/SBIs. Write tool (may incur AI cost).',
+        inputSchema: {
+          type: 'object',
+          required: ['informationSource'],
+          properties: {
+            informationSource: { type: 'string' },
+            projectId: { type: 'string' },
+            sprintId: { type: 'string' },
+          },
+        },
+      },
+      {
+        name: 'synapse_ai_summarize_sprint',
+        description:
+          'Walk a sprint (PBIs + SBI rollup) and produce a completion report with an executive summary. Write tool (may incur AI cost).',
+        inputSchema: {
+          type: 'object',
+          required: ['sprintId'],
+          properties: { sprintId: { type: 'string' } },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -1453,6 +1534,17 @@ async function dispatch(
       return setMemberRole(ctx, setMemberRoleSchema.parse(args));
     case 'synapse_remove_member':
       return removeMember(ctx, removeMemberSchema.parse(args));
+    // ---- AI (PBI-128) -------------------------------------------------------
+    case 'synapse_ai_ask':
+      return aiAsk(ctx, aiAskSchema.parse(args));
+    case 'synapse_ai_transform':
+      return aiTransform(ctx, aiTransformSchema.parse(args));
+    case 'synapse_ai_summarize_page':
+      return aiSummarizePage(ctx, aiSummarizePageSchema.parse(args));
+    case 'synapse_ai_synthesize_pbi':
+      return aiSynthesizePbi(ctx, aiSynthesizePbiSchema.parse(args));
+    case 'synapse_ai_summarize_sprint':
+      return aiSummarizeSprint(ctx, aiSummarizeSprintSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

@@ -457,6 +457,35 @@ export const removeMemberSchema = z.object({
   userId: z.string().min(1),
 });
 
+// AI (PBI-128). Wraps the ai router through the caller. Every call may incur
+// Anthropic cost, so all are gated by 'write_ai' even when read-shaped. The
+// MCP apiEnv carries no ANTHROPIC_API_KEY, so calls return the dev stub (no
+// outbound request) and the responses carry a `stub` flag.
+export const aiAskSchema = z.object({
+  prompt: z.string().trim().min(1).max(2_000),
+});
+
+export const aiTransformSchema = z.object({
+  mode: z.enum(['write', 'summarize', 'translate', 'rewrite']),
+  text: z.string().max(8_000).optional(),
+  instruction: z.string().max(2_000).optional(),
+  targetLang: z.string().max(40).optional(),
+});
+
+export const aiSummarizePageSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const aiSynthesizePbiSchema = z.object({
+  informationSource: z.string().trim().min(1).max(8_000),
+  projectId: z.string().optional(),
+  sprintId: z.string().optional(),
+});
+
+export const aiSummarizeSprintSchema = z.object({
+  sprintId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -1067,6 +1096,66 @@ export async function removeMember(
   return viaCaller(
     ctx.caller.workspace.removeMember({ workspaceId: ctx.workspaceId, userId: input.userId }),
   );
+}
+
+// ---- AI (PBI-128) -----------------------------------------------------------
+// All via the ai router through the caller. Returns carry a `stub` flag when no
+// ANTHROPIC_API_KEY is configured (the MCP apiEnv has none → no outbound call).
+
+export async function aiAsk(
+  ctx: ToolContext,
+  input: z.infer<typeof aiAskSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.ai.ask({ workspaceId: ctx.workspaceId, prompt: input.prompt }));
+}
+
+export async function aiTransform(
+  ctx: ToolContext,
+  input: z.infer<typeof aiTransformSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.ai.transform({
+      workspaceId: ctx.workspaceId,
+      mode: input.mode,
+      ...(input.text !== undefined ? { text: input.text } : {}),
+      ...(input.instruction ? { instruction: input.instruction } : {}),
+      ...(input.targetLang ? { targetLang: input.targetLang } : {}),
+    }),
+  );
+}
+
+export async function aiSummarizePage(
+  ctx: ToolContext,
+  input: z.infer<typeof aiSummarizePageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId, 'page');
+  return viaCaller(
+    ctx.caller.ai.summarizePage({ workspaceId: ctx.workspaceId, pageId: input.pageId }),
+  );
+}
+
+export async function aiSynthesizePbi(
+  ctx: ToolContext,
+  input: z.infer<typeof aiSynthesizePbiSchema>,
+): Promise<unknown> {
+  if (input.projectId) await assertBlockInWorkspace(ctx, input.projectId, 'project');
+  if (input.sprintId) await assertBlockInWorkspace(ctx, input.sprintId, 'sprint');
+  return viaCaller(
+    ctx.caller.ai.synthesizePbi({
+      workspaceId: ctx.workspaceId,
+      informationSource: input.informationSource,
+      ...(input.projectId ? { projectId: input.projectId } : {}),
+      ...(input.sprintId ? { sprintId: input.sprintId } : {}),
+    }),
+  );
+}
+
+export async function aiSummarizeSprint(
+  ctx: ToolContext,
+  input: z.infer<typeof aiSummarizeSprintSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.sprintId, 'sprint');
+  return viaCaller(ctx.caller.ai.summarizeSprint({ sprintId: input.sprintId }));
 }
 
 export async function listPbis(

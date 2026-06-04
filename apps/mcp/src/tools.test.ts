@@ -77,6 +77,11 @@ import {
   cancelInvitationSchema,
   setMemberRoleSchema,
   removeMemberSchema,
+  aiAskSchema,
+  aiTransformSchema,
+  aiSummarizePageSchema,
+  aiSynthesizePbiSchema,
+  aiSummarizeSprintSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -585,5 +590,23 @@ describe('workspace member schemas (PBI-125)', () => {
     expect(cancelInvitationSchema.parse({ invitationId: 'i1' })).toEqual({ invitationId: 'i1' });
     expect(listMembersSchema.parse({})).toEqual({});
     expect(listInvitationsSchema.parse({})).toEqual({});
+  });
+});
+
+describe('AI schemas (PBI-128)', () => {
+  it('aiAsk requires a prompt; aiTransform constrains mode', () => {
+    expect(() => aiAskSchema.parse({})).toThrow();
+    expect(aiAskSchema.parse({ prompt: 'hello' }).prompt).toBe('hello');
+    expect(aiTransformSchema.parse({ mode: 'summarize' }).mode).toBe('summarize');
+    expect(() => aiTransformSchema.parse({ mode: 'translate-all' })).toThrow();
+  });
+
+  it('summarizePage/synthesizePbi/summarizeSprint require their ids/source', () => {
+    expect(() => aiSummarizePageSchema.parse({})).toThrow();
+    expect(aiSummarizePageSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+    expect(() => aiSynthesizePbiSchema.parse({})).toThrow();
+    expect(aiSynthesizePbiSchema.parse({ informationSource: 'do X' }).informationSource).toBe('do X');
+    expect(() => aiSummarizeSprintSchema.parse({})).toThrow();
+    expect(aiSummarizeSprintSchema.parse({ sprintId: 's1' })).toEqual({ sprintId: 's1' });
   });
 });
