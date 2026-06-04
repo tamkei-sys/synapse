@@ -22,7 +22,11 @@ test('search page shows box, filters, and empty states', async ({ browser }) => 
   const email = `e2e-se-${unique()}@synapse.test`;
   const password = 'correct horse battery staple';
 
-  const context = await browser.newContext();
+  // ロケールを ja に固定する。空状態の案内文は i18n 文字列（page.search.prompt）で、
+  // 既定ロケールは localStorage 未設定時 navigator.language にフォールバックする
+  // (ui-store.loadLocale)。CI の Chromium は en-US なので固定しないと英語になり、
+  // 日本語アサーションが落ちる。
+  const context = await browser.newContext({ locale: 'ja-JP' });
   const page = await context.newPage();
 
   await signUp(page, email, password);
