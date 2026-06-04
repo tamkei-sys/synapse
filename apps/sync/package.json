@@ -10,7 +10,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -b",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
