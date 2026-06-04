@@ -98,6 +98,12 @@ import {
   linkGithubIssueSchema,
   unlinkGithubIssue,
   unlinkGithubIssueSchema,
+  resolveComment,
+  resolveCommentSchema,
+  reactComment,
+  reactCommentSchema,
+  deleteComment,
+  deleteCommentSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -122,7 +128,12 @@ const WRITE_PBI_TOOLS = new Set<string>([
   'synapse_link_github_issue',
   'synapse_unlink_github_issue',
 ]);
-const WRITE_COMMENT_TOOLS = new Set<string>(['synapse_add_comment']);
+const WRITE_COMMENT_TOOLS = new Set<string>([
+  'synapse_add_comment',
+  'synapse_resolve_comment',
+  'synapse_react_comment',
+  'synapse_delete_comment',
+]);
 // Page (Docs) write tools — gated by the 'write_page' token scope.
 // (PBI: MCP page tools)
 const WRITE_PAGE_TOOLS = new Set<string>([
@@ -138,6 +149,7 @@ const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
   'synapse_unlink_github_issue',
+  'synapse_delete_comment',
   'synapse_trash_page',
   'synapse_set_doc',
 ]);
@@ -513,6 +525,45 @@ async function main(): Promise<void> {
         },
       },
       {
+        name: 'synapse_resolve_comment',
+        description:
+          'Mark a comment thread resolved or unresolved (resolved defaults to true). Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['commentId'],
+          properties: {
+            commentId: { type: 'string' },
+            resolved: {
+              type: 'boolean',
+              description: 'true to resolve (default), false to reopen.',
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_react_comment',
+        description:
+          'Toggle an emoji reaction on a comment (one of 👍 🎉 👀 ✅ 🤔). Adds it if absent, removes it if present. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['commentId', 'emoji'],
+          properties: {
+            commentId: { type: 'string' },
+            emoji: { type: 'string', enum: ['👍', '🎉', '👀', '✅', '🤔'] },
+          },
+        },
+      },
+      {
+        name: 'synapse_delete_comment',
+        description:
+          'Delete a comment (soft delete). Only the author or a workspace admin/owner may delete. Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['commentId'],
+          properties: { commentId: { type: 'string' } },
+        },
+      },
+      {
         name: 'synapse_search',
         description:
           'Substring search across the workspace by block title/name/body. Optional type filter (pbi, sbi, project, sprint, page, …).',
@@ -771,6 +822,12 @@ async function dispatch(
       return addComment(ctx, addCommentSchema.parse(args));
     case 'synapse_list_comments':
       return listComments(ctx, listCommentsSchema.parse(args));
+    case 'synapse_resolve_comment':
+      return resolveComment(ctx, resolveCommentSchema.parse(args));
+    case 'synapse_react_comment':
+      return reactComment(ctx, reactCommentSchema.parse(args));
+    case 'synapse_delete_comment':
+      return deleteComment(ctx, deleteCommentSchema.parse(args));
     case 'synapse_search':
       return searchWorkspace(ctx, searchSchema.parse(args));
     case 'synapse_resolve_key':

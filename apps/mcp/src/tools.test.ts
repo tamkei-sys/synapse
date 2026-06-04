@@ -44,6 +44,9 @@ import {
   setDocSchema,
   linkGithubIssueSchema,
   unlinkGithubIssueSchema,
+  resolveCommentSchema,
+  reactCommentSchema,
+  deleteCommentSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -412,5 +415,27 @@ describe('GitHub issue linking schemas (PBI-122)', () => {
   it('unlinkGithubIssue requires pbiId', () => {
     expect(() => unlinkGithubIssueSchema.parse({})).toThrow();
     expect(unlinkGithubIssueSchema.parse({ pbiId: 'a' })).toEqual({ pbiId: 'a' });
+  });
+});
+
+describe('comment lifecycle schemas (PBI-127)', () => {
+  it('resolveComment requires commentId and defaults resolved to true', () => {
+    expect(() => resolveCommentSchema.parse({})).toThrow();
+    expect(resolveCommentSchema.parse({ commentId: 'c1' })).toEqual({
+      commentId: 'c1',
+      resolved: true,
+    });
+    expect(resolveCommentSchema.parse({ commentId: 'c1', resolved: false }).resolved).toBe(false);
+  });
+
+  it('reactComment constrains emoji to the five allowed', () => {
+    expect(reactCommentSchema.parse({ commentId: 'c1', emoji: '👍' }).emoji).toBe('👍');
+    expect(() => reactCommentSchema.parse({ commentId: 'c1', emoji: '❤️' })).toThrow();
+    expect(() => reactCommentSchema.parse({ commentId: 'c1' })).toThrow();
+  });
+
+  it('deleteComment requires commentId', () => {
+    expect(() => deleteCommentSchema.parse({})).toThrow();
+    expect(deleteCommentSchema.parse({ commentId: 'c1' })).toEqual({ commentId: 'c1' });
   });
 });

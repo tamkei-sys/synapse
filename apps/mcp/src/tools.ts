@@ -204,6 +204,24 @@ export const listCommentsSchema = z.object({
   blockId: z.string().min(1),
 });
 
+// Comment lifecycle (PBI-127). resolve / react / delete wrap the comment
+// router through the caller so its author/admin authorization is reused.
+// (create/list stay direct-DB above — the router's create depends on env /
+// waitUntil delivery the MCP context doesn't have.)
+export const resolveCommentSchema = z.object({
+  commentId: z.string().min(1),
+  resolved: z.boolean().default(true),
+});
+
+export const reactCommentSchema = z.object({
+  commentId: z.string().min(1),
+  emoji: z.enum(['👍', '🎉', '👀', '✅', '🤔']),
+});
+
+export const deleteCommentSchema = z.object({
+  commentId: z.string().min(1),
+});
+
 // Search & human-id resolution. (PBI-102)
 export const searchSchema = z.object({
   query: z.string().trim().min(1).max(200),
@@ -1304,6 +1322,38 @@ export async function listComments(
       ...(p.parentCommentId ? { parentCommentId: p.parentCommentId } : {}),
     };
   });
+}
+
+// ---- comment lifecycle (PBI-127) --------------------------------------------
+// resolve / react / delete delegate to the comment router via the caller so
+// the canonical authorization (delete = author or admin/owner) is reused.
+
+export async function resolveComment(
+  ctx: ToolContext,
+  input: z.infer<typeof resolveCommentSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.commentId, 'comment');
+  return viaCaller(
+    ctx.caller.comment.setResolved({ commentId: input.commentId, resolved: input.resolved }),
+  );
+}
+
+export async function reactComment(
+  ctx: ToolContext,
+  input: z.infer<typeof reactCommentSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.commentId, 'comment');
+  return viaCaller(
+    ctx.caller.comment.toggleReaction({ commentId: input.commentId, emoji: input.emoji }),
+  );
+}
+
+export async function deleteComment(
+  ctx: ToolContext,
+  input: z.infer<typeof deleteCommentSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.commentId, 'comment');
+  return viaCaller(ctx.caller.comment.delete({ commentId: input.commentId }));
 }
 
 // ---- search & resolve handlers (PBI-102) ------------------------------------
