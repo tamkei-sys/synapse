@@ -26,6 +26,7 @@ import {
   statusTone,
 } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
+import { usePersistentEnum } from '../lib/use-persistent-enum.js';
 
 export const Route = createFileRoute('/project')({
   component: ProjectRoute,
@@ -110,7 +111,10 @@ function ProjectsPanel({
     onSuccess: () => qc.invalidateQueries({ queryKey: ['project', 'list', workspaceId] }),
   });
 
-  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [view, setView] = usePersistentEnum<'list' | 'kanban'>('synapse:ui:view:project', 'list', [
+    'list',
+    'kanban',
+  ]);
   const [filters, setFilters] = useState<FilterValue>({});
   const rows = list.data ?? [];
   const filtered = applyItemFilters(rows, filters, (row, key) => {

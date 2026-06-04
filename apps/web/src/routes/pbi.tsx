@@ -40,6 +40,7 @@ import {
   statusTone,
 } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
+import { usePersistentEnum } from '../lib/use-persistent-enum.js';
 
 export const Route = createFileRoute('/pbi')({
   component: PbiBoardRoute,
@@ -82,7 +83,11 @@ function PbiBoardRoute() {
 }
 
 function PbiBoard({ workspaceId, workspaceName }: { workspaceId: string; workspaceName: string }) {
-  const [view, setView] = useState<ViewMode>('backlog');
+  const [view, setView] = usePersistentEnum<ViewMode>('synapse:ui:view:pbi', 'backlog', [
+    'backlog',
+    'kanban',
+    'timeline',
+  ]);
   const list = useQuery({
     queryKey: ['pbi', 'list', workspaceId],
     queryFn: () => trpc.pbi.list.query({ workspaceId }),

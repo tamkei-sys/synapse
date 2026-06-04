@@ -20,6 +20,7 @@ import { useSession } from '../lib/auth-client.js';
 import { useCurrentWorkspaceFromList } from '../lib/current-workspace.js';
 import { formatDate, sprintStatusLabel, statusTone } from '../lib/labels.js';
 import { trpc } from '../lib/trpc.js';
+import { usePersistentEnum } from '../lib/use-persistent-enum.js';
 
 export const Route = createFileRoute('/sprint')({
   component: SprintRoute,
@@ -115,7 +116,10 @@ function SprintsPanel({
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sprint', 'list', workspaceId] }),
   });
 
-  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [view, setView] = usePersistentEnum<'list' | 'kanban'>('synapse:ui:view:sprint', 'list', [
+    'list',
+    'kanban',
+  ]);
   const [filters, setFilters] = useState<FilterValue>({});
   const rows = list.data ?? [];
   const filtered = applyItemFilters(rows, filters, (row, key) =>
