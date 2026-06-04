@@ -65,6 +65,12 @@ import {
   sendMessageSchema,
   deleteMessageSchema,
   reactMessageSchema,
+  listNotificationsSchema,
+  markNotificationReadSchema,
+  createReminderSchema,
+  snoozeReminderSchema,
+  listRemindersSchema,
+  deleteReminderSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -524,5 +530,31 @@ describe('chat schemas (PBI-123)', () => {
     expect(() => reactMessageSchema.parse({ messageId: 'm1', emoji: '🚀' })).toThrow();
     expect(() => deleteMessageSchema.parse({})).toThrow();
     expect(deleteMessageSchema.parse({ messageId: 'm1' })).toEqual({ messageId: 'm1' });
+  });
+});
+
+describe('notification & reminder schemas (PBI-124)', () => {
+  it('listNotifications options are optional; markRead needs an id', () => {
+    expect(listNotificationsSchema.parse({})).toEqual({});
+    expect(listNotificationsSchema.parse({ unreadOnly: true }).unreadOnly).toBe(true);
+    expect(() => markNotificationReadSchema.parse({})).toThrow();
+    expect(markNotificationReadSchema.parse({ notificationId: 'n1' }).notificationId).toBe('n1');
+  });
+
+  it('createReminder requires blockId + remindAt; recurrence is constrained', () => {
+    expect(() => createReminderSchema.parse({ blockId: 'b1' })).toThrow();
+    const ok = createReminderSchema.parse({ blockId: 'b1', remindAt: '2026-06-10T09:00:00Z' });
+    expect(ok.remindAt).toBe('2026-06-10T09:00:00Z');
+    expect(() =>
+      createReminderSchema.parse({ blockId: 'b1', remindAt: 'x', recurrence: 'yearly' }),
+    ).toThrow();
+  });
+
+  it('snoozeReminder bounds minutes; list/delete shapes', () => {
+    expect(() => snoozeReminderSchema.parse({ reminderId: 'r1', minutes: 0 })).toThrow();
+    expect(snoozeReminderSchema.parse({ reminderId: 'r1', minutes: 30 }).minutes).toBe(30);
+    expect(listRemindersSchema.parse({})).toEqual({});
+    expect(() => deleteReminderSchema.parse({})).toThrow();
+    expect(deleteReminderSchema.parse({ reminderId: 'r1' })).toEqual({ reminderId: 'r1' });
   });
 });

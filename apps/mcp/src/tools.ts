@@ -396,6 +396,42 @@ export const reactMessageSchema = z.object({
   emoji: z.enum(CHAT_REACTION_EMOJIS),
 });
 
+// Notifications & reminders (PBI-124). notification.* + reminder.* via the
+// caller. Workspace-scoped reads use ctx.workspaceId; notification/reminder ids
+// are per-user (the routers filter by the session user) so no extra check.
+export const listNotificationsSchema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  unreadOnly: z.boolean().optional(),
+});
+
+export const unreadCountSchema = z.object({});
+
+export const markNotificationReadSchema = z.object({
+  notificationId: z.string().min(1),
+});
+
+export const markAllNotificationsReadSchema = z.object({});
+
+export const createReminderSchema = z.object({
+  blockId: z.string().min(1),
+  remindAt: z.string().min(1),
+  body: z.string().max(500).optional(),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).optional(),
+});
+
+export const snoozeReminderSchema = z.object({
+  reminderId: z.string().min(1),
+  minutes: z.number().int().min(1).max(43_200),
+});
+
+export const listRemindersSchema = z.object({
+  blockId: z.string().min(1).optional(),
+});
+
+export const deleteReminderSchema = z.object({
+  reminderId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -849,6 +885,88 @@ export async function reactMessage(
 ): Promise<unknown> {
   await assertBlockInWorkspace(ctx, input.messageId, 'message');
   return viaCaller(ctx.caller.chat.toggleReaction({ messageId: input.messageId, emoji: input.emoji }));
+}
+
+// ---- notifications & reminders (PBI-124) ------------------------------------
+// notification.* and reminder.* via the caller. The routers bind recipient /
+// owner to the session user, so cross-user access is impossible; only
+// create_reminder references a block, which we scope-check locally.
+
+export async function listNotifications(
+  ctx: ToolContext,
+  input: z.infer<typeof listNotificationsSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.notification.list({
+      workspaceId: ctx.workspaceId,
+      ...(typeof input.limit === 'number' ? { limit: input.limit } : {}),
+      ...(input.unreadOnly !== undefined ? { unreadOnly: input.unreadOnly } : {}),
+    }),
+  );
+}
+
+export async function unreadCount(
+  ctx: ToolContext,
+  _input: z.infer<typeof unreadCountSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.notification.unreadCount({ workspaceId: ctx.workspaceId }));
+}
+
+export async function markNotificationRead(
+  ctx: ToolContext,
+  input: z.infer<typeof markNotificationReadSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.notification.markRead({ notificationId: input.notificationId }));
+}
+
+export async function markAllNotificationsRead(
+  ctx: ToolContext,
+  _input: z.infer<typeof markAllNotificationsReadSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.notification.markAllRead({ workspaceId: ctx.workspaceId }));
+}
+
+export async function createReminder(
+  ctx: ToolContext,
+  input: z.infer<typeof createReminderSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.blockId, 'block');
+  return viaCaller(
+    ctx.caller.reminder.create({
+      blockId: input.blockId,
+      remindAt: new Date(input.remindAt),
+      ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(input.recurrence ? { recurrence: input.recurrence } : {}),
+    }),
+  );
+}
+
+export async function snoozeReminder(
+  ctx: ToolContext,
+  input: z.infer<typeof snoozeReminderSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.reminder.snooze({ reminderId: input.reminderId, minutes: input.minutes }),
+  );
+}
+
+export async function listReminders(
+  ctx: ToolContext,
+  input: z.infer<typeof listRemindersSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.reminder.listMine({
+      workspaceId: ctx.workspaceId,
+      ...(input.blockId ? { blockId: input.blockId } : {}),
+    }),
+  );
+}
+
+export async function deleteReminder(
+  ctx: ToolContext,
+  input: z.infer<typeof deleteReminderSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.reminder.delete({ reminderId: input.reminderId }));
 }
 
 export async function listPbis(
