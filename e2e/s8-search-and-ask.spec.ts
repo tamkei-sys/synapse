@@ -31,10 +31,10 @@ test('Cmd+K finds a PBI; =ASK formula renders the stub answer', async ({ page })
 
   // -- onboarding ----------------------------------------------------------
   await page.goto('/signup');
-  await page.getByLabel('Name').fill('S8 User');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: /create account/i }).click();
+  await page.getByLabel('お名前').fill('S8 User');
+  await page.getByLabel('メールアドレス').fill(email);
+  await page.getByLabel(/パスワード/).fill(password);
+  await page.getByRole('button', { name: /アカウント作成/i }).click();
 
   await page.getByTestId('workspace-name-input').fill('Acme');
   await page.getByTestId('create-workspace-submit').click();
@@ -46,7 +46,7 @@ test('Cmd+K finds a PBI; =ASK formula renders the stub answer', async ({ page })
     timeout: 10_000,
   });
 
-  // -- create a PBI ('Untitled PBI' is enough — the query is scoped to a
+  // -- create a PBI ('無題 PBI' is enough — the query is scoped to a
   //    workspace that only this fresh user owns) -------------------------
   const editor = page.getByTestId('editor-content');
   await editor.click();
@@ -65,7 +65,7 @@ test('Cmd+K finds a PBI; =ASK formula renders the stub answer', async ({ page })
   await page.keyboard.press('ControlOrMeta+k');
   const palette = page.getByTestId('command-palette');
   await expect(palette).toBeVisible();
-  await page.getByTestId('command-palette-input').fill('Untitled');
+  await page.getByTestId('command-palette-input').fill('無題');
   await expect(page.getByTestId(`command-hit-${pbiId}`)).toBeVisible({ timeout: 10_000 });
   await page.keyboard.press('Escape');
 
