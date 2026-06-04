@@ -4,8 +4,9 @@ import { expect, test, type Page } from '@playwright/test';
  * /db スラッシュコマンド acceptance。
  *
  * /help に「『/db』で任意スキーマのデータベースを作成できます」と記載があるので、
- * エディタで /db を打つとメニューに出て、選ぶと DB が作成され本文にリンクが
+ * エディタで /db を打つとメニューに出て、選ぶと DB が作成され本文に dbEmbed ノードが
  * 挿入されることを検証する（以前は「該当するコマンドがありません」だった）。
+ * 埋め込み後の DbView 操作・永続は de-db-embed.spec.ts が担保する。
  */
 
 const unique = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -24,10 +25,9 @@ async function waitForLive(page: Page) {
   });
 }
 
-test('/db slash command creates a database and links it', async ({ browser }) => {
+test('/db slash command is offered in the menu and embeds a database', async ({ browser }) => {
   const email = `e2e-dbs-${unique()}@synapse.test`;
   const password = 'correct horse battery staple';
-  const dbName = `Inline DB ${unique()}`;
 
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -48,13 +48,12 @@ test('/db slash command creates a database and links it', async ({ browser }) =>
   await expect(page.getByTestId('slash-menu')).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId('slash-item-db')).toBeVisible();
 
-  // ---- 選択 → DB 名入力 → 本文にリンク挿入 ----------------------------
-  page.once('dialog', (d) => void d.accept(dbName));
+  // ---- 選択 → 本文に DB が dbEmbed ノードとして埋め込まれる -------------
+  // 実装(db-slash.ts)は prompt を出さず db.create → insertDbEmbed する。
   await page.getByTestId('slash-item-db').click();
-
-  // 本文に DB へのリンク（📚 + /b/ href）が挿入される
-  const link = editor.locator('a[href^="/b/"]').filter({ hasText: dbName }).first();
-  await expect(link).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('[data-testid^="db-embed-"]').first()).toBeVisible({
+    timeout: 10_000,
+  });
 
   await context.close();
 });
