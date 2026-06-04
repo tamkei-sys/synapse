@@ -182,6 +182,12 @@ import {
   aiSynthesizePbiSchema,
   aiSummarizeSprint,
   aiSummarizeSprintSchema,
+  startCcForPbi,
+  startCcForPbiSchema,
+  listCcSessions,
+  listCcSessionsSchema,
+  getCcForPbi,
+  getCcForPbiSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -271,6 +277,9 @@ const WRITE_AI_TOOLS = new Set<string>([
   'synapse_ai_synthesize_pbi',
   'synapse_ai_summarize_sprint',
 ]);
+// cc (headless Claude Code) write tools — gated by 'write_cc'. (PBI-129)
+// list_cc_sessions / get_cc_for_pbi are read-only.
+const WRITE_CC_TOOLS = new Set<string>(['synapse_start_cc_for_pbi']);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
@@ -282,6 +291,7 @@ const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_delete_reminder',
   'synapse_set_member_role',
   'synapse_remove_member',
+  'synapse_start_cc_for_pbi',
   'synapse_trash_page',
   'synapse_set_doc',
 ]);
@@ -296,7 +306,8 @@ function isWriteTool(tool: string): boolean {
     WRITE_CHAT_TOOLS.has(tool) ||
     WRITE_INBOX_TOOLS.has(tool) ||
     WRITE_MEMBER_TOOLS.has(tool) ||
-    WRITE_AI_TOOLS.has(tool)
+    WRITE_AI_TOOLS.has(tool) ||
+    WRITE_CC_TOOLS.has(tool)
   );
 }
 
@@ -310,6 +321,7 @@ function requiredScopes(tool: string): string[] {
   if (WRITE_INBOX_TOOLS.has(tool)) return ['write_inbox', 'write'];
   if (WRITE_MEMBER_TOOLS.has(tool)) return ['write_member', 'write'];
   if (WRITE_AI_TOOLS.has(tool)) return ['write_ai', 'write'];
+  if (WRITE_CC_TOOLS.has(tool)) return ['write_cc', 'write'];
   return [
     'read',
     'write',
@@ -322,6 +334,7 @@ function requiredScopes(tool: string): string[] {
     'write_inbox',
     'write_member',
     'write_ai',
+    'write_cc',
   ];
 }
 
@@ -1330,6 +1343,31 @@ async function main(): Promise<void> {
           properties: { sprintId: { type: 'string' } },
         },
       },
+      // ---- cc: headless Claude Code sessions (PBI-129) ----------------------
+      {
+        name: 'synapse_start_cc_for_pbi',
+        description:
+          'Start a headless Claude Code session to implement a PBI (dev: a stub session). Consumes workspace budget. Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId'],
+          properties: { pbiId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_list_cc_sessions',
+        description: 'List the cc (headless Claude Code) sessions in the workspace. Read-only.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_get_cc_for_pbi',
+        description: 'Get the latest cc session for a PBI (or null). Read-only.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId'],
+          properties: { pbiId: { type: 'string' } },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -1545,6 +1583,13 @@ async function dispatch(
       return aiSynthesizePbi(ctx, aiSynthesizePbiSchema.parse(args));
     case 'synapse_ai_summarize_sprint':
       return aiSummarizeSprint(ctx, aiSummarizeSprintSchema.parse(args));
+    // ---- cc: headless Claude Code sessions (PBI-129) ------------------------
+    case 'synapse_start_cc_for_pbi':
+      return startCcForPbi(ctx, startCcForPbiSchema.parse(args));
+    case 'synapse_list_cc_sessions':
+      return listCcSessions(ctx, listCcSessionsSchema.parse(args));
+    case 'synapse_get_cc_for_pbi':
+      return getCcForPbi(ctx, getCcForPbiSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

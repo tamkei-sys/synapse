@@ -486,6 +486,19 @@ export const aiSummarizeSprintSchema = z.object({
   sprintId: z.string().min(1),
 });
 
+// cc — headless Claude Code sessions (PBI-129). Wraps the cc router. In dev
+// (no CC_* env, which the MCP apiEnv lacks) startForPbi creates a stub session
+// rather than a real container.
+export const startCcForPbiSchema = z.object({
+  pbiId: z.string().min(1),
+});
+
+export const listCcSessionsSchema = z.object({});
+
+export const getCcForPbiSchema = z.object({
+  pbiId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -1156,6 +1169,33 @@ export async function aiSummarizeSprint(
 ): Promise<unknown> {
   await assertBlockInWorkspace(ctx, input.sprintId, 'sprint');
   return viaCaller(ctx.caller.ai.summarizeSprint({ sprintId: input.sprintId }));
+}
+
+// ---- cc: headless Claude Code sessions (PBI-129) ----------------------------
+// Via the cc router. start_cc_for_pbi kicks off a (dev: stub) session for a
+// PBI; list / get are read-only.
+
+export async function startCcForPbi(
+  ctx: ToolContext,
+  input: z.infer<typeof startCcForPbiSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  return viaCaller(ctx.caller.cc.startForPbi({ pbiId: input.pbiId }));
+}
+
+export async function listCcSessions(
+  ctx: ToolContext,
+  _input: z.infer<typeof listCcSessionsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.cc.list({ workspaceId: ctx.workspaceId }));
+}
+
+export async function getCcForPbi(
+  ctx: ToolContext,
+  input: z.infer<typeof getCcForPbiSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  return viaCaller(ctx.caller.cc.getForPbi({ pbiId: input.pbiId }));
 }
 
 export async function listPbis(

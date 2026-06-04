@@ -82,6 +82,9 @@ import {
   aiSummarizePageSchema,
   aiSynthesizePbiSchema,
   aiSummarizeSprintSchema,
+  startCcForPbiSchema,
+  listCcSessionsSchema,
+  getCcForPbiSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -608,5 +611,15 @@ describe('AI schemas (PBI-128)', () => {
     expect(aiSynthesizePbiSchema.parse({ informationSource: 'do X' }).informationSource).toBe('do X');
     expect(() => aiSummarizeSprintSchema.parse({})).toThrow();
     expect(aiSummarizeSprintSchema.parse({ sprintId: 's1' })).toEqual({ sprintId: 's1' });
+  });
+});
+
+describe('cc session schemas (PBI-129)', () => {
+  it('start/get require a pbiId; list takes none', () => {
+    expect(() => startCcForPbiSchema.parse({})).toThrow();
+    expect(startCcForPbiSchema.parse({ pbiId: 'p1' })).toEqual({ pbiId: 'p1' });
+    expect(() => getCcForPbiSchema.parse({})).toThrow();
+    expect(getCcForPbiSchema.parse({ pbiId: 'p1' })).toEqual({ pbiId: 'p1' });
+    expect(listCcSessionsSchema.parse({})).toEqual({});
   });
 });
