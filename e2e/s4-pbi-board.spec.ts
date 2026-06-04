@@ -17,10 +17,10 @@ test('/pbi in doc → card on Backlog → status cycles to Kanban', async ({ pag
 
   // -- sign up + create workspace + page -----------------------------------
   await page.goto('/signup');
-  await page.getByLabel('Name').fill('S4 User');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: /create account/i }).click();
+  await page.getByLabel('お名前').fill('S4 User');
+  await page.getByLabel('メールアドレス').fill(email);
+  await page.getByLabel(/パスワード/).fill(password);
+  await page.getByRole('button', { name: /アカウント作成/i }).click();
 
   await page.getByTestId('workspace-name-input').fill('Acme');
   await page.getByTestId('create-workspace-submit').click();
@@ -45,19 +45,18 @@ test('/pbi in doc → card on Backlog → status cycles to Kanban', async ({ pag
   // match by the partial test id prefix.
   const pbiRef = page.locator('[data-testid^="pbi-ref-"]').first();
   await expect(pbiRef).toBeVisible({ timeout: 10_000 });
-  await expect(pbiRef).toContainText('Untitled PBI');
+  await expect(pbiRef).toContainText('無題 PBI');
 
   const pbiId = (await pbiRef.getAttribute('data-pbi-id')) ?? '';
   expect(pbiId).not.toEqual('');
 
   // -- navigate to the PBI board (Backlog) ---------------------------------
-  await page.goto('/');
-  await page.getByTestId('open-pbi-board').click();
+  await page.goto('/pbi');
   await expect(page).toHaveURL('/pbi');
 
   // Default view is Backlog.
   await expect(page.getByTestId('pbi-backlog')).toBeVisible();
-  await expect(page.getByTestId(`pbi-title-${pbiId}`)).toHaveText('Untitled PBI');
+  await expect(page.getByTestId(`pbi-title-${pbiId}`)).toHaveText('無題 PBI');
 
   // Cycle status: backlog → ready
   const statusBtn = page.getByTestId(`pbi-status-${pbiId}`);

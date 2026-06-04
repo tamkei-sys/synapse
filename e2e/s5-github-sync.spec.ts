@@ -42,10 +42,10 @@ test('link PBI to issue → webhook close → PBI flips to done', async ({ page 
 
   // -- sign up + workspace + page + /pbi -----------------------------------
   await page.goto('/signup');
-  await page.getByLabel('Name').fill('S5 User');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: /create account/i }).click();
+  await page.getByLabel('お名前').fill('S5 User');
+  await page.getByLabel('メールアドレス').fill(email);
+  await page.getByLabel(/パスワード/).fill(password);
+  await page.getByRole('button', { name: /アカウント作成/i }).click();
 
   await page.getByTestId('workspace-name-input').fill('Acme');
   await page.getByTestId('create-workspace-submit').click();

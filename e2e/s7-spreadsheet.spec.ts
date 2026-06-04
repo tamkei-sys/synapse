@@ -32,10 +32,10 @@ test('/sheet → enter values + =SUM → result computed, persists on reload', a
 
   // -- onboarding ----------------------------------------------------------
   await page.goto('/signup');
-  await page.getByLabel('Name').fill('S7 User');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: /create account/i }).click();
+  await page.getByLabel('お名前').fill('S7 User');
+  await page.getByLabel('メールアドレス').fill(email);
+  await page.getByLabel(/パスワード/).fill(password);
+  await page.getByRole('button', { name: /アカウント作成/i }).click();
 
   await page.getByTestId('workspace-name-input').fill('Acme');
   await page.getByTestId('create-workspace-submit').click();
