@@ -291,9 +291,10 @@ function SortableTreeItem({
           params={{ pageId: item.id }}
           data-testid={`sidebar-page-${item.id}`}
           onClick={onNavigate}
-          className="flex min-h-9 flex-1 items-center gap-2 rounded-md px-1 py-1.5"
+          title={getTitle(item.props)}
+          className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1.5"
         >
-          <span className="w-4 text-center text-xs">{getIcon(item.props)}</span>
+          <span className="w-4 shrink-0 text-center text-xs">{getIcon(item.props)}</span>
           <span className="min-w-0 truncate text-sm">{getTitle(item.props)}</span>
         </Link>
       </div>
