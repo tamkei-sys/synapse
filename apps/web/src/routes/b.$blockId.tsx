@@ -57,6 +57,7 @@ import {
 } from '../lib/labels.js';
 import { SbiAlertBadges, sbiNeedsAttention, type SbiAlertInput } from '../lib/sbi-alerts.js';
 import { trpc } from '../lib/trpc.js';
+import { usePersistentEnum } from '../lib/use-persistent-enum.js';
 
 export const Route = createFileRoute('/b/$blockId')({
   component: BlockDetailRoute,
@@ -594,7 +595,11 @@ type ChildKind = 'pbi' | 'sbi';
 
 function ChildList({ items, kind }: { items: BlockRow[]; kind: ChildKind }) {
   const qc = useQueryClient();
-  const [view, setView] = useState<'list' | 'kanban'>('list');
+  const [view, setView] = usePersistentEnum<'list' | 'kanban'>(
+    `synapse:ui:view:child:${kind}`,
+    'list',
+    ['list', 'kanban'],
+  );
   const [filters, setFilters] = useState<FilterValue>({});
 
   const prefix = kind === 'pbi' ? 'PBI' : 'SBI';
