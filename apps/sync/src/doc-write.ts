@@ -64,11 +64,16 @@ function pmNodeToY(node: PmNode): Y.XmlElement | Y.XmlText {
   return el;
 }
 
-/** The block must be a page and the actor a non-viewer member of its workspace. */
-async function assertActorCanWritePage(
+/**
+ * The block must be a page. When `actorUserId` is given (the MCP path), that
+ * user must be a non-viewer member of the page's workspace. When omitted, the
+ * caller is trusted infrastructure already proven by the shared secret (a
+ * system write), so only the page check applies.
+ */
+async function assertWritablePage(
   db: Database,
   blockId: string,
-  actorUserId: string,
+  actorUserId: string | undefined,
 ): Promise<void> {
   const [block] = await db
     .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
@@ -76,6 +81,7 @@ async function assertActorCanWritePage(
     .where(eq(schema.block.id, blockId))
     .limit(1);
   if (!block || block.type !== 'page') throw new DocWriteError(404, 'page not found');
+  if (!actorUserId) return;
 
   const [member] = await db
     .select({ role: schema.workspaceMember.role })
@@ -93,7 +99,8 @@ async function assertActorCanWritePage(
 
 export type DocWriteRequest = {
   blockId: string;
-  actorUserId: string;
+  /** Acting user; when set, enforced as a non-viewer member. Omit for system writes. */
+  actorUserId?: string;
   doc: PmDoc;
   mode: DocWriteMode;
 };
@@ -108,7 +115,7 @@ export async function applyDocWrite(
   db: Database,
   req: DocWriteRequest,
 ): Promise<{ ok: true; nodes: number }> {
-  await assertActorCanWritePage(db, req.blockId, req.actorUserId);
+  await assertWritablePage(db, req.blockId, req.actorUserId);
 
   const nodes = req.doc.content ?? [];
   const connection = await server.openDirectConnection('page:' + req.blockId);

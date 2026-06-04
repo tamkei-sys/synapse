@@ -40,8 +40,9 @@ function parseRequest(raw: unknown): DocWriteRequest {
   if (typeof b['blockId'] !== 'string' || b['blockId'].length === 0) {
     throw new DocWriteError(400, 'blockId required');
   }
-  if (typeof b['actorUserId'] !== 'string' || b['actorUserId'].length === 0) {
-    throw new DocWriteError(400, 'actorUserId required');
+  const actorUserId = b['actorUserId'];
+  if (actorUserId !== undefined && (typeof actorUserId !== 'string' || actorUserId.length === 0)) {
+    throw new DocWriteError(400, 'actorUserId must be a non-empty string when provided');
   }
   if (b['mode'] !== 'append' && b['mode'] !== 'replace') {
     throw new DocWriteError(400, 'mode must be append or replace');
@@ -63,7 +64,12 @@ function parseRequest(raw: unknown): DocWriteRequest {
     }
     doc = raw as PmDoc;
   }
-  return { blockId: b['blockId'], actorUserId: b['actorUserId'], mode: b['mode'], doc };
+  return {
+    blockId: b['blockId'],
+    ...(typeof actorUserId === 'string' ? { actorUserId } : {}),
+    mode: b['mode'],
+    doc,
+  };
 }
 
 export function startInternalServer(opts: {

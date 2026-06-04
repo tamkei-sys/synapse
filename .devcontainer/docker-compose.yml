@@ -37,6 +37,8 @@ services:
       WEB_ORIGIN: http://localhost:5173
       TYPESENSE_URL: http://typesense:8108
       TYPESENSE_API_KEY: dev-typesense-key
+      # Enables apps/sync's internal doc-write endpoint (ADR-0011) on :1235.
+      SYNC_INTERNAL_SECRET: dev-internal-secret
       # pnpm store path matches the named volume mount above.
       PNPM_HOME: /home/node/.local/share/pnpm
     ports:
