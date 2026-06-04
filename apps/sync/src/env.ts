@@ -8,6 +8,13 @@
 export type SyncEnv = {
   port: number;
   databaseUrl: string;
+  /** Internal doc-write API port (server-to-server; never public). (ADR-0011) */
+  internalPort: number;
+  /**
+   * Shared secret gating the internal doc-write API. When unset, the API is
+   * not started — so existing deployments stay ws-only until configured.
+   */
+  internalSecret?: string;
 };
 
 function required(name: string): string {
@@ -22,5 +29,7 @@ export function loadEnv(): SyncEnv {
   return {
     port: Number(process.env['SYNC_PORT'] ?? 1234),
     databaseUrl: required('DATABASE_URL'),
+    internalPort: Number(process.env['SYNC_INTERNAL_PORT'] ?? 1235),
+    internalSecret: process.env['SYNC_INTERNAL_SECRET'] || undefined,
   };
 }

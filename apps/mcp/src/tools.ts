@@ -47,6 +47,12 @@ export type ToolContext = {
    * re-implementing their logic against the DB. (PBI: MCP page tools)
    */
   caller: ServiceCaller;
+  /**
+   * Sync server's internal doc-write endpoint (ADR-0011). Present only when
+   * SYNC_INTERNAL_URL + SYNC_INTERNAL_SECRET are configured; the body-editing
+   * tools require it.
+   */
+  docWrite?: { url: string; secret: string };
 };
 
 // ---- schemas ----------------------------------------------------------------
@@ -243,6 +249,18 @@ export const restorePageSchema = z.object({
   pageId: z.string().min(1),
 });
 
+// Body editing (ADR-0011). Writes go through the sync server's internal
+// endpoint; the markdown is converted to the editor doc there.
+export const appendDocSchema = z.object({
+  pageId: z.string().min(1),
+  markdown: z.string().min(1),
+});
+
+export const setDocSchema = z.object({
+  pageId: z.string().min(1),
+  markdown: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -402,6 +420,63 @@ export async function restorePage(
 ): Promise<unknown> {
   await assertBlockInWorkspace(ctx, input.pageId);
   return viaCaller(ctx.caller.block.restorePage({ pageId: input.pageId }));
+}
+
+/**
+ * Append to / replace a page body via the sync server's internal doc-write
+ * endpoint (ADR-0011). The page body is a live Yjs document, so the write
+ * goes through sync's openDirectConnection — never the DB directly.
+ */
+async function postDocWrite(
+  ctx: ToolContext,
+  pageId: string,
+  markdown: string,
+  mode: 'append' | 'replace',
+): Promise<unknown> {
+  if (!ctx.docWrite) {
+    throw new ToolError(
+      'INTERNAL',
+      'Document body editing is not configured (SYNC_INTERNAL_URL / SYNC_INTERNAL_SECRET unset).',
+    );
+  }
+  await assertBlockInWorkspace(ctx, pageId);
+
+  const url = `${ctx.docWrite.url.replace(/\/$/, '')}/internal/doc/write`;
+  let res: Awaited<ReturnType<typeof fetch>>;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-internal-secret': ctx.docWrite.secret },
+      body: JSON.stringify({ blockId: pageId, actorUserId: ctx.userId, markdown, mode }),
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new ToolError('INTERNAL', `sync doc-write endpoint unreachable: ${detail}`);
+  }
+
+  const body = (await res.json().catch(() => null)) as { error?: string } | null;
+  if (!res.ok) {
+    const message = body?.error ?? `doc-write failed (${res.status})`;
+    if (res.status === 404) throw new ToolError('NOT_FOUND', message);
+    if (res.status === 401 || res.status === 403) throw new ToolError('FORBIDDEN', message);
+    if (res.status === 400) throw new ToolError('INVALID', message);
+    throw new ToolError('INTERNAL', message);
+  }
+  return body;
+}
+
+export async function appendDoc(
+  ctx: ToolContext,
+  input: z.infer<typeof appendDocSchema>,
+): Promise<unknown> {
+  return postDocWrite(ctx, input.pageId, input.markdown, 'append');
+}
+
+export async function setDoc(
+  ctx: ToolContext,
+  input: z.infer<typeof setDocSchema>,
+): Promise<unknown> {
+  return postDocWrite(ctx, input.pageId, input.markdown, 'replace');
 }
 
 export async function listPbis(

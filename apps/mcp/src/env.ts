@@ -15,6 +15,13 @@ export type McpEnv = {
    */
   typesenseUrl?: string;
   typesenseApiKey?: string;
+  /**
+   * Base URL + shared secret for the sync server's internal doc-write API
+   * (ADR-0011). Both required to enable the body-editing tools
+   * (synapse_append_doc / synapse_set_doc); absent → those tools error clearly.
+   */
+  syncInternalUrl?: string;
+  syncInternalSecret?: string;
 };
 
 function required(name: string): string {
@@ -36,5 +43,7 @@ export function loadEnv(): McpEnv {
     apiToken: required('SYNAPSE_API_TOKEN'),
     typesenseUrl: optional('TYPESENSE_URL'),
     typesenseApiKey: optional('TYPESENSE_API_KEY'),
+    syncInternalUrl: optional('SYNC_INTERNAL_URL'),
+    syncInternalSecret: optional('SYNC_INTERNAL_SECRET'),
   };
 }

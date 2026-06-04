@@ -87,6 +87,10 @@ jobs:
       DATABASE_URL: postgres://synapse:synapse@localhost:5432/synapse_dev
       # Keep wrangler dev from phoning home / checking for updates in CI.
       WRANGLER_SEND_METRICS: 'false'
+      # Enables apps/sync's internal doc-write endpoint (ADR-0011) so the
+      # da-doc-append e2e can exercise it. Dev-only value; the sync dev server
+      # and the test both read it.
+      SYNC_INTERNAL_SECRET: dev-internal-secret
 
     steps:
       - uses: actions/checkout@v4

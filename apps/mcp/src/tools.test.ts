@@ -40,6 +40,8 @@ import {
   movePageSchema,
   trashPageSchema,
   restorePageSchema,
+  appendDocSchema,
+  setDocSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -327,5 +329,19 @@ describe('page tool schemas', () => {
 
   it('listPages takes no input', () => {
     expect(listPagesSchema.parse({})).toEqual({});
+  });
+
+  it('appendDoc / setDoc require pageId and non-empty markdown', () => {
+    expect(() => appendDocSchema.parse({ pageId: 'p' })).toThrow();
+    expect(() => appendDocSchema.parse({ pageId: 'p', markdown: '' })).toThrow();
+    expect(appendDocSchema.parse({ pageId: 'p', markdown: '# H' })).toEqual({
+      pageId: 'p',
+      markdown: '# H',
+    });
+    expect(() => setDocSchema.parse({ pageId: 'p' })).toThrow();
+    expect(setDocSchema.parse({ pageId: 'p', markdown: 'x' })).toEqual({
+      pageId: 'p',
+      markdown: 'x',
+    });
   });
 });
