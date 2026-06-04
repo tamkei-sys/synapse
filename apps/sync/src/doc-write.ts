@@ -57,7 +57,11 @@ function pmNodeToY(node: PmNode): Y.XmlElement | Y.XmlText {
   const el = new Y.XmlElement(node.type);
   for (const [key, value] of Object.entries(node.attrs ?? {})) {
     if (value == null) continue;
-    el.setAttribute(key, typeof value === 'string' ? value : JSON.stringify(value));
+    // Preserve native types (numbers / booleans) so e.g. a heading's `level`
+    // round-trips as a number. y-prosemirror reads attributes back as-is, and
+    // TipTap's heading falls back to level 1 when `level` is a string — which
+    // silently flattened every h2/h3 to h1. Only objects/arrays need encoding.
+    el.setAttribute(key, (typeof value === 'object' ? JSON.stringify(value) : value) as string);
   }
   const children = (node.content ?? []).map(pmNodeToY);
   if (children.length > 0) el.insert(0, children);
