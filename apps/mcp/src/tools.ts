@@ -18,7 +18,10 @@ import { z } from 'zod';
 import type { ServiceCaller } from '@synapse/api/server';
 
 import {
+  chatAttachmentSchema,
   commentPropsSchema,
+  dbCellValueSchema,
+  dbColumnSchema,
   extractMentions,
   pbiEstimateSchema,
   pbiPropsSchema,
@@ -97,6 +100,22 @@ export const updatePbiSchema = z.object({
     dueDate: z.string().date().nullable().optional(),
     assigneeIds: z.array(z.string()).max(16).optional(),
   }),
+});
+
+// GitHub Issue linking (PBI-122). Wraps the API's pbi.linkGithubIssue /
+// unlinkGithubIssue through the service caller. Flat args are assembled into
+// the tRPC `{ pbiId, link }` shape; the strict owner/repo regex validation
+// lives in pbiGithubLinkSchema inside the procedure.
+export const linkGithubIssueSchema = z.object({
+  pbiId: z.string().min(1),
+  owner: z.string().trim().min(1).max(64),
+  repo: z.string().trim().min(1).max(100),
+  issueNumber: z.number().int().positive(),
+  state: z.enum(['open', 'closed']).optional(),
+});
+
+export const unlinkGithubIssueSchema = z.object({
+  pbiId: z.string().min(1),
 });
 
 // SBI management — concrete tasks under a PBI, sized in hours. (PBI-98)
@@ -188,6 +207,24 @@ export const listCommentsSchema = z.object({
   blockId: z.string().min(1),
 });
 
+// Comment lifecycle (PBI-127). resolve / react / delete wrap the comment
+// router through the caller so its author/admin authorization is reused.
+// (create/list stay direct-DB above — the router's create depends on env /
+// waitUntil delivery the MCP context doesn't have.)
+export const resolveCommentSchema = z.object({
+  commentId: z.string().min(1),
+  resolved: z.boolean().default(true),
+});
+
+export const reactCommentSchema = z.object({
+  commentId: z.string().min(1),
+  emoji: z.enum(['👍', '🎉', '👀', '✅', '🤔']),
+});
+
+export const deleteCommentSchema = z.object({
+  commentId: z.string().min(1),
+});
+
 // Search & human-id resolution. (PBI-102)
 export const searchSchema = z.object({
   query: z.string().trim().min(1).max(200),
@@ -261,6 +298,207 @@ export const setDocSchema = z.object({
   markdown: z.string().min(1),
 });
 
+// Favorites & bookmarks (PBI-126). favorite.* wraps the per-user page-favorite
+// router through the caller; bookmark.fetch is a read-only server-side OG
+// metadata fetch (SSRF-guarded inside the API).
+export const toggleFavoriteSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const listFavoritesSchema = z.object({});
+
+export const isFavoriteSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const fetchBookmarkSchema = z.object({
+  url: z.string().url().max(2048),
+});
+
+// User-defined DB / spreadsheet (PBI-121). Wraps the db router through the
+// caller. Column / cell shapes reuse the @synapse/blocks schemas so MCP
+// validates inputs exactly the way the API does.
+export const createDbSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  columns: z.array(dbColumnSchema).max(40).optional(),
+});
+
+export const getDbSchema = z.object({
+  dbId: z.string().min(1),
+});
+
+export const listDbsSchema = z.object({});
+
+export const dbAddColumnSchema = z.object({
+  dbId: z.string().min(1),
+  column: dbColumnSchema,
+});
+
+export const dbUpdateColumnSchema = z.object({
+  dbId: z.string().min(1),
+  column: dbColumnSchema,
+});
+
+export const dbDeleteColumnSchema = z.object({
+  dbId: z.string().min(1),
+  columnId: z.string().min(1),
+});
+
+export const dbAddRowSchema = z.object({
+  dbId: z.string().min(1),
+  values: z.record(z.string().min(1), dbCellValueSchema).optional(),
+});
+
+export const dbUpdateCellSchema = z.object({
+  rowId: z.string().min(1),
+  columnId: z.string().min(1),
+  value: dbCellValueSchema,
+});
+
+export const dbReorderRowsSchema = z.object({
+  dbId: z.string().min(1),
+  orderedRowIds: z.array(z.string().min(1)).min(1).max(2000),
+});
+
+export const dbDeleteRowSchema = z.object({
+  rowId: z.string().min(1),
+});
+
+// Chat (PBI-123). Wraps the chat router through the caller. Channel/message ids
+// are block ids; workspace scope is checked locally. Reactions use the chat
+// router's six emojis (note: one more than comment's five).
+const CHAT_REACTION_EMOJIS = ['👍', '🎉', '👀', '✅', '🤔', '❤️'] as const;
+
+export const listChannelsSchema = z.object({});
+
+export const createChannelSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  description: z.string().max(280).optional(),
+});
+
+export const listMessagesSchema = z.object({
+  channelId: z.string().min(1),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
+export const sendMessageSchema = z.object({
+  channelId: z.string().min(1),
+  body: z.string().trim().max(4_000).optional(),
+  attachment: chatAttachmentSchema.optional(),
+});
+
+export const deleteMessageSchema = z.object({
+  messageId: z.string().min(1),
+});
+
+export const reactMessageSchema = z.object({
+  messageId: z.string().min(1),
+  emoji: z.enum(CHAT_REACTION_EMOJIS),
+});
+
+// Notifications & reminders (PBI-124). notification.* + reminder.* via the
+// caller. Workspace-scoped reads use ctx.workspaceId; notification/reminder ids
+// are per-user (the routers filter by the session user) so no extra check.
+export const listNotificationsSchema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  unreadOnly: z.boolean().optional(),
+});
+
+export const unreadCountSchema = z.object({});
+
+export const markNotificationReadSchema = z.object({
+  notificationId: z.string().min(1),
+});
+
+export const markAllNotificationsReadSchema = z.object({});
+
+export const createReminderSchema = z.object({
+  blockId: z.string().min(1),
+  remindAt: z.string().min(1),
+  body: z.string().max(500).optional(),
+  recurrence: z.enum(['none', 'daily', 'weekly', 'monthly']).optional(),
+});
+
+export const snoozeReminderSchema = z.object({
+  reminderId: z.string().min(1),
+  minutes: z.number().int().min(1).max(43_200),
+});
+
+export const listRemindersSchema = z.object({
+  blockId: z.string().min(1).optional(),
+});
+
+export const deleteReminderSchema = z.object({
+  reminderId: z.string().min(1),
+});
+
+// Workspace member management (PBI-125). Member + invitation admin for the
+// token's workspace; owner/admin only (enforced by the router). Workspace
+// create/delete is intentionally out of scope — the token is single-workspace.
+export const listMembersSchema = z.object({});
+
+export const listInvitationsSchema = z.object({});
+
+export const inviteMemberSchema = z.object({
+  email: z.string().trim().email().max(200),
+  role: z.enum(['admin', 'member', 'viewer']).optional(),
+});
+
+export const cancelInvitationSchema = z.object({
+  invitationId: z.string().min(1),
+});
+
+export const setMemberRoleSchema = z.object({
+  userId: z.string().min(1),
+  role: z.enum(['owner', 'admin', 'member', 'viewer']),
+});
+
+export const removeMemberSchema = z.object({
+  userId: z.string().min(1),
+});
+
+// AI (PBI-128). Wraps the ai router through the caller. Every call may incur
+// Anthropic cost, so all are gated by 'write_ai' even when read-shaped. The
+// MCP apiEnv carries no ANTHROPIC_API_KEY, so calls return the dev stub (no
+// outbound request) and the responses carry a `stub` flag.
+export const aiAskSchema = z.object({
+  prompt: z.string().trim().min(1).max(2_000),
+});
+
+export const aiTransformSchema = z.object({
+  mode: z.enum(['write', 'summarize', 'translate', 'rewrite']),
+  text: z.string().max(8_000).optional(),
+  instruction: z.string().max(2_000).optional(),
+  targetLang: z.string().max(40).optional(),
+});
+
+export const aiSummarizePageSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const aiSynthesizePbiSchema = z.object({
+  informationSource: z.string().trim().min(1).max(8_000),
+  projectId: z.string().optional(),
+  sprintId: z.string().optional(),
+});
+
+export const aiSummarizeSprintSchema = z.object({
+  sprintId: z.string().min(1),
+});
+
+// cc — headless Claude Code sessions (PBI-129). Wraps the cc router. In dev
+// (no CC_* env, which the MCP apiEnv lacks) startForPbi creates a stub session
+// rather than a real container.
+export const startCcForPbiSchema = z.object({
+  pbiId: z.string().min(1),
+});
+
+export const listCcSessionsSchema = z.object({});
+
+export const getCcForPbiSchema = z.object({
+  pbiId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -298,15 +536,19 @@ async function viaCaller<T>(p: Promise<T>): Promise<T> {
  * an MCP token is scoped to a single workspace. Enforce that scope here: the
  * referenced block must live in the token's workspace.
  */
-async function assertBlockInWorkspace(ctx: ToolContext, blockId: string): Promise<void> {
+async function assertBlockInWorkspace(
+  ctx: ToolContext,
+  blockId: string,
+  label = 'page',
+): Promise<void> {
   const [row] = await ctx.db
     .select({ workspaceId: schema.block.workspaceId })
     .from(schema.block)
     .where(eq(schema.block.id, blockId))
     .limit(1);
-  if (!row) throw new ToolError('NOT_FOUND', `page ${blockId} not found`);
+  if (!row) throw new ToolError('NOT_FOUND', `${label} ${blockId} not found`);
   if (row.workspaceId !== ctx.workspaceId) {
-    throw new ToolError('FORBIDDEN', 'page belongs to a different workspace');
+    throw new ToolError('FORBIDDEN', `${label} belongs to a different workspace`);
   }
 }
 
@@ -477,6 +719,483 @@ export async function setDoc(
   input: z.infer<typeof setDocSchema>,
 ): Promise<unknown> {
   return postDocWrite(ctx, input.pageId, input.markdown, 'replace');
+}
+
+// ---- GitHub Issue linking (PBI-122) -----------------------------------------
+// Delegate to the API's pbi router through the caller so the canonical link
+// merge + fire-and-forget outbound GitHub push is reused. Workspace scope is
+// enforced locally first: the token is single-workspace, but the procedure
+// only checks the actor's membership.
+
+export async function linkGithubIssue(
+  ctx: ToolContext,
+  input: z.infer<typeof linkGithubIssueSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  const row = await viaCaller(
+    ctx.caller.pbi.linkGithubIssue({
+      pbiId: input.pbiId,
+      link: {
+        owner: input.owner,
+        repo: input.repo,
+        issueNumber: input.issueNumber,
+        ...(input.state ? { state: input.state } : {}),
+      },
+    }),
+  );
+  return projectPbi(row);
+}
+
+export async function unlinkGithubIssue(
+  ctx: ToolContext,
+  input: z.infer<typeof unlinkGithubIssueSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  const row = await viaCaller(ctx.caller.pbi.unlinkGithubIssue({ pbiId: input.pbiId }));
+  return projectPbi(row);
+}
+
+// ---- favorites & bookmarks (PBI-126) ----------------------------------------
+// favorite.* delegate to the per-user favorite router via the caller;
+// bookmark.fetch does a server-side OG fetch (SSRF-guarded in the API).
+
+export async function toggleFavorite(
+  ctx: ToolContext,
+  input: z.infer<typeof toggleFavoriteSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId, 'page');
+  return viaCaller(ctx.caller.favorite.toggle({ pageId: input.pageId }));
+}
+
+export async function listFavorites(
+  ctx: ToolContext,
+  _input: z.infer<typeof listFavoritesSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.favorite.listMine({ workspaceId: ctx.workspaceId }));
+}
+
+export async function isFavorite(
+  ctx: ToolContext,
+  input: z.infer<typeof isFavoriteSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId, 'page');
+  return viaCaller(ctx.caller.favorite.isFavorite({ pageId: input.pageId }));
+}
+
+export async function fetchBookmark(
+  ctx: ToolContext,
+  input: z.infer<typeof fetchBookmarkSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.bookmark.fetch({ url: input.url }));
+}
+
+// ---- user-defined DB / spreadsheet (PBI-121) --------------------------------
+// All delegate to the db router via the caller; workspace scope is checked
+// locally first for tools that reference an existing db / row id.
+
+export async function createDb(
+  ctx: ToolContext,
+  input: z.infer<typeof createDbSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.db.create({
+      workspaceId: ctx.workspaceId,
+      ...(input.title ? { title: input.title } : {}),
+      ...(input.columns ? { columns: input.columns } : {}),
+    }),
+  );
+}
+
+export async function getDb(
+  ctx: ToolContext,
+  input: z.infer<typeof getDbSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.get({ dbId: input.dbId }));
+}
+
+export async function listDbs(
+  ctx: ToolContext,
+  _input: z.infer<typeof listDbsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.db.listForWorkspace({ workspaceId: ctx.workspaceId }));
+}
+
+export async function dbAddColumn(
+  ctx: ToolContext,
+  input: z.infer<typeof dbAddColumnSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.addColumn({ dbId: input.dbId, column: input.column }));
+}
+
+export async function dbUpdateColumn(
+  ctx: ToolContext,
+  input: z.infer<typeof dbUpdateColumnSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.updateColumn({ dbId: input.dbId, column: input.column }));
+}
+
+export async function dbDeleteColumn(
+  ctx: ToolContext,
+  input: z.infer<typeof dbDeleteColumnSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.deleteColumn({ dbId: input.dbId, columnId: input.columnId }));
+}
+
+export async function dbAddRow(
+  ctx: ToolContext,
+  input: z.infer<typeof dbAddRowSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(
+    ctx.caller.db.addRow({ dbId: input.dbId, ...(input.values ? { values: input.values } : {}) }),
+  );
+}
+
+export async function dbUpdateCell(
+  ctx: ToolContext,
+  input: z.infer<typeof dbUpdateCellSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.rowId, 'db row');
+  return viaCaller(
+    ctx.caller.db.updateCell({
+      rowId: input.rowId,
+      columnId: input.columnId,
+      value: input.value,
+    }),
+  );
+}
+
+export async function dbReorderRows(
+  ctx: ToolContext,
+  input: z.infer<typeof dbReorderRowsSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(
+    ctx.caller.db.reorderRows({ dbId: input.dbId, orderedRowIds: input.orderedRowIds }),
+  );
+}
+
+export async function dbDeleteRow(
+  ctx: ToolContext,
+  input: z.infer<typeof dbDeleteRowSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.rowId, 'db row');
+  return viaCaller(ctx.caller.db.deleteRow({ rowId: input.rowId }));
+}
+
+// ---- chat (PBI-123) ---------------------------------------------------------
+// All delegate to the chat router via the caller; channel / message ids are
+// block ids checked locally for workspace scope first.
+
+export async function listChannels(
+  ctx: ToolContext,
+  _input: z.infer<typeof listChannelsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.chat.listChannels({ workspaceId: ctx.workspaceId }));
+}
+
+export async function createChannel(
+  ctx: ToolContext,
+  input: z.infer<typeof createChannelSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.chat.createChannel({
+      workspaceId: ctx.workspaceId,
+      name: input.name,
+      ...(input.description ? { description: input.description } : {}),
+    }),
+  );
+}
+
+export async function listMessages(
+  ctx: ToolContext,
+  input: z.infer<typeof listMessagesSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.channelId, 'channel');
+  return viaCaller(
+    ctx.caller.chat.listMessages({
+      channelId: input.channelId,
+      ...(typeof input.limit === 'number' ? { limit: input.limit } : {}),
+    }),
+  );
+}
+
+export async function sendMessage(
+  ctx: ToolContext,
+  input: z.infer<typeof sendMessageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.channelId, 'channel');
+  return viaCaller(
+    ctx.caller.chat.sendMessage({
+      channelId: input.channelId,
+      ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(input.attachment ? { attachment: input.attachment } : {}),
+    }),
+  );
+}
+
+export async function deleteMessage(
+  ctx: ToolContext,
+  input: z.infer<typeof deleteMessageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.messageId, 'message');
+  return viaCaller(ctx.caller.chat.deleteMessage({ messageId: input.messageId }));
+}
+
+export async function reactMessage(
+  ctx: ToolContext,
+  input: z.infer<typeof reactMessageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.messageId, 'message');
+  return viaCaller(ctx.caller.chat.toggleReaction({ messageId: input.messageId, emoji: input.emoji }));
+}
+
+// ---- notifications & reminders (PBI-124) ------------------------------------
+// notification.* and reminder.* via the caller. The routers bind recipient /
+// owner to the session user, so cross-user access is impossible; only
+// create_reminder references a block, which we scope-check locally.
+
+export async function listNotifications(
+  ctx: ToolContext,
+  input: z.infer<typeof listNotificationsSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.notification.list({
+      workspaceId: ctx.workspaceId,
+      ...(typeof input.limit === 'number' ? { limit: input.limit } : {}),
+      ...(input.unreadOnly !== undefined ? { unreadOnly: input.unreadOnly } : {}),
+    }),
+  );
+}
+
+export async function unreadCount(
+  ctx: ToolContext,
+  _input: z.infer<typeof unreadCountSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.notification.unreadCount({ workspaceId: ctx.workspaceId }));
+}
+
+export async function markNotificationRead(
+  ctx: ToolContext,
+  input: z.infer<typeof markNotificationReadSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.notification.markRead({ notificationId: input.notificationId }));
+}
+
+export async function markAllNotificationsRead(
+  ctx: ToolContext,
+  _input: z.infer<typeof markAllNotificationsReadSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.notification.markAllRead({ workspaceId: ctx.workspaceId }));
+}
+
+export async function createReminder(
+  ctx: ToolContext,
+  input: z.infer<typeof createReminderSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.blockId, 'block');
+  return viaCaller(
+    ctx.caller.reminder.create({
+      blockId: input.blockId,
+      remindAt: new Date(input.remindAt),
+      ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(input.recurrence ? { recurrence: input.recurrence } : {}),
+    }),
+  );
+}
+
+export async function snoozeReminder(
+  ctx: ToolContext,
+  input: z.infer<typeof snoozeReminderSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.reminder.snooze({ reminderId: input.reminderId, minutes: input.minutes }),
+  );
+}
+
+export async function listReminders(
+  ctx: ToolContext,
+  input: z.infer<typeof listRemindersSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.reminder.listMine({
+      workspaceId: ctx.workspaceId,
+      ...(input.blockId ? { blockId: input.blockId } : {}),
+    }),
+  );
+}
+
+export async function deleteReminder(
+  ctx: ToolContext,
+  input: z.infer<typeof deleteReminderSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.reminder.delete({ reminderId: input.reminderId }));
+}
+
+// ---- workspace member management (PBI-125) ----------------------------------
+// Member / invitation admin scoped to the token's workspace. setMemberRole /
+// removeMember reach members by (ctx.workspaceId, userId) so cross-workspace is
+// impossible; cancelInvitation takes a bare id, so we verify its workspace.
+
+/** An invitation isn't a block — verify it belongs to the token's workspace. */
+async function assertInvitationInWorkspace(ctx: ToolContext, invitationId: string): Promise<void> {
+  const [row] = await ctx.db
+    .select({ workspaceId: schema.workspaceInvitation.workspaceId })
+    .from(schema.workspaceInvitation)
+    .where(eq(schema.workspaceInvitation.id, invitationId))
+    .limit(1);
+  if (!row) throw new ToolError('NOT_FOUND', `invitation ${invitationId} not found`);
+  if (row.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'invitation belongs to a different workspace');
+  }
+}
+
+export async function listMembers(
+  ctx: ToolContext,
+  _input: z.infer<typeof listMembersSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.workspace.listMembers({ workspaceId: ctx.workspaceId }));
+}
+
+export async function listInvitations(
+  ctx: ToolContext,
+  _input: z.infer<typeof listInvitationsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.workspace.listInvitations({ workspaceId: ctx.workspaceId }));
+}
+
+export async function inviteMember(
+  ctx: ToolContext,
+  input: z.infer<typeof inviteMemberSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.workspace.invite({
+      workspaceId: ctx.workspaceId,
+      email: input.email,
+      ...(input.role ? { role: input.role } : {}),
+    }),
+  );
+}
+
+export async function cancelInvitation(
+  ctx: ToolContext,
+  input: z.infer<typeof cancelInvitationSchema>,
+): Promise<unknown> {
+  await assertInvitationInWorkspace(ctx, input.invitationId);
+  return viaCaller(ctx.caller.workspace.cancelInvitation({ invitationId: input.invitationId }));
+}
+
+export async function setMemberRole(
+  ctx: ToolContext,
+  input: z.infer<typeof setMemberRoleSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.workspace.setMemberRole({
+      workspaceId: ctx.workspaceId,
+      userId: input.userId,
+      role: input.role,
+    }),
+  );
+}
+
+export async function removeMember(
+  ctx: ToolContext,
+  input: z.infer<typeof removeMemberSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.workspace.removeMember({ workspaceId: ctx.workspaceId, userId: input.userId }),
+  );
+}
+
+// ---- AI (PBI-128) -----------------------------------------------------------
+// All via the ai router through the caller. Returns carry a `stub` flag when no
+// ANTHROPIC_API_KEY is configured (the MCP apiEnv has none → no outbound call).
+
+export async function aiAsk(
+  ctx: ToolContext,
+  input: z.infer<typeof aiAskSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.ai.ask({ workspaceId: ctx.workspaceId, prompt: input.prompt }));
+}
+
+export async function aiTransform(
+  ctx: ToolContext,
+  input: z.infer<typeof aiTransformSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.ai.transform({
+      workspaceId: ctx.workspaceId,
+      mode: input.mode,
+      ...(input.text !== undefined ? { text: input.text } : {}),
+      ...(input.instruction ? { instruction: input.instruction } : {}),
+      ...(input.targetLang ? { targetLang: input.targetLang } : {}),
+    }),
+  );
+}
+
+export async function aiSummarizePage(
+  ctx: ToolContext,
+  input: z.infer<typeof aiSummarizePageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId, 'page');
+  return viaCaller(
+    ctx.caller.ai.summarizePage({ workspaceId: ctx.workspaceId, pageId: input.pageId }),
+  );
+}
+
+export async function aiSynthesizePbi(
+  ctx: ToolContext,
+  input: z.infer<typeof aiSynthesizePbiSchema>,
+): Promise<unknown> {
+  if (input.projectId) await assertBlockInWorkspace(ctx, input.projectId, 'project');
+  if (input.sprintId) await assertBlockInWorkspace(ctx, input.sprintId, 'sprint');
+  return viaCaller(
+    ctx.caller.ai.synthesizePbi({
+      workspaceId: ctx.workspaceId,
+      informationSource: input.informationSource,
+      ...(input.projectId ? { projectId: input.projectId } : {}),
+      ...(input.sprintId ? { sprintId: input.sprintId } : {}),
+    }),
+  );
+}
+
+export async function aiSummarizeSprint(
+  ctx: ToolContext,
+  input: z.infer<typeof aiSummarizeSprintSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.sprintId, 'sprint');
+  return viaCaller(ctx.caller.ai.summarizeSprint({ sprintId: input.sprintId }));
+}
+
+// ---- cc: headless Claude Code sessions (PBI-129) ----------------------------
+// Via the cc router. start_cc_for_pbi kicks off a (dev: stub) session for a
+// PBI; list / get are read-only.
+
+export async function startCcForPbi(
+  ctx: ToolContext,
+  input: z.infer<typeof startCcForPbiSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  return viaCaller(ctx.caller.cc.startForPbi({ pbiId: input.pbiId }));
+}
+
+export async function listCcSessions(
+  ctx: ToolContext,
+  _input: z.infer<typeof listCcSessionsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.cc.list({ workspaceId: ctx.workspaceId }));
+}
+
+export async function getCcForPbi(
+  ctx: ToolContext,
+  input: z.infer<typeof getCcForPbiSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  return viaCaller(ctx.caller.cc.getForPbi({ pbiId: input.pbiId }));
 }
 
 export async function listPbis(
@@ -1252,6 +1971,38 @@ export async function listComments(
   });
 }
 
+// ---- comment lifecycle (PBI-127) --------------------------------------------
+// resolve / react / delete delegate to the comment router via the caller so
+// the canonical authorization (delete = author or admin/owner) is reused.
+
+export async function resolveComment(
+  ctx: ToolContext,
+  input: z.infer<typeof resolveCommentSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.commentId, 'comment');
+  return viaCaller(
+    ctx.caller.comment.setResolved({ commentId: input.commentId, resolved: input.resolved }),
+  );
+}
+
+export async function reactComment(
+  ctx: ToolContext,
+  input: z.infer<typeof reactCommentSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.commentId, 'comment');
+  return viaCaller(
+    ctx.caller.comment.toggleReaction({ commentId: input.commentId, emoji: input.emoji }),
+  );
+}
+
+export async function deleteComment(
+  ctx: ToolContext,
+  input: z.infer<typeof deleteCommentSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.commentId, 'comment');
+  return viaCaller(ctx.caller.comment.delete({ commentId: input.commentId }));
+}
+
 // ---- search & resolve handlers (PBI-102) ------------------------------------
 
 export async function searchWorkspace(
@@ -1495,6 +2246,7 @@ export function projectPbi(row: BlockProjection) {
     projectId?: string;
     sprintId?: string;
     number?: number;
+    github?: { owner: string; repo: string; issueNumber: number; state?: string; syncedAt?: string };
   };
   return {
     id: row.id,
@@ -1508,6 +2260,7 @@ export function projectPbi(row: BlockProjection) {
     ...(p.dueDate ? { dueDate: p.dueDate } : {}),
     ...(p.projectId ? { projectId: p.projectId } : {}),
     ...(p.sprintId ? { sprintId: p.sprintId } : {}),
+    ...(p.github ? { github: p.github } : {}),
     updatedAt: row.updatedAt,
   };
 }

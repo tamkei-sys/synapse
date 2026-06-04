@@ -42,6 +42,49 @@ import {
   restorePageSchema,
   appendDocSchema,
   setDocSchema,
+  linkGithubIssueSchema,
+  unlinkGithubIssueSchema,
+  resolveCommentSchema,
+  reactCommentSchema,
+  deleteCommentSchema,
+  toggleFavoriteSchema,
+  listFavoritesSchema,
+  isFavoriteSchema,
+  fetchBookmarkSchema,
+  createDbSchema,
+  getDbSchema,
+  listDbsSchema,
+  dbAddColumnSchema,
+  dbDeleteColumnSchema,
+  dbAddRowSchema,
+  dbUpdateCellSchema,
+  dbReorderRowsSchema,
+  dbDeleteRowSchema,
+  createChannelSchema,
+  listMessagesSchema,
+  sendMessageSchema,
+  deleteMessageSchema,
+  reactMessageSchema,
+  listNotificationsSchema,
+  markNotificationReadSchema,
+  createReminderSchema,
+  snoozeReminderSchema,
+  listRemindersSchema,
+  deleteReminderSchema,
+  listMembersSchema,
+  listInvitationsSchema,
+  inviteMemberSchema,
+  cancelInvitationSchema,
+  setMemberRoleSchema,
+  removeMemberSchema,
+  aiAskSchema,
+  aiTransformSchema,
+  aiSummarizePageSchema,
+  aiSynthesizePbiSchema,
+  aiSummarizeSprintSchema,
+  startCcForPbiSchema,
+  listCcSessionsSchema,
+  getCcForPbiSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -275,6 +318,25 @@ describe('projections enrich block output (PBI-96)', () => {
     expect(sbi.status).toBe('review');
     expect(sbi.estimateHours).toBe(4);
   });
+
+  it('projectPbi surfaces a linked github issue (PBI-122)', () => {
+    const out = projectPbi({
+      id: 'b3',
+      updatedAt,
+      props: {
+        title: 'C',
+        number: 122,
+        github: { owner: 'octocat', repo: 'hello', issueNumber: 7, state: 'open', syncedAt: updatedAt },
+      },
+    }) as Record<string, unknown>;
+    expect(out.github).toEqual({
+      owner: 'octocat',
+      repo: 'hello',
+      issueNumber: 7,
+      state: 'open',
+      syncedAt: updatedAt,
+    });
+  });
 });
 
 describe('ToolError', () => {
@@ -343,5 +405,221 @@ describe('page tool schemas', () => {
       pageId: 'p',
       markdown: 'x',
     });
+  });
+});
+
+describe('GitHub issue linking schemas (PBI-122)', () => {
+  it('linkGithubIssue requires pbiId/owner/repo/issueNumber', () => {
+    expect(() => linkGithubIssueSchema.parse({ pbiId: 'a', owner: 'o', repo: 'r' })).toThrow();
+    const ok = linkGithubIssueSchema.parse({
+      pbiId: 'a',
+      owner: 'octocat',
+      repo: 'hello',
+      issueNumber: 7,
+    });
+    expect(ok.issueNumber).toBe(7);
+  });
+
+  it('linkGithubIssue rejects a non-positive or non-integer issueNumber', () => {
+    expect(() =>
+      linkGithubIssueSchema.parse({ pbiId: 'a', owner: 'o', repo: 'r', issueNumber: 0 }),
+    ).toThrow();
+    expect(() =>
+      linkGithubIssueSchema.parse({ pbiId: 'a', owner: 'o', repo: 'r', issueNumber: 1.5 }),
+    ).toThrow();
+  });
+
+  it('linkGithubIssue constrains state to open/closed', () => {
+    expect(() =>
+      linkGithubIssueSchema.parse({
+        pbiId: 'a',
+        owner: 'o',
+        repo: 'r',
+        issueNumber: 1,
+        state: 'merged',
+      }),
+    ).toThrow();
+    expect(
+      linkGithubIssueSchema.parse({
+        pbiId: 'a',
+        owner: 'o',
+        repo: 'r',
+        issueNumber: 1,
+        state: 'closed',
+      }).state,
+    ).toBe('closed');
+  });
+
+  it('unlinkGithubIssue requires pbiId', () => {
+    expect(() => unlinkGithubIssueSchema.parse({})).toThrow();
+    expect(unlinkGithubIssueSchema.parse({ pbiId: 'a' })).toEqual({ pbiId: 'a' });
+  });
+});
+
+describe('comment lifecycle schemas (PBI-127)', () => {
+  it('resolveComment requires commentId and defaults resolved to true', () => {
+    expect(() => resolveCommentSchema.parse({})).toThrow();
+    expect(resolveCommentSchema.parse({ commentId: 'c1' })).toEqual({
+      commentId: 'c1',
+      resolved: true,
+    });
+    expect(resolveCommentSchema.parse({ commentId: 'c1', resolved: false }).resolved).toBe(false);
+  });
+
+  it('reactComment constrains emoji to the five allowed', () => {
+    expect(reactCommentSchema.parse({ commentId: 'c1', emoji: '👍' }).emoji).toBe('👍');
+    expect(() => reactCommentSchema.parse({ commentId: 'c1', emoji: '❤️' })).toThrow();
+    expect(() => reactCommentSchema.parse({ commentId: 'c1' })).toThrow();
+  });
+
+  it('deleteComment requires commentId', () => {
+    expect(() => deleteCommentSchema.parse({})).toThrow();
+    expect(deleteCommentSchema.parse({ commentId: 'c1' })).toEqual({ commentId: 'c1' });
+  });
+});
+
+describe('favorite & bookmark schemas (PBI-126)', () => {
+  it('toggleFavorite / isFavorite require pageId', () => {
+    expect(() => toggleFavoriteSchema.parse({})).toThrow();
+    expect(toggleFavoriteSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+    expect(() => isFavoriteSchema.parse({})).toThrow();
+    expect(isFavoriteSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+  });
+
+  it('listFavorites takes no input', () => {
+    expect(listFavoritesSchema.parse({})).toEqual({});
+  });
+
+  it('fetchBookmark requires a valid URL within length', () => {
+    expect(() => fetchBookmarkSchema.parse({})).toThrow();
+    expect(() => fetchBookmarkSchema.parse({ url: 'not-a-url' })).toThrow();
+    expect(fetchBookmarkSchema.parse({ url: 'https://example.com' }).url).toBe(
+      'https://example.com',
+    );
+  });
+});
+
+describe('user-defined DB schemas (PBI-121)', () => {
+  it('createDb accepts an optional title (columns validated by the block schema)', () => {
+    expect(createDbSchema.parse({})).toEqual({});
+    expect(createDbSchema.parse({ title: 'Tasks' }).title).toBe('Tasks');
+  });
+
+  it('getDb / dbDeleteRow require their id; listDbs takes none', () => {
+    expect(() => getDbSchema.parse({})).toThrow();
+    expect(getDbSchema.parse({ dbId: 'd1' })).toEqual({ dbId: 'd1' });
+    expect(listDbsSchema.parse({})).toEqual({});
+    expect(() => dbDeleteRowSchema.parse({})).toThrow();
+    expect(dbDeleteRowSchema.parse({ rowId: 'r1' })).toEqual({ rowId: 'r1' });
+  });
+
+  it('dbAddColumn / dbDeleteColumn require dbId plus the column / columnId', () => {
+    expect(() => dbAddColumnSchema.parse({ dbId: 'd1' })).toThrow();
+    expect(() => dbDeleteColumnSchema.parse({ dbId: 'd1' })).toThrow();
+    expect(dbDeleteColumnSchema.parse({ dbId: 'd1', columnId: 'c1' }).columnId).toBe('c1');
+  });
+
+  it('dbAddRow values optional; updateCell allows null; reorder needs >=1 id', () => {
+    expect(dbAddRowSchema.parse({ dbId: 'd1' })).toEqual({ dbId: 'd1' });
+    expect(dbUpdateCellSchema.parse({ rowId: 'r1', columnId: 'c1', value: null }).value).toBeNull();
+    expect(() => dbReorderRowsSchema.parse({ dbId: 'd1', orderedRowIds: [] })).toThrow();
+  });
+});
+
+describe('chat schemas (PBI-123)', () => {
+  it('createChannel requires a name; listMessages requires channelId', () => {
+    expect(() => createChannelSchema.parse({})).toThrow();
+    expect(createChannelSchema.parse({ name: 'general' }).name).toBe('general');
+    expect(() => listMessagesSchema.parse({})).toThrow();
+    expect(listMessagesSchema.parse({ channelId: 'ch1' }).channelId).toBe('ch1');
+  });
+
+  it('sendMessage requires channelId; body and attachment are optional', () => {
+    expect(() => sendMessageSchema.parse({})).toThrow();
+    expect(sendMessageSchema.parse({ channelId: 'ch1', body: 'hi' }).body).toBe('hi');
+  });
+
+  it('reactMessage allows the six emojis and rejects others', () => {
+    expect(reactMessageSchema.parse({ messageId: 'm1', emoji: '❤️' }).emoji).toBe('❤️');
+    expect(() => reactMessageSchema.parse({ messageId: 'm1', emoji: '🚀' })).toThrow();
+    expect(() => deleteMessageSchema.parse({})).toThrow();
+    expect(deleteMessageSchema.parse({ messageId: 'm1' })).toEqual({ messageId: 'm1' });
+  });
+});
+
+describe('notification & reminder schemas (PBI-124)', () => {
+  it('listNotifications options are optional; markRead needs an id', () => {
+    expect(listNotificationsSchema.parse({})).toEqual({});
+    expect(listNotificationsSchema.parse({ unreadOnly: true }).unreadOnly).toBe(true);
+    expect(() => markNotificationReadSchema.parse({})).toThrow();
+    expect(markNotificationReadSchema.parse({ notificationId: 'n1' }).notificationId).toBe('n1');
+  });
+
+  it('createReminder requires blockId + remindAt; recurrence is constrained', () => {
+    expect(() => createReminderSchema.parse({ blockId: 'b1' })).toThrow();
+    const ok = createReminderSchema.parse({ blockId: 'b1', remindAt: '2026-06-10T09:00:00Z' });
+    expect(ok.remindAt).toBe('2026-06-10T09:00:00Z');
+    expect(() =>
+      createReminderSchema.parse({ blockId: 'b1', remindAt: 'x', recurrence: 'yearly' }),
+    ).toThrow();
+  });
+
+  it('snoozeReminder bounds minutes; list/delete shapes', () => {
+    expect(() => snoozeReminderSchema.parse({ reminderId: 'r1', minutes: 0 })).toThrow();
+    expect(snoozeReminderSchema.parse({ reminderId: 'r1', minutes: 30 }).minutes).toBe(30);
+    expect(listRemindersSchema.parse({})).toEqual({});
+    expect(() => deleteReminderSchema.parse({})).toThrow();
+    expect(deleteReminderSchema.parse({ reminderId: 'r1' })).toEqual({ reminderId: 'r1' });
+  });
+});
+
+describe('workspace member schemas (PBI-125)', () => {
+  it('inviteMember needs a valid email; role excludes owner', () => {
+    expect(() => inviteMemberSchema.parse({})).toThrow();
+    expect(() => inviteMemberSchema.parse({ email: 'nope' })).toThrow();
+    expect(inviteMemberSchema.parse({ email: 'a@b.com', role: 'admin' }).role).toBe('admin');
+    expect(() => inviteMemberSchema.parse({ email: 'a@b.com', role: 'owner' })).toThrow();
+  });
+
+  it('setMemberRole allows owner..viewer; removeMember needs a userId', () => {
+    expect(setMemberRoleSchema.parse({ userId: 'u1', role: 'owner' }).role).toBe('owner');
+    expect(() => setMemberRoleSchema.parse({ userId: 'u1', role: 'god' })).toThrow();
+    expect(() => removeMemberSchema.parse({})).toThrow();
+    expect(removeMemberSchema.parse({ userId: 'u1' })).toEqual({ userId: 'u1' });
+  });
+
+  it('cancelInvitation needs an id; the list tools take none', () => {
+    expect(() => cancelInvitationSchema.parse({})).toThrow();
+    expect(cancelInvitationSchema.parse({ invitationId: 'i1' })).toEqual({ invitationId: 'i1' });
+    expect(listMembersSchema.parse({})).toEqual({});
+    expect(listInvitationsSchema.parse({})).toEqual({});
+  });
+});
+
+describe('AI schemas (PBI-128)', () => {
+  it('aiAsk requires a prompt; aiTransform constrains mode', () => {
+    expect(() => aiAskSchema.parse({})).toThrow();
+    expect(aiAskSchema.parse({ prompt: 'hello' }).prompt).toBe('hello');
+    expect(aiTransformSchema.parse({ mode: 'summarize' }).mode).toBe('summarize');
+    expect(() => aiTransformSchema.parse({ mode: 'translate-all' })).toThrow();
+  });
+
+  it('summarizePage/synthesizePbi/summarizeSprint require their ids/source', () => {
+    expect(() => aiSummarizePageSchema.parse({})).toThrow();
+    expect(aiSummarizePageSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+    expect(() => aiSynthesizePbiSchema.parse({})).toThrow();
+    expect(aiSynthesizePbiSchema.parse({ informationSource: 'do X' }).informationSource).toBe('do X');
+    expect(() => aiSummarizeSprintSchema.parse({})).toThrow();
+    expect(aiSummarizeSprintSchema.parse({ sprintId: 's1' })).toEqual({ sprintId: 's1' });
+  });
+});
+
+describe('cc session schemas (PBI-129)', () => {
+  it('start/get require a pbiId; list takes none', () => {
+    expect(() => startCcForPbiSchema.parse({})).toThrow();
+    expect(startCcForPbiSchema.parse({ pbiId: 'p1' })).toEqual({ pbiId: 'p1' });
+    expect(() => getCcForPbiSchema.parse({})).toThrow();
+    expect(getCcForPbiSchema.parse({ pbiId: 'p1' })).toEqual({ pbiId: 'p1' });
+    expect(listCcSessionsSchema.parse({})).toEqual({});
   });
 });
