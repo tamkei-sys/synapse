@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
+    "@synapse/api": "workspace:*",
     "@synapse/blocks": "workspace:*",
     "@synapse/schema": "workspace:*",
     "drizzle-orm": "^0.36.4",

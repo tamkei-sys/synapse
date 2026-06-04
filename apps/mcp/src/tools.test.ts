@@ -33,6 +33,13 @@ import {
   resolveKeySchema,
   searchSchema,
   sprintMetricsSchema,
+  createPageSchema,
+  getPageSchema,
+  listPagesSchema,
+  updatePageTitleSchema,
+  movePageSchema,
+  trashPageSchema,
+  restorePageSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -274,5 +281,51 @@ describe('ToolError', () => {
     expect(e.code).toBe('NOT_FOUND');
     expect(e.message).toBe('missing');
     expect(e).toBeInstanceOf(Error);
+  });
+});
+
+describe('page tool schemas', () => {
+  it('createPage defaults title to Untitled and allows a parent', () => {
+    expect(createPageSchema.parse({})).toEqual({ title: 'Untitled' });
+    expect(createPageSchema.parse({ title: 'Spec', parentPageId: 'p1' })).toEqual({
+      title: 'Spec',
+      parentPageId: 'p1',
+    });
+  });
+
+  it('createPage rejects a blank title', () => {
+    expect(() => createPageSchema.parse({ title: '   ' })).toThrow();
+  });
+
+  it('getPage / trashPage / restorePage require pageId', () => {
+    expect(() => getPageSchema.parse({})).toThrow();
+    expect(getPageSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+    expect(() => trashPageSchema.parse({})).toThrow();
+    expect(() => restorePageSchema.parse({})).toThrow();
+  });
+
+  it('updatePageTitle requires pageId and a non-empty title', () => {
+    expect(() => updatePageTitleSchema.parse({ pageId: 'p1' })).toThrow();
+    expect(() => updatePageTitleSchema.parse({ pageId: 'p1', title: '  ' })).toThrow();
+    expect(updatePageTitleSchema.parse({ pageId: 'p1', title: 'New' })).toEqual({
+      pageId: 'p1',
+      title: 'New',
+    });
+  });
+
+  it('movePage accepts an optional or null newParentId', () => {
+    expect(movePageSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+    expect(movePageSchema.parse({ pageId: 'p1', newParentId: null })).toEqual({
+      pageId: 'p1',
+      newParentId: null,
+    });
+    expect(movePageSchema.parse({ pageId: 'p1', newParentId: 'p2' })).toEqual({
+      pageId: 'p1',
+      newParentId: 'p2',
+    });
+  });
+
+  it('listPages takes no input', () => {
+    expect(listPagesSchema.parse({})).toEqual({});
   });
 });

@@ -15,6 +15,8 @@ import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
+import type { ServiceCaller } from '@synapse/api/server';
+
 import {
   commentPropsSchema,
   extractMentions,
@@ -39,6 +41,12 @@ export type ToolContext = {
   db: Database;
   workspaceId: string;
   userId: string;
+  /**
+   * In-process tRPC caller bound to the resolved actor. Page (and future
+   * block) tools reuse the API's procedures through this rather than
+   * re-implementing their logic against the DB. (PBI: MCP page tools)
+   */
+  caller: ServiceCaller;
 };
 
 // ---- schemas ----------------------------------------------------------------
@@ -200,7 +208,201 @@ export const listSbisSchema = z.object({
 });
 export const getOverviewSchema = z.object({});
 
+// Docs / pages (PBI: MCP page tools). These wrap the API block router's page
+// procedures through the service caller. Editing a page's *body* (Yjs) is
+// intentionally out of scope — a separate tool owns it once the Yjs authoring
+// path lands.
+export const createPageSchema = z.object({
+  title: z.string().trim().min(1).max(200).default('Untitled'),
+  parentPageId: z.string().min(1).optional(),
+});
+
+export const getPageSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const listPagesSchema = z.object({});
+
+export const updatePageTitleSchema = z.object({
+  pageId: z.string().min(1),
+  title: z.string().trim().min(1).max(200),
+});
+
+export const movePageSchema = z.object({
+  pageId: z.string().min(1),
+  // null / omitted → move to the workspace root. Otherwise the page is
+  // appended to the end of the target parent's children.
+  newParentId: z.string().min(1).nullable().optional(),
+});
+
+export const trashPageSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const restorePageSchema = z.object({
+  pageId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
+
+// Docs / pages. These delegate to the API block router through the service
+// caller (ctx.caller) so the canonical authorization + write logic is reused.
+
+/** Translate a tRPC error from the service caller onto MCP ToolError codes. */
+function mapCallerError(err: unknown): ToolError {
+  const code = (err as { code?: unknown }).code;
+  const message = err instanceof Error ? err.message : String(err);
+  switch (code) {
+    case 'NOT_FOUND':
+      return new ToolError('NOT_FOUND', message);
+    case 'FORBIDDEN':
+    case 'UNAUTHORIZED':
+      return new ToolError('FORBIDDEN', message);
+    case 'BAD_REQUEST':
+    case 'PARSE_ERROR':
+      return new ToolError('INVALID', message);
+    default:
+      return new ToolError('INTERNAL', message);
+  }
+}
+
+/** Await a service-caller call, mapping tRPC errors to ToolError. */
+async function viaCaller<T>(p: Promise<T>): Promise<T> {
+  try {
+    return await p;
+  } catch (err) {
+    throw mapCallerError(err);
+  }
+}
+
+/**
+ * The block router authorizes against the *user's* workspace memberships, but
+ * an MCP token is scoped to a single workspace. Enforce that scope here: the
+ * referenced block must live in the token's workspace.
+ */
+async function assertBlockInWorkspace(ctx: ToolContext, blockId: string): Promise<void> {
+  const [row] = await ctx.db
+    .select({ workspaceId: schema.block.workspaceId })
+    .from(schema.block)
+    .where(eq(schema.block.id, blockId))
+    .limit(1);
+  if (!row) throw new ToolError('NOT_FOUND', `page ${blockId} not found`);
+  if (row.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'page belongs to a different workspace');
+  }
+}
+
+/**
+ * Compact, body-free view of a page block for MCP responses. `updatedAt` is
+ * optional because the list query selects a narrower column set than the
+ * single-page reads.
+ */
+function projectPage(row: {
+  id: string;
+  parentId: string | null;
+  props: unknown;
+  updatedAt?: Date;
+}): { id: string; title: string; parentId: string | null; updatedAt?: string } {
+  const props = (row.props ?? {}) as { title?: unknown };
+  return {
+    id: row.id,
+    title: typeof props.title === 'string' ? props.title : 'Untitled',
+    parentId: row.parentId,
+    ...(row.updatedAt ? { updatedAt: row.updatedAt.toISOString() } : {}),
+  };
+}
+
+export async function createPage(
+  ctx: ToolContext,
+  input: z.infer<typeof createPageSchema>,
+): Promise<unknown> {
+  if (input.parentPageId) await assertBlockInWorkspace(ctx, input.parentPageId);
+  const page = await viaCaller(
+    ctx.caller.block.createPage({
+      workspaceId: ctx.workspaceId,
+      title: input.title,
+      ...(input.parentPageId ? { parentPageId: input.parentPageId } : {}),
+    }),
+  );
+  return projectPage(page);
+}
+
+export async function getPage(
+  ctx: ToolContext,
+  input: z.infer<typeof getPageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId);
+  const { page } = await viaCaller(ctx.caller.block.getPage({ pageId: input.pageId }));
+  return projectPage(page);
+}
+
+export async function listPages(
+  ctx: ToolContext,
+  _input: z.infer<typeof listPagesSchema>,
+): Promise<unknown> {
+  const pages = await viaCaller(ctx.caller.block.listAllPages({ workspaceId: ctx.workspaceId }));
+  return pages.map(projectPage);
+}
+
+export async function updatePageTitle(
+  ctx: ToolContext,
+  input: z.infer<typeof updatePageTitleSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId);
+  const page = await viaCaller(
+    ctx.caller.block.updatePageTitle({ pageId: input.pageId, title: input.title }),
+  );
+  return projectPage(page);
+}
+
+export async function movePage(
+  ctx: ToolContext,
+  input: z.infer<typeof movePageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId);
+  const newParentId = input.newParentId ?? null;
+  if (newParentId) await assertBlockInWorkspace(ctx, newParentId);
+
+  // movePage reassigns positions from the full sibling order. Default to
+  // "append to the end of the target parent" by listing the current siblings
+  // and putting the moved page last.
+  const siblings = await ctx.db
+    .select({ id: schema.block.id })
+    .from(schema.block)
+    .where(
+      and(
+        eq(schema.block.workspaceId, ctx.workspaceId),
+        eq(schema.block.type, 'page'),
+        newParentId ? eq(schema.block.parentId, newParentId) : isNull(schema.block.parentId),
+        isNull(schema.block.deletedAt),
+      ),
+    )
+    .orderBy(asc(schema.block.position));
+  const orderedSiblingIds = [
+    ...siblings.map((s) => s.id).filter((id) => id !== input.pageId),
+    input.pageId,
+  ];
+
+  return viaCaller(
+    ctx.caller.block.movePage({ pageId: input.pageId, newParentId, orderedSiblingIds }),
+  );
+}
+
+export async function trashPage(
+  ctx: ToolContext,
+  input: z.infer<typeof trashPageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId);
+  return viaCaller(ctx.caller.block.deletePage({ pageId: input.pageId }));
+}
+
+export async function restorePage(
+  ctx: ToolContext,
+  input: z.infer<typeof restorePageSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId);
+  return viaCaller(ctx.caller.block.restorePage({ pageId: input.pageId }));
+}
 
 export async function listPbis(
   ctx: ToolContext,

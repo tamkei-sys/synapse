@@ -19,6 +19,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
+import { createServiceCaller, type Env } from '@synapse/api/server';
+
 import { record as recordAudit } from './audit.js';
 import { hasScope, resolveApiToken } from './auth.js';
 import { createDb } from './db.js';
@@ -73,6 +75,21 @@ import {
   updateSbiSchema,
   updateSprint,
   updateSprintSchema,
+  // Docs / pages (PBI: MCP page tools)
+  createPage,
+  createPageSchema,
+  getPage,
+  getPageSchema,
+  listPages,
+  listPagesSchema,
+  updatePageTitle,
+  updatePageTitleSchema,
+  movePage,
+  movePageSchema,
+  trashPage,
+  trashPageSchema,
+  restorePage,
+  restorePageSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -96,19 +113,30 @@ const WRITE_PBI_TOOLS = new Set<string>([
   'synapse_remove_dependency',
 ]);
 const WRITE_COMMENT_TOOLS = new Set<string>(['synapse_add_comment']);
+// Page (Docs) write tools — gated by the 'write_page' token scope.
+// (PBI: MCP page tools)
+const WRITE_PAGE_TOOLS = new Set<string>([
+  'synapse_create_page',
+  'synapse_update_page_title',
+  'synapse_move_page',
+  'synapse_trash_page',
+  'synapse_restore_page',
+]);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
+  'synapse_trash_page',
 ]);
 
 function isWriteTool(tool: string): boolean {
-  return WRITE_PBI_TOOLS.has(tool) || WRITE_COMMENT_TOOLS.has(tool);
+  return WRITE_PBI_TOOLS.has(tool) || WRITE_COMMENT_TOOLS.has(tool) || WRITE_PAGE_TOOLS.has(tool);
 }
 
 function requiredScopes(tool: string): string[] {
   if (WRITE_PBI_TOOLS.has(tool)) return ['write_pbi', 'write'];
   if (WRITE_COMMENT_TOOLS.has(tool)) return ['write_comment', 'write'];
-  return ['read', 'write', 'write_pbi', 'write_comment'];
+  if (WRITE_PAGE_TOOLS.has(tool)) return ['write_page', 'write'];
+  return ['read', 'write', 'write_pbi', 'write_comment', 'write_page'];
 }
 
 async function main(): Promise<void> {
@@ -121,10 +149,26 @@ async function main(): Promise<void> {
     console.error(`[${SERVICE_NAME}] invalid or expired SYNAPSE_API_TOKEN`);
     process.exit(1);
   }
+  // In-process tRPC caller bound to the resolved actor. Page tools reuse the
+  // API's block procedures through this. BETTER_AUTH_* are never read by those
+  // procedures (auth is stubbed inside createServiceCaller), so placeholders
+  // are safe; Typesense coords are forwarded when present so created pages get
+  // indexed.
+  const apiEnv: Env = {
+    DATABASE_URL: env.databaseUrl,
+    BETTER_AUTH_URL: '',
+    BETTER_AUTH_SECRET: '',
+    WEB_ORIGIN: '',
+    ...(env.typesenseUrl ? { TYPESENSE_URL: env.typesenseUrl } : {}),
+    ...(env.typesenseApiKey ? { TYPESENSE_API_KEY: env.typesenseApiKey } : {}),
+  };
+  const caller = createServiceCaller({ db, env: apiEnv, actorUserId: resolved.userId });
+
   const ctx: ToolContext = {
     db,
     workspaceId: resolved.workspaceId,
     userId: resolved.userId,
+    caller,
   };
   const auditCtx = { db, ...resolved };
 
@@ -484,6 +528,80 @@ async function main(): Promise<void> {
           properties: { limit: { type: 'integer', minimum: 1, maximum: 100 } },
         },
       },
+      // ---- Docs / pages (PBI: MCP page tools) -------------------------------
+      {
+        name: 'synapse_create_page',
+        description:
+          'Create a new doc/page in the workspace, seeded empty. Returns page metadata. Write tool. Editing the page body is not yet available over MCP.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'Page title. Defaults to "Untitled".' },
+            parentPageId: {
+              type: 'string',
+              description: 'Optional parent page id — creates this as a sub-page.',
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_get_page',
+        description: 'Fetch a single page by id (metadata: title, parentId). Read-only.',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: { pageId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_list_pages',
+        description: 'List all pages in the workspace (id, title, parentId). Read-only.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_update_page_title',
+        description: 'Rename a page. Write tool. Does not touch the page body.',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId', 'title'],
+          properties: { pageId: { type: 'string' }, title: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_move_page',
+        description:
+          'Move a page under a new parent (or to the root when newParentId is null/omitted); the page is appended to the end of the target. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: {
+            pageId: { type: 'string' },
+            newParentId: {
+              type: ['string', 'null'],
+              description: 'Target parent page id, or null/omit for the workspace root.',
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_trash_page',
+        description:
+          'Move a page (and its sub-pages) to the trash — a reversible soft-delete. Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: { pageId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_restore_page',
+        description: 'Restore a trashed page (and its sub-pages). Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: { pageId: { type: 'string' } },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -585,6 +703,21 @@ async function dispatch(
       return resolveKey(ctx, resolveKeySchema.parse(args));
     case 'synapse_audit_log':
       return auditLog(ctx, auditLogSchema.parse(args));
+    // ---- Docs / pages (PBI: MCP page tools) ---------------------------------
+    case 'synapse_create_page':
+      return createPage(ctx, createPageSchema.parse(args));
+    case 'synapse_get_page':
+      return getPage(ctx, getPageSchema.parse(args));
+    case 'synapse_list_pages':
+      return listPages(ctx, listPagesSchema.parse(args));
+    case 'synapse_update_page_title':
+      return updatePageTitle(ctx, updatePageTitleSchema.parse(args));
+    case 'synapse_move_page':
+      return movePage(ctx, movePageSchema.parse(args));
+    case 'synapse_trash_page':
+      return trashPage(ctx, trashPageSchema.parse(args));
+    case 'synapse_restore_page':
+      return restorePage(ctx, restorePageSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
