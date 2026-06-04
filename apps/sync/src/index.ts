@@ -10,6 +10,7 @@ import { Server, type onAuthenticatePayload } from '@hocuspocus/server';
 import { authenticateConnection } from './auth.js';
 import { createDb } from './db.js';
 import { loadEnv } from './env.js';
+import { startInternalServer } from './internal-server.js';
 import { createPersistenceExtension } from './persistence.js';
 
 async function main(): Promise<void> {
@@ -32,6 +33,17 @@ async function main(): Promise<void> {
 
   await server.listen();
   console.info(`[synapse-sync] listening on :${env.port}`);
+
+  // Trusted server-to-server doc-write API (ADR-0011). Started only when a
+  // shared secret is configured.
+  if (env.internalSecret) {
+    startInternalServer({
+      server,
+      db,
+      port: env.internalPort,
+      secret: env.internalSecret,
+    });
+  }
 }
 
 main().catch((err) => {
