@@ -72,13 +72,12 @@ jobs:
           TYPESENSE_ENABLE_CORS: 'true'
         ports:
           - 8108:8108
-        # --tmpfs guarantees a writable data dir without a host volume mount.
-        options: >-
-          --tmpfs /data
-          --health-cmd "wget -qO- http://localhost:8108/health | grep -q ok"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
+        # No container-side health check: typesense:27.1 ships without
+        # wget/curl, so an in-image probe can never pass (the dev compose's
+        # wget check is likewise perpetually "unhealthy" even though the server
+        # is fine). --tmpfs gives it a writable data dir; readiness is gated
+        # from the job via the runner's curl in the "Wait for Typesense" step.
+        options: --tmpfs /data
 
     env:
       # Consumed by the sync dev server (process.env.DATABASE_URL) and by
@@ -129,6 +128,19 @@ jobs:
       # servers (and tests) touch it. drizzle-kit reads DATABASE_URL (job env).
       - name: Run DB migrations
         run: pnpm --filter @synapse/schema db:migrate
+
+      # typesense has no usable container-side probe (see service note), so gate
+      # on readiness here with the runner's curl before the search specs run.
+      - name: Wait for Typesense
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8108/health | grep -q '"ok":true'; then
+              echo "Typesense ready"; exit 0
+            fi
+            sleep 1
+          done
+          echo "Typesense did not become ready in time" >&2
+          exit 1
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
