@@ -90,6 +90,10 @@ import {
   trashPageSchema,
   restorePage,
   restorePageSchema,
+  appendDoc,
+  appendDocSchema,
+  setDoc,
+  setDocSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -121,11 +125,14 @@ const WRITE_PAGE_TOOLS = new Set<string>([
   'synapse_move_page',
   'synapse_trash_page',
   'synapse_restore_page',
+  'synapse_append_doc',
+  'synapse_set_doc',
 ]);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
   'synapse_trash_page',
+  'synapse_set_doc',
 ]);
 
 function isWriteTool(tool: string): boolean {
@@ -169,6 +176,9 @@ async function main(): Promise<void> {
     workspaceId: resolved.workspaceId,
     userId: resolved.userId,
     caller,
+    ...(env.syncInternalUrl && env.syncInternalSecret
+      ? { docWrite: { url: env.syncInternalUrl, secret: env.syncInternalSecret } }
+      : {}),
   };
   const auditCtx = { db, ...resolved };
 
@@ -602,6 +612,36 @@ async function main(): Promise<void> {
           properties: { pageId: { type: 'string' } },
         },
       },
+      {
+        name: 'synapse_append_doc',
+        description:
+          'Append markdown to the END of a page body (its rich-text content); connected editors see it live. Write tool. (Create the page first with synapse_create_page if needed.)',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId', 'markdown'],
+          properties: {
+            pageId: { type: 'string' },
+            markdown: {
+              type: 'string',
+              description:
+                'Markdown — headings, bullet/ordered/task lists, code blocks, quotes, bold/italic/strike/code/links.',
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_set_doc',
+        description:
+          'Replace the ENTIRE page body with the given markdown. Write tool, destructive — the previous body is discarded.',
+        inputSchema: {
+          type: 'object',
+          required: ['pageId', 'markdown'],
+          properties: {
+            pageId: { type: 'string' },
+            markdown: { type: 'string', description: 'Markdown for the new body (see synapse_append_doc).' },
+          },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -718,6 +758,10 @@ async function dispatch(
       return trashPage(ctx, trashPageSchema.parse(args));
     case 'synapse_restore_page':
       return restorePage(ctx, restorePageSchema.parse(args));
+    case 'synapse_append_doc':
+      return appendDoc(ctx, appendDocSchema.parse(args));
+    case 'synapse_set_doc':
+      return setDoc(ctx, setDocSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
