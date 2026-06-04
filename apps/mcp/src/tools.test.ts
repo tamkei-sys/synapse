@@ -42,6 +42,8 @@ import {
   restorePageSchema,
   appendDocSchema,
   setDocSchema,
+  linkGithubIssueSchema,
+  unlinkGithubIssueSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -275,6 +277,25 @@ describe('projections enrich block output (PBI-96)', () => {
     expect(sbi.status).toBe('review');
     expect(sbi.estimateHours).toBe(4);
   });
+
+  it('projectPbi surfaces a linked github issue (PBI-122)', () => {
+    const out = projectPbi({
+      id: 'b3',
+      updatedAt,
+      props: {
+        title: 'C',
+        number: 122,
+        github: { owner: 'octocat', repo: 'hello', issueNumber: 7, state: 'open', syncedAt: updatedAt },
+      },
+    }) as Record<string, unknown>;
+    expect(out.github).toEqual({
+      owner: 'octocat',
+      repo: 'hello',
+      issueNumber: 7,
+      state: 'open',
+      syncedAt: updatedAt,
+    });
+  });
 });
 
 describe('ToolError', () => {
@@ -343,5 +364,53 @@ describe('page tool schemas', () => {
       pageId: 'p',
       markdown: 'x',
     });
+  });
+});
+
+describe('GitHub issue linking schemas (PBI-122)', () => {
+  it('linkGithubIssue requires pbiId/owner/repo/issueNumber', () => {
+    expect(() => linkGithubIssueSchema.parse({ pbiId: 'a', owner: 'o', repo: 'r' })).toThrow();
+    const ok = linkGithubIssueSchema.parse({
+      pbiId: 'a',
+      owner: 'octocat',
+      repo: 'hello',
+      issueNumber: 7,
+    });
+    expect(ok.issueNumber).toBe(7);
+  });
+
+  it('linkGithubIssue rejects a non-positive or non-integer issueNumber', () => {
+    expect(() =>
+      linkGithubIssueSchema.parse({ pbiId: 'a', owner: 'o', repo: 'r', issueNumber: 0 }),
+    ).toThrow();
+    expect(() =>
+      linkGithubIssueSchema.parse({ pbiId: 'a', owner: 'o', repo: 'r', issueNumber: 1.5 }),
+    ).toThrow();
+  });
+
+  it('linkGithubIssue constrains state to open/closed', () => {
+    expect(() =>
+      linkGithubIssueSchema.parse({
+        pbiId: 'a',
+        owner: 'o',
+        repo: 'r',
+        issueNumber: 1,
+        state: 'merged',
+      }),
+    ).toThrow();
+    expect(
+      linkGithubIssueSchema.parse({
+        pbiId: 'a',
+        owner: 'o',
+        repo: 'r',
+        issueNumber: 1,
+        state: 'closed',
+      }).state,
+    ).toBe('closed');
+  });
+
+  it('unlinkGithubIssue requires pbiId', () => {
+    expect(() => unlinkGithubIssueSchema.parse({})).toThrow();
+    expect(unlinkGithubIssueSchema.parse({ pbiId: 'a' })).toEqual({ pbiId: 'a' });
   });
 });

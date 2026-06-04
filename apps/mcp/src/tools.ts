@@ -99,6 +99,22 @@ export const updatePbiSchema = z.object({
   }),
 });
 
+// GitHub Issue linking (PBI-122). Wraps the API's pbi.linkGithubIssue /
+// unlinkGithubIssue through the service caller. Flat args are assembled into
+// the tRPC `{ pbiId, link }` shape; the strict owner/repo regex validation
+// lives in pbiGithubLinkSchema inside the procedure.
+export const linkGithubIssueSchema = z.object({
+  pbiId: z.string().min(1),
+  owner: z.string().trim().min(1).max(64),
+  repo: z.string().trim().min(1).max(100),
+  issueNumber: z.number().int().positive(),
+  state: z.enum(['open', 'closed']).optional(),
+});
+
+export const unlinkGithubIssueSchema = z.object({
+  pbiId: z.string().min(1),
+});
+
 // SBI management — concrete tasks under a PBI, sized in hours. (PBI-98)
 export const createSbiSchema = z.object({
   pbiId: z.string().min(1),
@@ -298,15 +314,19 @@ async function viaCaller<T>(p: Promise<T>): Promise<T> {
  * an MCP token is scoped to a single workspace. Enforce that scope here: the
  * referenced block must live in the token's workspace.
  */
-async function assertBlockInWorkspace(ctx: ToolContext, blockId: string): Promise<void> {
+async function assertBlockInWorkspace(
+  ctx: ToolContext,
+  blockId: string,
+  label = 'page',
+): Promise<void> {
   const [row] = await ctx.db
     .select({ workspaceId: schema.block.workspaceId })
     .from(schema.block)
     .where(eq(schema.block.id, blockId))
     .limit(1);
-  if (!row) throw new ToolError('NOT_FOUND', `page ${blockId} not found`);
+  if (!row) throw new ToolError('NOT_FOUND', `${label} ${blockId} not found`);
   if (row.workspaceId !== ctx.workspaceId) {
-    throw new ToolError('FORBIDDEN', 'page belongs to a different workspace');
+    throw new ToolError('FORBIDDEN', `${label} belongs to a different workspace`);
   }
 }
 
@@ -477,6 +497,40 @@ export async function setDoc(
   input: z.infer<typeof setDocSchema>,
 ): Promise<unknown> {
   return postDocWrite(ctx, input.pageId, input.markdown, 'replace');
+}
+
+// ---- GitHub Issue linking (PBI-122) -----------------------------------------
+// Delegate to the API's pbi router through the caller so the canonical link
+// merge + fire-and-forget outbound GitHub push is reused. Workspace scope is
+// enforced locally first: the token is single-workspace, but the procedure
+// only checks the actor's membership.
+
+export async function linkGithubIssue(
+  ctx: ToolContext,
+  input: z.infer<typeof linkGithubIssueSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  const row = await viaCaller(
+    ctx.caller.pbi.linkGithubIssue({
+      pbiId: input.pbiId,
+      link: {
+        owner: input.owner,
+        repo: input.repo,
+        issueNumber: input.issueNumber,
+        ...(input.state ? { state: input.state } : {}),
+      },
+    }),
+  );
+  return projectPbi(row);
+}
+
+export async function unlinkGithubIssue(
+  ctx: ToolContext,
+  input: z.infer<typeof unlinkGithubIssueSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
+  const row = await viaCaller(ctx.caller.pbi.unlinkGithubIssue({ pbiId: input.pbiId }));
+  return projectPbi(row);
 }
 
 export async function listPbis(
@@ -1495,6 +1549,7 @@ export function projectPbi(row: BlockProjection) {
     projectId?: string;
     sprintId?: string;
     number?: number;
+    github?: { owner: string; repo: string; issueNumber: number; state?: string; syncedAt?: string };
   };
   return {
     id: row.id,
@@ -1508,6 +1563,7 @@ export function projectPbi(row: BlockProjection) {
     ...(p.dueDate ? { dueDate: p.dueDate } : {}),
     ...(p.projectId ? { projectId: p.projectId } : {}),
     ...(p.sprintId ? { sprintId: p.sprintId } : {}),
+    ...(p.github ? { github: p.github } : {}),
     updatedAt: row.updatedAt,
   };
 }

@@ -94,6 +94,10 @@ import {
   appendDocSchema,
   setDoc,
   setDocSchema,
+  linkGithubIssue,
+  linkGithubIssueSchema,
+  unlinkGithubIssue,
+  unlinkGithubIssueSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -115,6 +119,8 @@ const WRITE_PBI_TOOLS = new Set<string>([
   'synapse_update_sprint',
   'synapse_add_dependency',
   'synapse_remove_dependency',
+  'synapse_link_github_issue',
+  'synapse_unlink_github_issue',
 ]);
 const WRITE_COMMENT_TOOLS = new Set<string>(['synapse_add_comment']);
 // Page (Docs) write tools — gated by the 'write_page' token scope.
@@ -131,6 +137,7 @@ const WRITE_PAGE_TOOLS = new Set<string>([
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
+  'synapse_unlink_github_issue',
   'synapse_trash_page',
   'synapse_set_doc',
 ]);
@@ -642,6 +649,33 @@ async function main(): Promise<void> {
           },
         },
       },
+      // ---- GitHub Issue linking (PBI-122) -----------------------------------
+      {
+        name: 'synapse_link_github_issue',
+        description:
+          'Link a PBI to a GitHub issue (owner/repo/issueNumber). Records the reference on the PBI and fires an outbound sync. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId', 'owner', 'repo', 'issueNumber'],
+          properties: {
+            pbiId: { type: 'string' },
+            owner: { type: 'string', description: 'GitHub repo owner (user or org).' },
+            repo: { type: 'string', description: 'GitHub repository name.' },
+            issueNumber: { type: 'integer', minimum: 1 },
+            state: { type: 'string', enum: ['open', 'closed'] },
+          },
+        },
+      },
+      {
+        name: 'synapse_unlink_github_issue',
+        description:
+          'Remove the GitHub issue link from a PBI (the issue itself is not deleted). Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['pbiId'],
+          properties: { pbiId: { type: 'string' } },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -762,6 +796,11 @@ async function dispatch(
       return appendDoc(ctx, appendDocSchema.parse(args));
     case 'synapse_set_doc':
       return setDoc(ctx, setDocSchema.parse(args));
+    // ---- GitHub Issue linking (PBI-122) -------------------------------------
+    case 'synapse_link_github_issue':
+      return linkGithubIssue(ctx, linkGithubIssueSchema.parse(args));
+    case 'synapse_unlink_github_issue':
+      return unlinkGithubIssue(ctx, unlinkGithubIssueSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
