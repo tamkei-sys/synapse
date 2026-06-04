@@ -104,6 +104,14 @@ import {
   reactCommentSchema,
   deleteComment,
   deleteCommentSchema,
+  toggleFavorite,
+  toggleFavoriteSchema,
+  listFavorites,
+  listFavoritesSchema,
+  isFavorite,
+  isFavoriteSchema,
+  fetchBookmark,
+  fetchBookmarkSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -145,6 +153,9 @@ const WRITE_PAGE_TOOLS = new Set<string>([
   'synapse_append_doc',
   'synapse_set_doc',
 ]);
+// Favorite (per-user page bookmark) write tools — gated by 'write_favorite'.
+// (PBI-126) bookmark.fetch / list / is are read-only and not listed here.
+const WRITE_FAVORITE_TOOLS = new Set<string>(['synapse_toggle_favorite']);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
@@ -155,14 +166,20 @@ const DESTRUCTIVE_TOOLS = new Set<string>([
 ]);
 
 function isWriteTool(tool: string): boolean {
-  return WRITE_PBI_TOOLS.has(tool) || WRITE_COMMENT_TOOLS.has(tool) || WRITE_PAGE_TOOLS.has(tool);
+  return (
+    WRITE_PBI_TOOLS.has(tool) ||
+    WRITE_COMMENT_TOOLS.has(tool) ||
+    WRITE_PAGE_TOOLS.has(tool) ||
+    WRITE_FAVORITE_TOOLS.has(tool)
+  );
 }
 
 function requiredScopes(tool: string): string[] {
   if (WRITE_PBI_TOOLS.has(tool)) return ['write_pbi', 'write'];
   if (WRITE_COMMENT_TOOLS.has(tool)) return ['write_comment', 'write'];
   if (WRITE_PAGE_TOOLS.has(tool)) return ['write_page', 'write'];
-  return ['read', 'write', 'write_pbi', 'write_comment', 'write_page'];
+  if (WRITE_FAVORITE_TOOLS.has(tool)) return ['write_favorite', 'write'];
+  return ['read', 'write', 'write_pbi', 'write_comment', 'write_page', 'write_favorite'];
 }
 
 async function main(): Promise<void> {
@@ -727,6 +744,43 @@ async function main(): Promise<void> {
           properties: { pbiId: { type: 'string' } },
         },
       },
+      // ---- favorites & bookmarks (PBI-126) ----------------------------------
+      {
+        name: 'synapse_toggle_favorite',
+        description:
+          "Toggle a page in the caller's favorites (per-user). Returns the new favorited state. Write tool.",
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: { pageId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_list_favorites',
+        description: "List the caller's favorite pages (pageId, title, icon). Read-only.",
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_is_favorite',
+        description: "Check whether a page is in the caller's favorites. Read-only.",
+        inputSchema: {
+          type: 'object',
+          required: ['pageId'],
+          properties: { pageId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_fetch_bookmark',
+        description:
+          'Fetch Open Graph metadata (title, description, image, favicon, siteName) for a URL. Server-side and SSRF-guarded. Read-only — makes an outbound request to the given URL.',
+        inputSchema: {
+          type: 'object',
+          required: ['url'],
+          properties: {
+            url: { type: 'string', description: 'http(s) URL to fetch OG metadata for.' },
+          },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -858,6 +912,15 @@ async function dispatch(
       return linkGithubIssue(ctx, linkGithubIssueSchema.parse(args));
     case 'synapse_unlink_github_issue':
       return unlinkGithubIssue(ctx, unlinkGithubIssueSchema.parse(args));
+    // ---- favorites & bookmarks (PBI-126) ------------------------------------
+    case 'synapse_toggle_favorite':
+      return toggleFavorite(ctx, toggleFavoriteSchema.parse(args));
+    case 'synapse_list_favorites':
+      return listFavorites(ctx, listFavoritesSchema.parse(args));
+    case 'synapse_is_favorite':
+      return isFavorite(ctx, isFavoriteSchema.parse(args));
+    case 'synapse_fetch_bookmark':
+      return fetchBookmark(ctx, fetchBookmarkSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

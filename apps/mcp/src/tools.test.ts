@@ -47,6 +47,10 @@ import {
   resolveCommentSchema,
   reactCommentSchema,
   deleteCommentSchema,
+  toggleFavoriteSchema,
+  listFavoritesSchema,
+  isFavoriteSchema,
+  fetchBookmarkSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -437,5 +441,26 @@ describe('comment lifecycle schemas (PBI-127)', () => {
   it('deleteComment requires commentId', () => {
     expect(() => deleteCommentSchema.parse({})).toThrow();
     expect(deleteCommentSchema.parse({ commentId: 'c1' })).toEqual({ commentId: 'c1' });
+  });
+});
+
+describe('favorite & bookmark schemas (PBI-126)', () => {
+  it('toggleFavorite / isFavorite require pageId', () => {
+    expect(() => toggleFavoriteSchema.parse({})).toThrow();
+    expect(toggleFavoriteSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+    expect(() => isFavoriteSchema.parse({})).toThrow();
+    expect(isFavoriteSchema.parse({ pageId: 'p1' })).toEqual({ pageId: 'p1' });
+  });
+
+  it('listFavorites takes no input', () => {
+    expect(listFavoritesSchema.parse({})).toEqual({});
+  });
+
+  it('fetchBookmark requires a valid URL within length', () => {
+    expect(() => fetchBookmarkSchema.parse({})).toThrow();
+    expect(() => fetchBookmarkSchema.parse({ url: 'not-a-url' })).toThrow();
+    expect(fetchBookmarkSchema.parse({ url: 'https://example.com' }).url).toBe(
+      'https://example.com',
+    );
   });
 });

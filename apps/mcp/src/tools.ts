@@ -295,6 +295,23 @@ export const setDocSchema = z.object({
   markdown: z.string().min(1),
 });
 
+// Favorites & bookmarks (PBI-126). favorite.* wraps the per-user page-favorite
+// router through the caller; bookmark.fetch is a read-only server-side OG
+// metadata fetch (SSRF-guarded inside the API).
+export const toggleFavoriteSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const listFavoritesSchema = z.object({});
+
+export const isFavoriteSchema = z.object({
+  pageId: z.string().min(1),
+});
+
+export const fetchBookmarkSchema = z.object({
+  url: z.string().url().max(2048),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -549,6 +566,40 @@ export async function unlinkGithubIssue(
   await assertBlockInWorkspace(ctx, input.pbiId, 'PBI');
   const row = await viaCaller(ctx.caller.pbi.unlinkGithubIssue({ pbiId: input.pbiId }));
   return projectPbi(row);
+}
+
+// ---- favorites & bookmarks (PBI-126) ----------------------------------------
+// favorite.* delegate to the per-user favorite router via the caller;
+// bookmark.fetch does a server-side OG fetch (SSRF-guarded in the API).
+
+export async function toggleFavorite(
+  ctx: ToolContext,
+  input: z.infer<typeof toggleFavoriteSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId, 'page');
+  return viaCaller(ctx.caller.favorite.toggle({ pageId: input.pageId }));
+}
+
+export async function listFavorites(
+  ctx: ToolContext,
+  _input: z.infer<typeof listFavoritesSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.favorite.listMine({ workspaceId: ctx.workspaceId }));
+}
+
+export async function isFavorite(
+  ctx: ToolContext,
+  input: z.infer<typeof isFavoriteSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.pageId, 'page');
+  return viaCaller(ctx.caller.favorite.isFavorite({ pageId: input.pageId }));
+}
+
+export async function fetchBookmark(
+  ctx: ToolContext,
+  input: z.infer<typeof fetchBookmarkSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.bookmark.fetch({ url: input.url }));
 }
 
 export async function listPbis(
