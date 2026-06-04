@@ -43,6 +43,52 @@ jobs:
     timeout-minutes: 30
     needs: lint-and-test
     if: github.event_name == 'pull_request'
+
+    # Playwright (playwright.config.ts) owns the dev-server lifecycle: in CI
+    # (reuseExistingServer:false) it boots api (wrangler), sync (Hocuspocus)
+    # and web (vite) itself. Those need a real Postgres + Typesense, so we
+    # stand the backing services up here — mirroring
+    # .devcontainer/docker-compose.yml.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: synapse
+          POSTGRES_PASSWORD: synapse
+          POSTGRES_DB: synapse_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U synapse -d synapse_dev"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 15
+
+      typesense:
+        image: typesense/typesense:27.1
+        env:
+          TYPESENSE_API_KEY: dev-typesense-key
+          TYPESENSE_DATA_DIR: /data
+          TYPESENSE_ENABLE_CORS: 'true'
+        ports:
+          - 8108:8108
+        # --tmpfs guarantees a writable data dir without a host volume mount.
+        options: >-
+          --tmpfs /data
+          --health-cmd "wget -qO- http://localhost:8108/health | grep -q ok"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      # Consumed by the sync dev server (process.env.DATABASE_URL) and by
+      # drizzle-kit migrate. The api worker reads its own copy from .dev.vars
+      # (wrangler does not inherit process.env). localhost:5432 is the mapped
+      # Postgres service port above.
+      DATABASE_URL: postgres://synapse:synapse@localhost:5432/synapse_dev
+      # Keep wrangler dev from phoning home / checking for updates in CI.
+      WRANGLER_SEND_METRICS: 'false'
+
     steps:
       - uses: actions/checkout@v4
 
@@ -57,6 +103,32 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      # The dev servers import the shared libraries through their built `dist/`
+      # (package `exports` resolve to dist, which is gitignored). Build the
+      # packages so wrangler/vite/tsx can resolve @synapse/* at boot.
+      - name: Build shared packages
+        run: pnpm --filter "./packages/*" build
+
+      # apps/api runs under `wrangler dev`, which loads secrets from
+      # apps/api/.dev.vars (never committed). Recreate it with dev-only,
+      # non-secret values pointed at the CI service containers. These mirror
+      # .devcontainer/docker-compose.yml and the values the specs expect
+      # (e.g. GITHUB_WEBHOOK_SECRET in s5-github-sync.spec.ts).
+      - name: Write apps/api/.dev.vars (dev-only, not committed)
+        run: |
+          {
+            echo "DATABASE_URL=postgres://synapse:synapse@localhost:5432/synapse_dev"
+            echo "BETTER_AUTH_SECRET=dev-only-not-a-real-secret-change-me"
+            echo "GITHUB_WEBHOOK_SECRET=dev-only-webhook-secret"
+            echo "TYPESENSE_URL=http://localhost:8108"
+            echo "TYPESENSE_API_KEY=dev-typesense-key"
+          } > apps/api/.dev.vars
+
+      # Apply the committed Drizzle migrations to the fresh Postgres before the
+      # servers (and tests) touch it. drizzle-kit reads DATABASE_URL (job env).
+      - name: Run DB migrations
+        run: pnpm --filter @synapse/schema db:migrate
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
