@@ -71,6 +71,12 @@ import {
   snoozeReminderSchema,
   listRemindersSchema,
   deleteReminderSchema,
+  listMembersSchema,
+  listInvitationsSchema,
+  inviteMemberSchema,
+  cancelInvitationSchema,
+  setMemberRoleSchema,
+  removeMemberSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -556,5 +562,28 @@ describe('notification & reminder schemas (PBI-124)', () => {
     expect(listRemindersSchema.parse({})).toEqual({});
     expect(() => deleteReminderSchema.parse({})).toThrow();
     expect(deleteReminderSchema.parse({ reminderId: 'r1' })).toEqual({ reminderId: 'r1' });
+  });
+});
+
+describe('workspace member schemas (PBI-125)', () => {
+  it('inviteMember needs a valid email; role excludes owner', () => {
+    expect(() => inviteMemberSchema.parse({})).toThrow();
+    expect(() => inviteMemberSchema.parse({ email: 'nope' })).toThrow();
+    expect(inviteMemberSchema.parse({ email: 'a@b.com', role: 'admin' }).role).toBe('admin');
+    expect(() => inviteMemberSchema.parse({ email: 'a@b.com', role: 'owner' })).toThrow();
+  });
+
+  it('setMemberRole allows owner..viewer; removeMember needs a userId', () => {
+    expect(setMemberRoleSchema.parse({ userId: 'u1', role: 'owner' }).role).toBe('owner');
+    expect(() => setMemberRoleSchema.parse({ userId: 'u1', role: 'god' })).toThrow();
+    expect(() => removeMemberSchema.parse({})).toThrow();
+    expect(removeMemberSchema.parse({ userId: 'u1' })).toEqual({ userId: 'u1' });
+  });
+
+  it('cancelInvitation needs an id; the list tools take none', () => {
+    expect(() => cancelInvitationSchema.parse({})).toThrow();
+    expect(cancelInvitationSchema.parse({ invitationId: 'i1' })).toEqual({ invitationId: 'i1' });
+    expect(listMembersSchema.parse({})).toEqual({});
+    expect(listInvitationsSchema.parse({})).toEqual({});
   });
 });

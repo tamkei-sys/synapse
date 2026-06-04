@@ -432,6 +432,31 @@ export const deleteReminderSchema = z.object({
   reminderId: z.string().min(1),
 });
 
+// Workspace member management (PBI-125). Member + invitation admin for the
+// token's workspace; owner/admin only (enforced by the router). Workspace
+// create/delete is intentionally out of scope — the token is single-workspace.
+export const listMembersSchema = z.object({});
+
+export const listInvitationsSchema = z.object({});
+
+export const inviteMemberSchema = z.object({
+  email: z.string().trim().email().max(200),
+  role: z.enum(['admin', 'member', 'viewer']).optional(),
+});
+
+export const cancelInvitationSchema = z.object({
+  invitationId: z.string().min(1),
+});
+
+export const setMemberRoleSchema = z.object({
+  userId: z.string().min(1),
+  role: z.enum(['owner', 'admin', 'member', 'viewer']),
+});
+
+export const removeMemberSchema = z.object({
+  userId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -967,6 +992,81 @@ export async function deleteReminder(
   input: z.infer<typeof deleteReminderSchema>,
 ): Promise<unknown> {
   return viaCaller(ctx.caller.reminder.delete({ reminderId: input.reminderId }));
+}
+
+// ---- workspace member management (PBI-125) ----------------------------------
+// Member / invitation admin scoped to the token's workspace. setMemberRole /
+// removeMember reach members by (ctx.workspaceId, userId) so cross-workspace is
+// impossible; cancelInvitation takes a bare id, so we verify its workspace.
+
+/** An invitation isn't a block — verify it belongs to the token's workspace. */
+async function assertInvitationInWorkspace(ctx: ToolContext, invitationId: string): Promise<void> {
+  const [row] = await ctx.db
+    .select({ workspaceId: schema.workspaceInvitation.workspaceId })
+    .from(schema.workspaceInvitation)
+    .where(eq(schema.workspaceInvitation.id, invitationId))
+    .limit(1);
+  if (!row) throw new ToolError('NOT_FOUND', `invitation ${invitationId} not found`);
+  if (row.workspaceId !== ctx.workspaceId) {
+    throw new ToolError('FORBIDDEN', 'invitation belongs to a different workspace');
+  }
+}
+
+export async function listMembers(
+  ctx: ToolContext,
+  _input: z.infer<typeof listMembersSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.workspace.listMembers({ workspaceId: ctx.workspaceId }));
+}
+
+export async function listInvitations(
+  ctx: ToolContext,
+  _input: z.infer<typeof listInvitationsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.workspace.listInvitations({ workspaceId: ctx.workspaceId }));
+}
+
+export async function inviteMember(
+  ctx: ToolContext,
+  input: z.infer<typeof inviteMemberSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.workspace.invite({
+      workspaceId: ctx.workspaceId,
+      email: input.email,
+      ...(input.role ? { role: input.role } : {}),
+    }),
+  );
+}
+
+export async function cancelInvitation(
+  ctx: ToolContext,
+  input: z.infer<typeof cancelInvitationSchema>,
+): Promise<unknown> {
+  await assertInvitationInWorkspace(ctx, input.invitationId);
+  return viaCaller(ctx.caller.workspace.cancelInvitation({ invitationId: input.invitationId }));
+}
+
+export async function setMemberRole(
+  ctx: ToolContext,
+  input: z.infer<typeof setMemberRoleSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.workspace.setMemberRole({
+      workspaceId: ctx.workspaceId,
+      userId: input.userId,
+      role: input.role,
+    }),
+  );
+}
+
+export async function removeMember(
+  ctx: ToolContext,
+  input: z.infer<typeof removeMemberSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.workspace.removeMember({ workspaceId: ctx.workspaceId, userId: input.userId }),
+  );
 }
 
 export async function listPbis(

@@ -160,6 +160,18 @@ import {
   listRemindersSchema,
   deleteReminder,
   deleteReminderSchema,
+  listMembers,
+  listMembersSchema,
+  listInvitations,
+  listInvitationsSchema,
+  inviteMember,
+  inviteMemberSchema,
+  cancelInvitation,
+  cancelInvitationSchema,
+  setMemberRole,
+  setMemberRoleSchema,
+  removeMember,
+  removeMemberSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -233,6 +245,14 @@ const WRITE_INBOX_TOOLS = new Set<string>([
   'synapse_snooze_reminder',
   'synapse_delete_reminder',
 ]);
+// Workspace member-admin write tools — gated by 'write_member'. (PBI-125)
+// list_members / list_invitations are read-only.
+const WRITE_MEMBER_TOOLS = new Set<string>([
+  'synapse_invite_member',
+  'synapse_cancel_invitation',
+  'synapse_set_member_role',
+  'synapse_remove_member',
+]);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
@@ -242,6 +262,8 @@ const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_db_delete_row',
   'synapse_delete_message',
   'synapse_delete_reminder',
+  'synapse_set_member_role',
+  'synapse_remove_member',
   'synapse_trash_page',
   'synapse_set_doc',
 ]);
@@ -254,7 +276,8 @@ function isWriteTool(tool: string): boolean {
     WRITE_FAVORITE_TOOLS.has(tool) ||
     WRITE_DB_TOOLS.has(tool) ||
     WRITE_CHAT_TOOLS.has(tool) ||
-    WRITE_INBOX_TOOLS.has(tool)
+    WRITE_INBOX_TOOLS.has(tool) ||
+    WRITE_MEMBER_TOOLS.has(tool)
   );
 }
 
@@ -266,6 +289,7 @@ function requiredScopes(tool: string): string[] {
   if (WRITE_DB_TOOLS.has(tool)) return ['write_db', 'write'];
   if (WRITE_CHAT_TOOLS.has(tool)) return ['write_chat', 'write'];
   if (WRITE_INBOX_TOOLS.has(tool)) return ['write_inbox', 'write'];
+  if (WRITE_MEMBER_TOOLS.has(tool)) return ['write_member', 'write'];
   return [
     'read',
     'write',
@@ -276,6 +300,7 @@ function requiredScopes(tool: string): string[] {
     'write_db',
     'write_chat',
     'write_inbox',
+    'write_member',
   ];
 }
 
@@ -1166,6 +1191,64 @@ async function main(): Promise<void> {
           properties: { reminderId: { type: 'string' } },
         },
       },
+      // ---- workspace member management (PBI-125) ----------------------------
+      {
+        name: 'synapse_list_members',
+        description:
+          'List the workspace members (userId, role, name, email, joinedAt). Read-only.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_list_invitations',
+        description:
+          'List the workspace invitations (id, email, role, status). Owner/admin only. Read-only.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_invite_member',
+        description:
+          'Invite someone to the workspace by email. Owner/admin only. Returns a ONE-TIME plaintext invitation token (never retrievable again) — share the invite link, do not log it. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['email'],
+          properties: {
+            email: { type: 'string' },
+            role: { type: 'string', enum: ['admin', 'member', 'viewer'] },
+          },
+        },
+      },
+      {
+        name: 'synapse_cancel_invitation',
+        description: 'Revoke a pending workspace invitation. Owner/admin only. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['invitationId'],
+          properties: { invitationId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_set_member_role',
+        description:
+          "Change a member's role (owner/admin/member/viewer). Owner/admin only; the last owner can't be demoted. Write tool, destructive.",
+        inputSchema: {
+          type: 'object',
+          required: ['userId', 'role'],
+          properties: {
+            userId: { type: 'string' },
+            role: { type: 'string', enum: ['owner', 'admin', 'member', 'viewer'] },
+          },
+        },
+      },
+      {
+        name: 'synapse_remove_member',
+        description:
+          "Remove a member from the workspace. Owner/admin only; the last owner can't be removed. Write tool, destructive.",
+        inputSchema: {
+          type: 'object',
+          required: ['userId'],
+          properties: { userId: { type: 'string' } },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -1357,6 +1440,19 @@ async function dispatch(
       return listReminders(ctx, listRemindersSchema.parse(args));
     case 'synapse_delete_reminder':
       return deleteReminder(ctx, deleteReminderSchema.parse(args));
+    // ---- workspace member management (PBI-125) ------------------------------
+    case 'synapse_list_members':
+      return listMembers(ctx, listMembersSchema.parse(args));
+    case 'synapse_list_invitations':
+      return listInvitations(ctx, listInvitationsSchema.parse(args));
+    case 'synapse_invite_member':
+      return inviteMember(ctx, inviteMemberSchema.parse(args));
+    case 'synapse_cancel_invitation':
+      return cancelInvitation(ctx, cancelInvitationSchema.parse(args));
+    case 'synapse_set_member_role':
+      return setMemberRole(ctx, setMemberRoleSchema.parse(args));
+    case 'synapse_remove_member':
+      return removeMember(ctx, removeMemberSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }
