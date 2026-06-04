@@ -51,6 +51,15 @@ import {
   listFavoritesSchema,
   isFavoriteSchema,
   fetchBookmarkSchema,
+  createDbSchema,
+  getDbSchema,
+  listDbsSchema,
+  dbAddColumnSchema,
+  dbDeleteColumnSchema,
+  dbAddRowSchema,
+  dbUpdateCellSchema,
+  dbReorderRowsSchema,
+  dbDeleteRowSchema,
   ToolError,
   updatePbiSchema,
   updatePbiStatusSchema,
@@ -462,5 +471,32 @@ describe('favorite & bookmark schemas (PBI-126)', () => {
     expect(fetchBookmarkSchema.parse({ url: 'https://example.com' }).url).toBe(
       'https://example.com',
     );
+  });
+});
+
+describe('user-defined DB schemas (PBI-121)', () => {
+  it('createDb accepts an optional title (columns validated by the block schema)', () => {
+    expect(createDbSchema.parse({})).toEqual({});
+    expect(createDbSchema.parse({ title: 'Tasks' }).title).toBe('Tasks');
+  });
+
+  it('getDb / dbDeleteRow require their id; listDbs takes none', () => {
+    expect(() => getDbSchema.parse({})).toThrow();
+    expect(getDbSchema.parse({ dbId: 'd1' })).toEqual({ dbId: 'd1' });
+    expect(listDbsSchema.parse({})).toEqual({});
+    expect(() => dbDeleteRowSchema.parse({})).toThrow();
+    expect(dbDeleteRowSchema.parse({ rowId: 'r1' })).toEqual({ rowId: 'r1' });
+  });
+
+  it('dbAddColumn / dbDeleteColumn require dbId plus the column / columnId', () => {
+    expect(() => dbAddColumnSchema.parse({ dbId: 'd1' })).toThrow();
+    expect(() => dbDeleteColumnSchema.parse({ dbId: 'd1' })).toThrow();
+    expect(dbDeleteColumnSchema.parse({ dbId: 'd1', columnId: 'c1' }).columnId).toBe('c1');
+  });
+
+  it('dbAddRow values optional; updateCell allows null; reorder needs >=1 id', () => {
+    expect(dbAddRowSchema.parse({ dbId: 'd1' })).toEqual({ dbId: 'd1' });
+    expect(dbUpdateCellSchema.parse({ rowId: 'r1', columnId: 'c1', value: null }).value).toBeNull();
+    expect(() => dbReorderRowsSchema.parse({ dbId: 'd1', orderedRowIds: [] })).toThrow();
   });
 });

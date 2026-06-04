@@ -23,7 +23,7 @@ import { createServiceCaller, type Env } from '@synapse/api/server';
 
 import { record as recordAudit } from './audit.js';
 import { hasScope, resolveApiToken } from './auth.js';
-import { createDb } from './db.js';
+import { createDb as createDbPool } from './db.js';
 import { loadEnv } from './env.js';
 import {
   addComment,
@@ -112,6 +112,26 @@ import {
   isFavoriteSchema,
   fetchBookmark,
   fetchBookmarkSchema,
+  createDb,
+  createDbSchema,
+  getDb,
+  getDbSchema,
+  listDbs,
+  listDbsSchema,
+  dbAddColumn,
+  dbAddColumnSchema,
+  dbUpdateColumn,
+  dbUpdateColumnSchema,
+  dbDeleteColumn,
+  dbDeleteColumnSchema,
+  dbAddRow,
+  dbAddRowSchema,
+  dbUpdateCell,
+  dbUpdateCellSchema,
+  dbReorderRows,
+  dbReorderRowsSchema,
+  dbDeleteRow,
+  dbDeleteRowSchema,
   type ToolContext,
 } from './tools.js';
 
@@ -156,11 +176,25 @@ const WRITE_PAGE_TOOLS = new Set<string>([
 // Favorite (per-user page bookmark) write tools — gated by 'write_favorite'.
 // (PBI-126) bookmark.fetch / list / is are read-only and not listed here.
 const WRITE_FAVORITE_TOOLS = new Set<string>(['synapse_toggle_favorite']);
+// User-defined DB write tools — gated by 'write_db'. (PBI-121)
+// get_db / list_dbs are read-only and not listed here.
+const WRITE_DB_TOOLS = new Set<string>([
+  'synapse_create_db',
+  'synapse_db_add_column',
+  'synapse_db_update_column',
+  'synapse_db_delete_column',
+  'synapse_db_add_row',
+  'synapse_db_update_cell',
+  'synapse_db_reorder_rows',
+  'synapse_db_delete_row',
+]);
 const DESTRUCTIVE_TOOLS = new Set<string>([
   'synapse_update_pbi_status',
   'synapse_remove_dependency',
   'synapse_unlink_github_issue',
   'synapse_delete_comment',
+  'synapse_db_delete_column',
+  'synapse_db_delete_row',
   'synapse_trash_page',
   'synapse_set_doc',
 ]);
@@ -170,7 +204,8 @@ function isWriteTool(tool: string): boolean {
     WRITE_PBI_TOOLS.has(tool) ||
     WRITE_COMMENT_TOOLS.has(tool) ||
     WRITE_PAGE_TOOLS.has(tool) ||
-    WRITE_FAVORITE_TOOLS.has(tool)
+    WRITE_FAVORITE_TOOLS.has(tool) ||
+    WRITE_DB_TOOLS.has(tool)
   );
 }
 
@@ -179,12 +214,35 @@ function requiredScopes(tool: string): string[] {
   if (WRITE_COMMENT_TOOLS.has(tool)) return ['write_comment', 'write'];
   if (WRITE_PAGE_TOOLS.has(tool)) return ['write_page', 'write'];
   if (WRITE_FAVORITE_TOOLS.has(tool)) return ['write_favorite', 'write'];
-  return ['read', 'write', 'write_pbi', 'write_comment', 'write_page', 'write_favorite'];
+  if (WRITE_DB_TOOLS.has(tool)) return ['write_db', 'write'];
+  return ['read', 'write', 'write_pbi', 'write_comment', 'write_page', 'write_favorite', 'write_db'];
 }
+
+// JSON Schema fragments for a DB column and a cell value, reused across the db
+// tool definitions below. (PBI-121) The column's strict per-kind validation is
+// enforced by dbColumnSchema inside the procedure; here we only require the
+// common id/kind/name and allow the rest through.
+const DB_COLUMN_SCHEMA = {
+  type: 'object',
+  required: ['id', 'kind', 'name'],
+  properties: {
+    id: { type: 'string' },
+    kind: {
+      type: 'string',
+      enum: ['text', 'number', 'checkbox', 'select', 'date', 'relation', 'rollup'],
+    },
+    name: { type: 'string' },
+  },
+  additionalProperties: true,
+};
+const DB_CELL_VALUE_SCHEMA = {
+  type: ['string', 'number', 'boolean', 'array', 'null'],
+  items: { type: 'string' },
+};
 
 async function main(): Promise<void> {
   const env = loadEnv();
-  const db = createDb(env.databaseUrl);
+  const db = createDbPool(env.databaseUrl);
 
   const resolved = await resolveApiToken(db, env.apiToken);
   if (!resolved) {
@@ -781,6 +839,115 @@ async function main(): Promise<void> {
           },
         },
       },
+      // ---- user-defined DB / spreadsheet (PBI-121) --------------------------
+      {
+        name: 'synapse_create_db',
+        description:
+          'Create a user-defined database (spreadsheet/table). Omit columns for the defaults (text/number/checkbox/select/date). Write tool.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', description: 'DB title; defaults to an untitled database.' },
+            columns: {
+              type: 'array',
+              description: 'Optional column definitions; omit for the defaults.',
+              items: DB_COLUMN_SCHEMA,
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_get_db',
+        description:
+          'Fetch a database: header, columns, all rows, plus resolved relations and rollups. Read-only.',
+        inputSchema: {
+          type: 'object',
+          required: ['dbId'],
+          properties: { dbId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_list_dbs',
+        description: 'List the databases in the workspace (id, title, createdAt). Read-only.',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        name: 'synapse_db_add_column',
+        description: 'Append a column to a database. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['dbId', 'column'],
+          properties: { dbId: { type: 'string' }, column: DB_COLUMN_SCHEMA },
+        },
+      },
+      {
+        name: 'synapse_db_update_column',
+        description:
+          'Update a column (rename or change kind). Changing the kind re-coerces every row cell and may be lossy. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['dbId', 'column'],
+          properties: { dbId: { type: 'string' }, column: DB_COLUMN_SCHEMA },
+        },
+      },
+      {
+        name: 'synapse_db_delete_column',
+        description:
+          'Delete a column and drop that cell from every row (at least one column must remain). Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['dbId', 'columnId'],
+          properties: { dbId: { type: 'string' }, columnId: { type: 'string' } },
+        },
+      },
+      {
+        name: 'synapse_db_add_row',
+        description:
+          'Append a row to a database; optionally seed cell values (columnId → value). Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['dbId'],
+          properties: {
+            dbId: { type: 'string' },
+            values: { type: 'object', additionalProperties: DB_CELL_VALUE_SCHEMA },
+          },
+        },
+      },
+      {
+        name: 'synapse_db_update_cell',
+        description: 'Set one cell (rowId + columnId). A null value clears the cell. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['rowId', 'columnId', 'value'],
+          properties: {
+            rowId: { type: 'string' },
+            columnId: { type: 'string' },
+            value: DB_CELL_VALUE_SCHEMA,
+          },
+        },
+      },
+      {
+        name: 'synapse_db_reorder_rows',
+        description: 'Reorder rows by passing the full ordered list of row ids. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['dbId', 'orderedRowIds'],
+          properties: {
+            dbId: { type: 'string' },
+            orderedRowIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+      {
+        name: 'synapse_db_delete_row',
+        description:
+          'Delete a row (hard delete — DB rows are not soft-deleted). Write tool, destructive.',
+        inputSchema: {
+          type: 'object',
+          required: ['rowId'],
+          properties: { rowId: { type: 'string' } },
+        },
+      },
     ].map((tool) => ({
       // readOnlyHint / destructiveHint let cc decide when to confirm before
       // running a tool (CLAUDE.md §6 "write tools require a confirmation flow").
@@ -921,6 +1088,27 @@ async function dispatch(
       return isFavorite(ctx, isFavoriteSchema.parse(args));
     case 'synapse_fetch_bookmark':
       return fetchBookmark(ctx, fetchBookmarkSchema.parse(args));
+    // ---- user-defined DB / spreadsheet (PBI-121) ----------------------------
+    case 'synapse_create_db':
+      return createDb(ctx, createDbSchema.parse(args));
+    case 'synapse_get_db':
+      return getDb(ctx, getDbSchema.parse(args));
+    case 'synapse_list_dbs':
+      return listDbs(ctx, listDbsSchema.parse(args));
+    case 'synapse_db_add_column':
+      return dbAddColumn(ctx, dbAddColumnSchema.parse(args));
+    case 'synapse_db_update_column':
+      return dbUpdateColumn(ctx, dbUpdateColumnSchema.parse(args));
+    case 'synapse_db_delete_column':
+      return dbDeleteColumn(ctx, dbDeleteColumnSchema.parse(args));
+    case 'synapse_db_add_row':
+      return dbAddRow(ctx, dbAddRowSchema.parse(args));
+    case 'synapse_db_update_cell':
+      return dbUpdateCell(ctx, dbUpdateCellSchema.parse(args));
+    case 'synapse_db_reorder_rows':
+      return dbReorderRows(ctx, dbReorderRowsSchema.parse(args));
+    case 'synapse_db_delete_row':
+      return dbDeleteRow(ctx, dbDeleteRowSchema.parse(args));
     default:
       throw new ToolError('INVALID', `Unknown tool: ${name}`);
   }

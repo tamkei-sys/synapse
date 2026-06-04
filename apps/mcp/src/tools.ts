@@ -19,6 +19,8 @@ import type { ServiceCaller } from '@synapse/api/server';
 
 import {
   commentPropsSchema,
+  dbCellValueSchema,
+  dbColumnSchema,
   extractMentions,
   pbiEstimateSchema,
   pbiPropsSchema,
@@ -312,6 +314,55 @@ export const fetchBookmarkSchema = z.object({
   url: z.string().url().max(2048),
 });
 
+// User-defined DB / spreadsheet (PBI-121). Wraps the db router through the
+// caller. Column / cell shapes reuse the @synapse/blocks schemas so MCP
+// validates inputs exactly the way the API does.
+export const createDbSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  columns: z.array(dbColumnSchema).max(40).optional(),
+});
+
+export const getDbSchema = z.object({
+  dbId: z.string().min(1),
+});
+
+export const listDbsSchema = z.object({});
+
+export const dbAddColumnSchema = z.object({
+  dbId: z.string().min(1),
+  column: dbColumnSchema,
+});
+
+export const dbUpdateColumnSchema = z.object({
+  dbId: z.string().min(1),
+  column: dbColumnSchema,
+});
+
+export const dbDeleteColumnSchema = z.object({
+  dbId: z.string().min(1),
+  columnId: z.string().min(1),
+});
+
+export const dbAddRowSchema = z.object({
+  dbId: z.string().min(1),
+  values: z.record(z.string().min(1), dbCellValueSchema).optional(),
+});
+
+export const dbUpdateCellSchema = z.object({
+  rowId: z.string().min(1),
+  columnId: z.string().min(1),
+  value: dbCellValueSchema,
+});
+
+export const dbReorderRowsSchema = z.object({
+  dbId: z.string().min(1),
+  orderedRowIds: z.array(z.string().min(1)).min(1).max(2000),
+});
+
+export const dbDeleteRowSchema = z.object({
+  rowId: z.string().min(1),
+});
+
 // ---- handlers ---------------------------------------------------------------
 
 // Docs / pages. These delegate to the API block router through the service
@@ -600,6 +651,104 @@ export async function fetchBookmark(
   input: z.infer<typeof fetchBookmarkSchema>,
 ): Promise<unknown> {
   return viaCaller(ctx.caller.bookmark.fetch({ url: input.url }));
+}
+
+// ---- user-defined DB / spreadsheet (PBI-121) --------------------------------
+// All delegate to the db router via the caller; workspace scope is checked
+// locally first for tools that reference an existing db / row id.
+
+export async function createDb(
+  ctx: ToolContext,
+  input: z.infer<typeof createDbSchema>,
+): Promise<unknown> {
+  return viaCaller(
+    ctx.caller.db.create({
+      workspaceId: ctx.workspaceId,
+      ...(input.title ? { title: input.title } : {}),
+      ...(input.columns ? { columns: input.columns } : {}),
+    }),
+  );
+}
+
+export async function getDb(
+  ctx: ToolContext,
+  input: z.infer<typeof getDbSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.get({ dbId: input.dbId }));
+}
+
+export async function listDbs(
+  ctx: ToolContext,
+  _input: z.infer<typeof listDbsSchema>,
+): Promise<unknown> {
+  return viaCaller(ctx.caller.db.listForWorkspace({ workspaceId: ctx.workspaceId }));
+}
+
+export async function dbAddColumn(
+  ctx: ToolContext,
+  input: z.infer<typeof dbAddColumnSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.addColumn({ dbId: input.dbId, column: input.column }));
+}
+
+export async function dbUpdateColumn(
+  ctx: ToolContext,
+  input: z.infer<typeof dbUpdateColumnSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.updateColumn({ dbId: input.dbId, column: input.column }));
+}
+
+export async function dbDeleteColumn(
+  ctx: ToolContext,
+  input: z.infer<typeof dbDeleteColumnSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(ctx.caller.db.deleteColumn({ dbId: input.dbId, columnId: input.columnId }));
+}
+
+export async function dbAddRow(
+  ctx: ToolContext,
+  input: z.infer<typeof dbAddRowSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(
+    ctx.caller.db.addRow({ dbId: input.dbId, ...(input.values ? { values: input.values } : {}) }),
+  );
+}
+
+export async function dbUpdateCell(
+  ctx: ToolContext,
+  input: z.infer<typeof dbUpdateCellSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.rowId, 'db row');
+  return viaCaller(
+    ctx.caller.db.updateCell({
+      rowId: input.rowId,
+      columnId: input.columnId,
+      value: input.value,
+    }),
+  );
+}
+
+export async function dbReorderRows(
+  ctx: ToolContext,
+  input: z.infer<typeof dbReorderRowsSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.dbId, 'db');
+  return viaCaller(
+    ctx.caller.db.reorderRows({ dbId: input.dbId, orderedRowIds: input.orderedRowIds }),
+  );
+}
+
+export async function dbDeleteRow(
+  ctx: ToolContext,
+  input: z.infer<typeof dbDeleteRowSchema>,
+): Promise<unknown> {
+  await assertBlockInWorkspace(ctx, input.rowId, 'db row');
+  return viaCaller(ctx.caller.db.deleteRow({ rowId: input.rowId }));
 }
 
 export async function listPbis(
