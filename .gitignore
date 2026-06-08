@@ -23,6 +23,8 @@ test-results/
 !.env.example
 *.pem
 *.key
+# MCP 設定はトークンを含みうるのでコミットしない（ローカル接続用）
+.mcp.json
 *.p12
 *.pfx
 id_rsa*

@@ -104,7 +104,7 @@ export function NotificationBell({ workspaceId }: { workspaceId: string }) {
       {open ? (
         <div
           data-testid="notification-dropdown"
-          className="absolute right-0 z-20 mt-2 w-96 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          className="absolute left-0 z-20 mt-2 w-96 max-w-[calc(100vw_-_1.5rem)] rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >
           <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-zinc-700">
             <div

@@ -169,6 +169,13 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
     keywords: ['mermaid', 'マーメイド', 'diagram', '図', 'フローチャート', 'flowchart', 'sequence', 'gantt', 'ダイアグラム'],
     run: (editor, range) => editor.chain().focus().deleteRange(range).insertMermaidBlock().run(),
   },
+  {
+    id: 'flow',
+    title: 'フロー図',
+    description: 'ノードグラフ + 実行順ステップ再生（一括実行）の埋め込み',
+    keywords: ['flow', 'フロー', 'graph', 'グラフ', 'pipeline', 'パイプライン', 'dag', 'ノード', 'node', '依存', 'ステップ', '可視化'],
+    run: (editor, range) => editor.chain().focus().deleteRange(range).insertFlowBlock().run(),
+  },
 ];
 
 /** Generic filter that works against any command list (built-in or user). */

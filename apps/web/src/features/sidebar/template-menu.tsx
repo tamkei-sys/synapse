@@ -77,7 +77,7 @@ export function TemplateMenu({
       {open ? (
         <div
           data-testid="template-menu"
-          className="absolute right-0 top-full z-30 mt-1 w-56 rounded-md border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+          className="absolute left-0 top-full z-30 mt-1 w-56 max-w-[calc(100vw_-_1.5rem)] rounded-md border border-zinc-200 bg-white p-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
         >
           <p className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
             {t('nav.newFromTemplate')}
