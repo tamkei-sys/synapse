@@ -9,6 +9,7 @@
 #   - Vite     5173  -> host 5173   (uncommon enough to keep)
 #   - Wrangler 8787  -> host 8787
 #   - Hocuspocus 1234 -> host 1234
+#   - Sync internal doc-write 1235 -> host 127.0.0.1:1235 (loopback only)
 
 name: synapse-dev
 
@@ -45,6 +46,10 @@ services:
       - '5173:5173' # Vite (apps/web)
       - '8787:8787' # Wrangler dev (apps/api)
       - '1234:1234' # Hocuspocus (apps/sync) — reserved for S3
+      # Loopback-only on purpose: ADR-0011 forbids exposing the internal
+      # doc-write API beyond this machine. A host-side MCP server reaches it
+      # as SYNC_INTERNAL_URL=http://127.0.0.1:1235 (see apps/mcp/README.md).
+      - '127.0.0.1:1235:1235' # sync internal doc-write API (ADR-0011)
     depends_on:
       postgres:
         condition: service_healthy

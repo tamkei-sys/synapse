@@ -10,11 +10,12 @@
   "postCreateCommand": ".devcontainer/post-create.sh",
 
   // Ports VS Code / Cursor will surface in the Ports panel.
-  "forwardPorts": [5173, 8787, 1234, 54322],
+  "forwardPorts": [5173, 8787, 1234, 1235, 54322],
   "portsAttributes": {
     "5173": { "label": "web (vite)", "onAutoForward": "notify" },
     "8787": { "label": "api (wrangler)", "onAutoForward": "notify" },
     "1234": { "label": "sync (hocuspocus)", "onAutoForward": "silent" },
+    "1235": { "label": "sync internal doc-write (loopback)", "onAutoForward": "silent" },
     "54322": { "label": "postgres", "onAutoForward": "silent" }
   },
 

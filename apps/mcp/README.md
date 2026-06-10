@@ -17,6 +17,13 @@ Every tool call is recorded in the workspace's `audit_log` table — the row car
 
 ## Wiring it up in Claude Code
 
+> **Dev-stack shortcut:** on the host, `node apps/mcp/scripts/setup-local-mcp.mjs`
+> does all of the below in one shot — it issues a token against the local dev DB
+> and writes a gitignored `.mcp.json` at the repo root, including the doc body
+> variables from the next section. To generate a config for a cc running
+> *inside* the dev container instead, run it in the container (auto-detected) or
+> pass `--container`.
+
 1. Open the SYNAPSE web app and head to **API tokens** (`/settings/tokens`).
 2. Create a new token. Copy it immediately — it's shown exactly once.
 3. Point Claude Code at this server. In your `~/.claude/mcp_settings.json` (or the cc config UI):
@@ -37,6 +44,69 @@ Every tool call is recorded in the workspace's `audit_log` table — the row car
 ```
 
 4. Restart cc. You'll see `synapse_*` tools appear in the picker.
+
+## Enabling the doc body tools (`synapse_set_doc` / `synapse_append_doc`)
+
+The two body-editing tools don't write the database directly — they POST to the
+sync server's internal doc-write API
+([ADR-0011](../../docs/adr/0011-mcp-doc-body-write.md)), which applies the
+change to the live Yjs document. That API is reached via two extra env vars on
+the **MCP server process**. While they're unset, only these two tools fail
+(with a clear "not configured" error); everything else keeps working.
+
+`apps/mcp/scripts/setup-local-mcp.mjs` emits both variables into the repo-root
+`.mcp.json` automatically: it copies the secret out of the compose file at
+generation time (never printing it) and picks the URL for the target
+environment — `http://127.0.0.1:1235` for a host-side server,
+`http://localhost:1235` for one inside the dev container (auto-detected, or
+force with `--host` / `--container`). The rest of this section is for wiring
+any other MCP client by hand.
+
+| Env var | Value for the dev-container setup |
+| --- | --- |
+| `SYNC_INTERNAL_URL` | `http://127.0.0.1:1235` when the MCP server runs on the host; `http://localhost:1235` when it runs inside the dev container |
+| `SYNC_INTERNAL_SECRET` | The value of `services.dev.environment.SYNC_INTERNAL_SECRET` in [.devcontainer/docker-compose.yml](../../.devcontainer/docker-compose.yml) — copy it from there; don't paste it into docs, commits, or logs |
+
+A host-side MCP config (Claude desktop app or Claude Code spawning
+`node .../apps/mcp/dist/index.js`) therefore gets this `env` block:
+
+```json
+"env": {
+  "DATABASE_URL": "postgres://synapse:synapse@127.0.0.1:54322/synapse_dev",
+  "SYNAPSE_API_TOKEN": "synapse_paste_the_token_here",
+  "SYNC_INTERNAL_URL": "http://127.0.0.1:1235",
+  "SYNC_INTERNAL_SECRET": "<copy from .devcontainer/docker-compose.yml>"
+}
+```
+
+Restart the MCP client afterwards — env changes only apply when it respawns the
+server process.
+
+### How port 1235 reaches the host
+
+`apps/sync` starts the internal API on container port `1235` whenever its own
+`SYNC_INTERNAL_SECRET` is set (the dev compose file sets it for the `dev`
+service). The compose file maps that port to the host as `127.0.0.1:1235:1235`
+— **loopback-only by design**: ADR-0011 requires that the endpoint is never
+reachable from other machines. Don't widen the mapping to `0.0.0.0` or put it
+behind a proxy.
+
+Troubleshooting, in dependency order:
+
+1. **Tools report "not configured"** — the MCP server process is missing one of
+   the two env vars. Fix the client's MCP config (for the repo-root `.mcp.json`,
+   just rerun `node apps/mcp/scripts/setup-local-mcp.mjs`) and restart the
+   client.
+2. **Connection refused on `127.0.0.1:1235`** — the running container predates
+   the port mapping (mappings only apply at container creation). Recreate it
+   with `docker compose -f .devcontainer/docker-compose.yml up -d dev` (or
+   **Rebuild Container** in VS Code), then start the dev stack again
+   (`pnpm dev` inside the container).
+3. **Probe without touching any secret** —
+   `curl -i http://127.0.0.1:1235/` should return `404 {"error":"not found"}`;
+   that proves the mapping and the listener. A `401 {"error":"unauthorized"}`
+   on a real `POST /internal/doc/write` means the secret in your MCP config
+   doesn't match the one in the compose file.
 
 ## Security model
 
