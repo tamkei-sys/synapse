@@ -286,17 +286,23 @@ export const restorePageSchema = z.object({
   pageId: z.string().min(1),
 });
 
-// Body editing (ADR-0011). Writes go through the sync server's internal
-// endpoint; the markdown is converted to the editor doc there.
-export const appendDocSchema = z.object({
-  pageId: z.string().min(1),
-  markdown: z.string().min(1),
-});
+// Body editing (ADR-0011, amended 2026-06-11). Writes go through the sync
+// server's internal endpoint; the markdown is converted to the editor doc
+// there. The target is any block whose detail view is a document body — a
+// page, project, sprint, PBI, or SBI. `pageId` survives as a legacy alias
+// for `blockId` from the pages-only era.
+const docWriteTargetSchema = z
+  .object({
+    blockId: z.string().min(1).optional(),
+    pageId: z.string().min(1).optional(),
+    markdown: z.string().min(1),
+  })
+  .refine((v) => v.blockId != null || v.pageId != null, {
+    message: 'blockId is required (pageId is accepted as a legacy alias)',
+  });
 
-export const setDocSchema = z.object({
-  pageId: z.string().min(1),
-  markdown: z.string().min(1),
-});
+export const appendDocSchema = docWriteTargetSchema;
+export const setDocSchema = docWriteTargetSchema;
 
 // Favorites & bookmarks (PBI-126). favorite.* wraps the per-user page-favorite
 // router through the caller; bookmark.fetch is a read-only server-side OG
@@ -664,14 +670,23 @@ export async function restorePage(
   return viaCaller(ctx.caller.block.restorePage({ pageId: input.pageId }));
 }
 
+/** Resolve the doc-write target from `blockId`, falling back to the legacy `pageId` alias. */
+function docWriteTarget(input: { blockId?: string; pageId?: string }): string {
+  const id = input.blockId ?? input.pageId;
+  if (!id) throw new ToolError('INVALID', 'blockId is required');
+  return id;
+}
+
 /**
- * Append to / replace a page body via the sync server's internal doc-write
- * endpoint (ADR-0011). The page body is a live Yjs document, so the write
- * goes through sync's openDirectConnection — never the DB directly.
+ * Append to / replace a document body via the sync server's internal
+ * doc-write endpoint (ADR-0011). The body — of a page, project, sprint, PBI,
+ * or SBI — is a live Yjs document, so the write goes through sync's
+ * openDirectConnection — never the DB directly. The sync side validates the
+ * block type and picks the matching Yjs document name.
  */
 async function postDocWrite(
   ctx: ToolContext,
-  pageId: string,
+  blockId: string,
   markdown: string,
   mode: 'append' | 'replace',
 ): Promise<unknown> {
@@ -681,7 +696,7 @@ async function postDocWrite(
       'Document body editing is not configured (SYNC_INTERNAL_URL / SYNC_INTERNAL_SECRET unset).',
     );
   }
-  await assertBlockInWorkspace(ctx, pageId);
+  await assertBlockInWorkspace(ctx, blockId, 'block');
 
   const url = `${ctx.docWrite.url.replace(/\/$/, '')}/internal/doc/write`;
   let res: Awaited<ReturnType<typeof fetch>>;
@@ -689,7 +704,7 @@ async function postDocWrite(
     res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-internal-secret': ctx.docWrite.secret },
-      body: JSON.stringify({ blockId: pageId, actorUserId: ctx.userId, markdown, mode }),
+      body: JSON.stringify({ blockId, actorUserId: ctx.userId, markdown, mode }),
     });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
@@ -711,14 +726,14 @@ export async function appendDoc(
   ctx: ToolContext,
   input: z.infer<typeof appendDocSchema>,
 ): Promise<unknown> {
-  return postDocWrite(ctx, input.pageId, input.markdown, 'append');
+  return postDocWrite(ctx, docWriteTarget(input), input.markdown, 'append');
 }
 
 export async function setDoc(
   ctx: ToolContext,
   input: z.infer<typeof setDocSchema>,
 ): Promise<unknown> {
-  return postDocWrite(ctx, input.pageId, input.markdown, 'replace');
+  return postDocWrite(ctx, docWriteTarget(input), input.markdown, 'replace');
 }
 
 // ---- GitHub Issue linking (PBI-122) -----------------------------------------

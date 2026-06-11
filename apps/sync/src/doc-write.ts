@@ -2,6 +2,10 @@
  * Server-side document body writes for trusted internal callers (the MCP
  * server's synapse_append_doc / synapse_set_doc tools). See ADR-0011.
  *
+ * The target is any block whose detail view is a document body: pages, and —
+ * since the 2026-06-11 amendment — projects / sprints / PBIs / SBIs (the
+ * "the item *is* the document" body the /b/$blockId route edits).
+ *
  * The body is a live Yjs document, so we mutate it through Hocuspocus
  * `openDirectConnection` — connected editors see the change in real time and
  * the existing `store` hook persists it (props.doc snapshot, version,
@@ -69,23 +73,36 @@ function pmNodeToY(node: PmNode): Y.XmlElement | Y.XmlText {
 }
 
 /**
- * The block must be a page. When `actorUserId` is given (the MCP path), that
- * user must be a non-viewer member of the page's workspace. When omitted, the
- * caller is trusted infrastructure already proven by the shared secret (a
- * system write), so only the page check applies.
+ * Block types whose detail view is a TipTap document body. Matches the web
+ * routes: `/p/$pageId` (page) and `/b/$blockId` (project / sprint / pbi /
+ * sbi). Other types (sheet cells, db rows, …) own their Yjs docs differently
+ * — writing a prosemirror fragment into them would corrupt their model.
  */
-async function assertWritablePage(
+const BODY_BLOCK_TYPES = new Set(['page', 'project', 'sprint', 'pbi', 'sbi']);
+
+/**
+ * The block must carry a document body. When `actorUserId` is given (the MCP
+ * path), that user must be a non-viewer member of the block's workspace. When
+ * omitted, the caller is trusted infrastructure already proven by the shared
+ * secret (a system write), so only the block check applies.
+ *
+ * Returns the block type — the caller derives the Yjs document name from it.
+ */
+async function assertWritableBlock(
   db: Database,
   blockId: string,
   actorUserId: string | undefined,
-): Promise<void> {
+): Promise<string> {
   const [block] = await db
     .select({ workspaceId: schema.block.workspaceId, type: schema.block.type })
     .from(schema.block)
     .where(eq(schema.block.id, blockId))
     .limit(1);
-  if (!block || block.type !== 'page') throw new DocWriteError(404, 'page not found');
-  if (!actorUserId) return;
+  if (!block) throw new DocWriteError(404, 'block not found');
+  if (!BODY_BLOCK_TYPES.has(block.type)) {
+    throw new DocWriteError(400, `block type '${block.type}' has no document body`);
+  }
+  if (!actorUserId) return block.type;
 
   const [member] = await db
     .select({ role: schema.workspaceMember.role })
@@ -99,6 +116,7 @@ async function assertWritablePage(
     .limit(1);
   if (!member) throw new DocWriteError(403, 'actor is not a member of this workspace');
   if (member.role === 'viewer') throw new DocWriteError(403, 'viewers cannot write');
+  return block.type;
 }
 
 export type DocWriteRequest = {
@@ -110,19 +128,23 @@ export type DocWriteRequest = {
 };
 
 /**
- * Append to (or replace) a page body through a server-side direct connection.
- * Resolves once the edit is committed to the in-memory CRDT; the store hook
- * then persists + broadcasts it.
+ * Append to (or replace) a document body through a server-side direct
+ * connection. Resolves once the edit is committed to the in-memory CRDT; the
+ * store hook then persists + broadcasts it.
  */
 export async function applyDocWrite(
   server: Hocuspocus,
   db: Database,
   req: DocWriteRequest,
 ): Promise<{ ok: true; nodes: number }> {
-  await assertWritablePage(db, req.blockId, req.actorUserId);
+  const blockType = await assertWritableBlock(db, req.blockId, req.actorUserId);
 
   const nodes = req.doc.content ?? [];
-  const connection = await server.openDirectConnection('page:' + req.blockId);
+  // The document name must match what live editors connect with — `/p/$pageId`
+  // opens `page:<id>`, `/b/$blockId` opens `block:<id>` — so the write lands
+  // in the in-memory document Hocuspocus is already serving to them.
+  const docName = (blockType === 'page' ? 'page:' : 'block:') + req.blockId;
+  const connection = await server.openDirectConnection(docName);
   try {
     await connection.transact((document) => {
       const fragment = document.getXmlFragment('default');

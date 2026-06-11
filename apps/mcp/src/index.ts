@@ -220,6 +220,9 @@ const WRITE_COMMENT_TOOLS = new Set<string>([
 ]);
 // Page (Docs) write tools — gated by the 'write_page' token scope.
 // (PBI: MCP page tools)
+// The two doc-body tools also write project/sprint/PBI/SBI bodies (ADR-0011
+// amendment) but stay under 'write_page': body editing is the "documents"
+// capability, while PM metadata (status etc.) remains under 'write_pbi'.
 const WRITE_PAGE_TOOLS = new Set<string>([
   'synapse_create_page',
   'synapse_update_page_title',
@@ -868,12 +871,16 @@ async function main(): Promise<void> {
       {
         name: 'synapse_append_doc',
         description:
-          'Append markdown to the END of a page body (its rich-text content); connected editors see it live. Write tool. (Create the page first with synapse_create_page if needed.)',
+          'Append markdown to the END of a document body — a page, or the doc body of a project / sprint / PBI / SBI (what its detail view shows); connected editors see it live. Write tool. (For pages, create one first with synapse_create_page if needed.)',
         inputSchema: {
           type: 'object',
-          required: ['pageId', 'markdown'],
+          required: ['blockId', 'markdown'],
           properties: {
-            pageId: { type: 'string' },
+            blockId: {
+              type: 'string',
+              description:
+                'Target block id — a page, project, sprint, PBI, or SBI. (`pageId` is accepted as a legacy alias.)',
+            },
             markdown: {
               type: 'string',
               description:
@@ -885,12 +892,12 @@ async function main(): Promise<void> {
       {
         name: 'synapse_set_doc',
         description:
-          'Replace the ENTIRE page body with the given markdown. Write tool, destructive — the previous body is discarded.',
+          'Replace the ENTIRE document body (page / project / sprint / PBI / SBI) with the given markdown. Write tool, destructive — the previous body is discarded.',
         inputSchema: {
           type: 'object',
-          required: ['pageId', 'markdown'],
+          required: ['blockId', 'markdown'],
           properties: {
-            pageId: { type: 'string' },
+            blockId: { type: 'string', description: 'Target block id (see synapse_append_doc).' },
             markdown: { type: 'string', description: 'Markdown for the new body (see synapse_append_doc).' },
           },
         },

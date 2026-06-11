@@ -66,3 +66,61 @@ test('append_doc endpoint reflects markdown into a live editor', async ({ page }
   await waitForLive(page);
   await expect(page.getByTestId('editor-content')).toContainText(marker, { timeout: 10_000 });
 });
+
+/**
+ * ADR-0011 amendment (2026-06-11): the same endpoint also writes the document
+ * body of PM items — here a PBI, whose `/b/$blockId` detail view edits the
+ * `block:<id>` Yjs document — through the identical live-broadcast path.
+ */
+test('append_doc endpoint writes a PBI document body into a live /b/ editor', async ({
+  page,
+}) => {
+  const email = `e2e-dab-${unique()}@synapse.test`;
+  const password = 'correct horse battery staple';
+
+  await signUp(page, email, password);
+  await page.getByTestId('workspace-name-input').fill('PBI Doc WS');
+  await page.getByTestId('create-workspace-submit').click();
+  await expect(page.getByTestId('workspace-name')).toHaveText('PBI Doc WS');
+
+  // Create a PBI through the `/pbi` slash command (the s4 flow), then open
+  // its detail view, which mounts the PageEditor on the block's own doc.
+  await page.getByTestId('sidebar-new-page').click();
+  await expect(page).toHaveURL(/\/p\/[0-9A-Z]+$/);
+  await waitForLive(page);
+  const editor = page.getByTestId('editor-content');
+  await editor.click();
+  await editor.pressSequentially('/pbi');
+  await expect(page.getByTestId('slash-menu')).toBeVisible();
+  await page.getByTestId('slash-item-pbi').click();
+
+  const pbiRef = page.locator('[data-testid^="pbi-ref-"]').first();
+  await expect(pbiRef).toBeVisible({ timeout: 10_000 });
+  const pbiId = (await pbiRef.getAttribute('data-pbi-id')) ?? '';
+  expect(pbiId).not.toEqual('');
+
+  await page.goto(`/b/${pbiId}`);
+  await waitForLive(page);
+  await expect(page.getByTestId('editor-content')).toBeVisible();
+
+  const marker = `PbiBody-${unique()}`;
+  const res = await fetch(`${INTERNAL_URL}/internal/doc/write`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL_SECRET },
+    body: JSON.stringify({
+      blockId: pbiId,
+      mode: 'append',
+      markdown: `### ${marker}\n\nPBI body written through the doc-write path`,
+    }),
+  });
+  expect(res.status).toBe(200);
+
+  const pbiEditor = page.getByTestId('editor-content');
+  await expect(pbiEditor).toContainText(marker, { timeout: 15_000 });
+  await expect(pbiEditor).toContainText('PBI body written through the doc-write path');
+
+  // Persisted, not just broadcast to the open tab.
+  await page.reload();
+  await waitForLive(page);
+  await expect(page.getByTestId('editor-content')).toContainText(marker, { timeout: 10_000 });
+});
