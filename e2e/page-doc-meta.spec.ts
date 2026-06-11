@@ -17,7 +17,11 @@ async function signUp(page: Page, email: string) {
 }
 
 test('document metadata panel sets status and the badge reflects it', async ({ browser }) => {
-  const context = await browser.newContext();
+  // 「レビュー待ち」など i18n 文字列をアサートするので locale を固定する。
+  // 素の newContext() はブラウザ既定の言語に従い、en になった環境では
+  // ui-store の loadLocale() が UI を英語化して間欠フレークになる
+  // （ローカル実測で 1/3 失敗。i18n-locale.spec.ts と同じ流儀）。
+  const context = await browser.newContext({ locale: 'ja-JP' });
   const page = await context.newPage();
 
   await signUp(page, `e2e-docmeta-${unique()}@synapse.test`);

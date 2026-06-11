@@ -51,8 +51,15 @@ test('a new workspace ships built-in templates whose body hydrates from the snap
   await expect(menu.locator('[data-testid^="template-item-"]')).toHaveCount(8);
 
   // 「作業計画書」を選ぶ → 本文付きの新ページへ。
-  await menu.getByText('作業計画書').click();
-  await page.waitForURL(/\/p\/[0-9A-Z]+$/, { timeout: 10_000 });
+  // 通常の click() は使わない: 項目ボタンは createFromTemplate.isPending 中
+  // disabled になる自己無効化ボタンで、1 回目のクリック直後の再レンダーで
+  // 要素が detach されると Playwright がアクションをリトライ → 2 回目は
+  // 「enabled 待ち」のまま CI の遅い API 応答でテスト時間を食い潰す
+  // （PR #56 の CI で 2 連続再現）。dispatchEvent はリトライしない単発発火。
+  const item = menu.locator('[data-testid^="template-item-"]', { hasText: '作業計画書' });
+  await expect(item).toBeEnabled();
+  await item.dispatchEvent('click');
+  await page.waitForURL(/\/p\/[0-9A-Z]+$/, { timeout: 15_000 });
   await waitForLive(page);
 
   // 本文が sync seed 経由で復元される（テンプレの見出し文言が出る）。
