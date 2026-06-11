@@ -6,7 +6,7 @@
  * SBIs whose status='done' over total non-archived).
  */
 import { TRPCError } from '@trpc/server';
-import { and, asc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import { ulid } from 'ulid';
 import { z } from 'zod';
 
@@ -15,7 +15,17 @@ import { db as schema } from '@synapse/schema';
 
 import { allocateHumanId } from '../lib/human-id.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { protectedProcedure, router } from '../trpc.js';
+
+/**
+ * status 遷移のライフサイクル日付（startedAt / completedAt）を「未設定のとき
+ * だけ」押す jsonb 式。判定を UPDATE 文の中で行うので、読んだ時点の古い
+ * props に依存しない（lib/props-merge.ts 参照）。
+ */
+function withStampIfUnset(expr: SQL, key: 'startedAt' | 'completedAt', iso: string): SQL {
+  return sql`${expr} || (case when (coalesce(${schema.block.props}, '{}'::jsonb)->${key}::text) is null then ${JSON.stringify({ [key]: iso })}::jsonb else '{}'::jsonb end)`;
+}
 
 export const sbiRouter = router({
   listForPbi: protectedProcedure
@@ -138,20 +148,33 @@ export const sbiRouter = router({
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
-      const merged = { ...current, ...input.patch };
+      const patch: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(input.patch)) {
+        if (value !== undefined) patch[key] = value;
+      }
+      const now = new Date().toISOString();
+
+      // 検証ゲート：マージ結果がスキーマ違反ならここで弾く（書き込みには使わない）。
       // Auto-stamp transitions for the lifecycle dates 大和心 tracks.
-      if (input.patch.status === 'in_progress' && !current['startedAt']) {
-        merged['startedAt'] = new Date().toISOString();
+      const merged: Record<string, unknown> = { ...current, ...patch };
+      if (input.patch.status === 'in_progress' && !current['startedAt']) merged['startedAt'] = now;
+      if (input.patch.status === 'done' && !current['completedAt']) merged['completedAt'] = now;
+      sbiPropsSchema.parse(merged);
+
+      // 書き込みは patch キーだけの単一 UPDATE 文の jsonb マージ。全量書き戻しは
+      // 並行する update / MCP の書き込みを巻き戻す（lib/props-merge.ts 参照）。
+      let propsExpr = atomicPropsMerge({ set: patch });
+      if (input.patch.status === 'in_progress') {
+        propsExpr = withStampIfUnset(propsExpr, 'startedAt', now);
       }
-      if (input.patch.status === 'done' && !current['completedAt']) {
-        merged['completedAt'] = new Date().toISOString();
+      if (input.patch.status === 'done') {
+        propsExpr = withStampIfUnset(propsExpr, 'completedAt', now);
       }
-      const validated = sbiPropsSchema.parse(merged);
 
       const [row] = await ctx.db
         .update(schema.block)
         .set({
-          props: validated,
+          props: propsExpr,
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
@@ -180,19 +203,23 @@ export const sbiRouter = router({
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
+      const now = new Date().toISOString();
+
+      // 検証ゲート（書き込みには使わない）。update と同じ理由で書き込みは
+      // status キーだけの原子マージ＋ UPDATE 文内 CASE のスタンプにする。
       const merged: Record<string, unknown> = { ...current, status: input.status };
-      if (input.status === 'in_progress' && !current['startedAt']) {
-        merged['startedAt'] = new Date().toISOString();
-      }
-      if (input.status === 'done' && !current['completedAt']) {
-        merged['completedAt'] = new Date().toISOString();
-      }
-      const validated = sbiPropsSchema.parse(merged);
+      if (input.status === 'in_progress' && !current['startedAt']) merged['startedAt'] = now;
+      if (input.status === 'done' && !current['completedAt']) merged['completedAt'] = now;
+      sbiPropsSchema.parse(merged);
+
+      let propsExpr = atomicPropsMerge({ set: { status: input.status } });
+      if (input.status === 'in_progress') propsExpr = withStampIfUnset(propsExpr, 'startedAt', now);
+      if (input.status === 'done') propsExpr = withStampIfUnset(propsExpr, 'completedAt', now);
 
       const [row] = await ctx.db
         .update(schema.block)
         .set({
-          props: validated,
+          props: propsExpr,
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
