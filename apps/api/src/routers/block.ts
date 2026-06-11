@@ -29,6 +29,7 @@ import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { EMPTY_DOC, extractTextPreview } from '../lib/page-doc.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { purgeOldTrash } from '../lib/purge-trash.js';
 import { generateShareToken, sanitizePublicDoc } from '../lib/public-doc.js';
 import { protectedProcedure, publicProcedure, router } from '../trpc.js';
@@ -1046,23 +1047,12 @@ export const blockRouter = router({
         else setEntries[key] = v;
       }
 
-      // props は1つの UPDATE 文の中で jsonb 連結／キー削除する。読んでから JS で
-      // マージして全量書き戻すと、並行する updatePageMeta（や store フックの
-      // props.doc 焼き込み）の書き込みを古い props で巻き戻す lost update になる
-      // （ステータス→種別を連続変更すると先のステータスが消える。e2e
-      // page-doc-meta が間欠失敗していた実バグ）。単一文なら行ロックで直列化される。
-      let propsExpr = sql`coalesce(${schema.block.props}, '{}'::jsonb)`;
-      if (Object.keys(setEntries).length > 0) {
-        propsExpr = sql`${propsExpr} || ${JSON.stringify(setEntries)}::jsonb`;
-      }
-      for (const key of clearKeys) {
-        propsExpr = sql`${propsExpr} - ${key}::text`;
-      }
-
+      // props は1つの UPDATE 文の中で jsonb 連結／キー削除する。全量書き戻しが
+      // lost update になる経緯は lib/props-merge.ts のコメント参照。
       const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: propsExpr,
+          props: atomicPropsMerge({ set: setEntries, clear: clearKeys }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
