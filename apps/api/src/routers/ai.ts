@@ -18,6 +18,7 @@ import { ask } from '../integrations/anthropic/client.js';
 import { allocateHumanId } from '../lib/human-id.js';
 import { assertCanWrite } from '../lib/access.js';
 import { extractTextPreview } from '../lib/page-doc.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const aiRouter = router({
@@ -92,10 +93,13 @@ export const aiRouter = router({
         `次のドキュメントの要点を、日本語の箇条書き3〜5項目で簡潔にまとめてください。前置きや結びは不要です。\n\n---\n${text}`,
         { maxTokens: 400 },
       );
+      // aiSummary キーだけの原子マージ。読んでから全量書き戻すと、Claude 応答を
+      // 待つ数秒の間に入った本文編集（store フックの props.doc）やメタ更新を
+      // 丸ごと巻き戻す（lib/props-merge.ts 参照）。
       await ctx.db
         .update(schema.block)
         .set({
-          props: { ...props, aiSummary: result.text },
+          props: atomicPropsMerge({ set: { aiSummary: result.text } }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })

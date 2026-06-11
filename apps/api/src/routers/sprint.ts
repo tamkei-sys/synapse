@@ -15,6 +15,7 @@ import { db as schema } from '@synapse/schema';
 
 import { allocateHumanId } from '../lib/human-id.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 function isoDate(d: Date): string {
@@ -126,13 +127,21 @@ export const sprintRouter = router({
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
-      const merged = { ...current, ...input.patch };
-      const validated = sprintPropsSchema.parse(merged);
+      const patch: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(input.patch)) {
+        if (value !== undefined) patch[key] = value;
+      }
+      // 検証ゲート — refine (startDate ≤ endDate) はマージ後の組で評価する必要が
+      // あるため、読んだ props と patch を合成して parse だけ行う（書き込みには
+      // 使わない）。
+      sprintPropsSchema.parse({ ...current, ...patch });
 
+      // 書き込みは patch キーだけの単一 UPDATE 文の jsonb マージ。全量書き戻しは
+      // 並行する update / MCP の書き込みを巻き戻す（lib/props-merge.ts 参照）。
       const [row] = await ctx.db
         .update(schema.block)
         .set({
-          props: validated,
+          props: atomicPropsMerge({ set: patch }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })

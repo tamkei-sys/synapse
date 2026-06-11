@@ -27,6 +27,7 @@ import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { allocateHumanId } from '../lib/human-id.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const pbiRouter = router({
@@ -239,30 +240,38 @@ export const pbiRouter = router({
       const current = (existing.props ?? {}) as Record<string, unknown>;
       // Honour explicit `null` as "clear this field"; numeric / string
       // values overwrite; `undefined` keeps the current value.
-      const merged: Record<string, unknown> = { ...current };
-      if (input.patch.title !== undefined) merged['title'] = input.patch.title;
-      if (input.patch.status !== undefined) merged['status'] = input.patch.status;
-      if (input.patch.priority !== undefined) merged['priority'] = input.patch.priority;
-      if (input.patch.estimate !== undefined) merged['estimate'] = input.patch.estimate;
-      if (input.patch.storyPoints === null) delete merged['storyPoints'];
+      const setEntries: Record<string, unknown> = {};
+      const clearKeys: string[] = [];
+      if (input.patch.title !== undefined) setEntries['title'] = input.patch.title;
+      if (input.patch.status !== undefined) setEntries['status'] = input.patch.status;
+      if (input.patch.priority !== undefined) setEntries['priority'] = input.patch.priority;
+      if (input.patch.estimate !== undefined) setEntries['estimate'] = input.patch.estimate;
+      if (input.patch.storyPoints === null) clearKeys.push('storyPoints');
       else if (typeof input.patch.storyPoints === 'number')
-        merged['storyPoints'] = input.patch.storyPoints;
-      if (input.patch.projectId === null) delete merged['projectId'];
+        setEntries['storyPoints'] = input.patch.storyPoints;
+      if (input.patch.projectId === null) clearKeys.push('projectId');
       else if (typeof input.patch.projectId === 'string')
-        merged['projectId'] = input.patch.projectId;
-      if (input.patch.sprintId === null) delete merged['sprintId'];
-      else if (typeof input.patch.sprintId === 'string') merged['sprintId'] = input.patch.sprintId;
+        setEntries['projectId'] = input.patch.projectId;
+      if (input.patch.sprintId === null) clearKeys.push('sprintId');
+      else if (typeof input.patch.sprintId === 'string')
+        setEntries['sprintId'] = input.patch.sprintId;
       if (input.patch.assigneeIds !== undefined) {
-        if (input.patch.assigneeIds.length === 0) delete merged['assigneeIds'];
-        else merged['assigneeIds'] = input.patch.assigneeIds;
+        if (input.patch.assigneeIds.length === 0) clearKeys.push('assigneeIds');
+        else setEntries['assigneeIds'] = input.patch.assigneeIds;
       }
 
+      // 検証ゲート：マージ結果がスキーマ違反ならここで弾く（書き込みには使わない）。
+      const merged: Record<string, unknown> = { ...current, ...setEntries };
+      for (const key of clearKeys) delete merged[key];
       const validated = pbiPropsSchema.parse(merged);
 
+      // 書き込みは patch のキーだけの単一 UPDATE 文の jsonb マージ。全量書き戻し
+      // は並行する update / GitHub webhook / MCP の書き込みを巻き戻す lost update
+      // になる（lib/props-merge.ts 参照）。
       const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: validated,
+          props: atomicPropsMerge({ set: setEntries, clear: clearKeys }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
@@ -294,10 +303,10 @@ export const pbiRouter = router({
   linkGithubIssue: protectedProcedure
     .input(z.object({ pbiId: z.string().min(1), link: pbiGithubLinkSchema }))
     .mutation(async ({ ctx, input }) => {
-      const updated = await mergeLinkAndUpdate(ctx, input.pbiId, () => ({
+      const updated = await mergeLinkAndUpdate(ctx, input.pbiId, {
         ...input.link,
         syncedAt: new Date().toISOString(),
-      }));
+      });
       return updated;
     }),
 
@@ -305,7 +314,7 @@ export const pbiRouter = router({
   unlinkGithubIssue: protectedProcedure
     .input(z.object({ pbiId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      const updated = await mergeLinkAndUpdate(ctx, input.pbiId, () => undefined);
+      const updated = await mergeLinkAndUpdate(ctx, input.pbiId, undefined);
       return updated;
     }),
 });
@@ -321,10 +330,10 @@ type PbiGithubLinkLike = {
 async function mergeLinkAndUpdate(
   ctx: { db: Database; session: { user: { id: string } } },
   pbiId: string,
-  nextLink: (current: PbiGithubLinkLike | undefined) => PbiGithubLinkLike | undefined,
+  link: PbiGithubLinkLike | undefined,
 ) {
   const [existing] = await ctx.db
-    .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+    .select({ workspaceId: schema.block.workspaceId })
     .from(schema.block)
     .where(
       and(eq(schema.block.id, pbiId), eq(schema.block.type, 'pbi'), isNull(schema.block.deletedAt)),
@@ -333,17 +342,12 @@ async function mergeLinkAndUpdate(
   if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
   await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-  const current = (existing.props ?? {}) as Record<string, unknown>;
-  const link = nextLink(current['github'] as PbiGithubLinkLike | undefined);
-  const next: Record<string, unknown> = { ...current };
-  if (link === undefined) delete next['github'];
-  else next['github'] = link;
-
-  const validated = pbiPropsSchema.parse(next);
+  // github キーだけを set / 削除する原子マージ（link は入力スキーマで検証済み）。
+  // 全量書き戻しは並行する update / webhook の書き込みを巻き戻す（lib/props-merge.ts）。
   const [updated] = await ctx.db
     .update(schema.block)
     .set({
-      props: validated,
+      props: atomicPropsMerge(link ? { set: { github: link } } : { clear: ['github'] }),
       version: sql`${schema.block.version} + 1`,
       updatedAt: new Date(),
     })
