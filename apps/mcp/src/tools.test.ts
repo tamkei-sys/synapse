@@ -393,16 +393,23 @@ describe('page tool schemas', () => {
     expect(listPagesSchema.parse({})).toEqual({});
   });
 
-  it('appendDoc / setDoc require pageId and non-empty markdown', () => {
-    expect(() => appendDocSchema.parse({ pageId: 'p' })).toThrow();
-    expect(() => appendDocSchema.parse({ pageId: 'p', markdown: '' })).toThrow();
+  it('appendDoc / setDoc take blockId (or legacy pageId) and non-empty markdown', () => {
+    expect(() => appendDocSchema.parse({ blockId: 'b' })).toThrow();
+    expect(() => appendDocSchema.parse({ blockId: 'b', markdown: '' })).toThrow();
+    // a target is required — markdown alone is not enough
+    expect(() => appendDocSchema.parse({ markdown: '# H' })).toThrow();
+    expect(appendDocSchema.parse({ blockId: 'b', markdown: '# H' })).toEqual({
+      blockId: 'b',
+      markdown: '# H',
+    });
+    // pageId stays accepted as the pages-only-era alias
     expect(appendDocSchema.parse({ pageId: 'p', markdown: '# H' })).toEqual({
       pageId: 'p',
       markdown: '# H',
     });
-    expect(() => setDocSchema.parse({ pageId: 'p' })).toThrow();
-    expect(setDocSchema.parse({ pageId: 'p', markdown: 'x' })).toEqual({
-      pageId: 'p',
+    expect(() => setDocSchema.parse({ blockId: 'b' })).toThrow();
+    expect(setDocSchema.parse({ blockId: 'b', markdown: 'x' })).toEqual({
+      blockId: 'b',
       markdown: 'x',
     });
   });

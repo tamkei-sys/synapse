@@ -50,9 +50,12 @@ Every tool call is recorded in the workspace's `audit_log` table — the row car
 The two body-editing tools don't write the database directly — they POST to the
 sync server's internal doc-write API
 ([ADR-0011](../../docs/adr/0011-mcp-doc-body-write.md)), which applies the
-change to the live Yjs document. That API is reached via two extra env vars on
-the **MCP server process**. While they're unset, only these two tools fail
-(with a clear "not configured" error); everything else keeps working.
+change to the live Yjs document. They take a `blockId` and accept any block
+whose detail view is a document body: a page, or a project / sprint / PBI /
+SBI (the body shown on its `/b/` detail page). `pageId` is still accepted as a
+legacy alias. The API is reached via two extra env vars on the **MCP server
+process**. While they're unset, only these two tools fail (with a clear "not
+configured" error); everything else keeps working.
 
 `apps/mcp/scripts/setup-local-mcp.mjs` emits both variables into the repo-root
 `.mcp.json` automatically: it copies the secret out of the compose file at
