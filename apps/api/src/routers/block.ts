@@ -1036,18 +1036,36 @@ export const blockRouter = router({
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const next = { ...((existing.props ?? {}) as Record<string, unknown>) };
       const p = input.patch;
+      const setEntries: Record<string, unknown> = {};
+      const clearKeys: string[] = [];
       for (const key of ['docStatus', 'docType', 'reviewerIds', 'tags', 'aiSummary'] as const) {
         const v = p[key];
         if (v === undefined) continue;
-        if (v === null) delete next[key];
-        else next[key] = v;
+        if (v === null) clearKeys.push(key);
+        else setEntries[key] = v;
+      }
+
+      // props は1つの UPDATE 文の中で jsonb 連結／キー削除する。読んでから JS で
+      // マージして全量書き戻すと、並行する updatePageMeta（や store フックの
+      // props.doc 焼き込み）の書き込みを古い props で巻き戻す lost update になる
+      // （ステータス→種別を連続変更すると先のステータスが消える。e2e
+      // page-doc-meta が間欠失敗していた実バグ）。単一文なら行ロックで直列化される。
+      let propsExpr = sql`coalesce(${schema.block.props}, '{}'::jsonb)`;
+      if (Object.keys(setEntries).length > 0) {
+        propsExpr = sql`${propsExpr} || ${JSON.stringify(setEntries)}::jsonb`;
+      }
+      for (const key of clearKeys) {
+        propsExpr = sql`${propsExpr} - ${key}::text`;
       }
 
       const [updated] = await ctx.db
         .update(schema.block)
-        .set({ props: next, version: sql`${schema.block.version} + 1`, updatedAt: new Date() })
+        .set({
+          props: propsExpr,
+          version: sql`${schema.block.version} + 1`,
+          updatedAt: new Date(),
+        })
         .where(eq(schema.block.id, input.pageId))
         .returning();
       if (!updated) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
