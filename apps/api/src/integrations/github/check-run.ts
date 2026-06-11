@@ -12,6 +12,7 @@ import { pbiPropsSchema, type PbiCiStatus } from '@synapse/blocks';
 import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../../db.js';
+import { atomicPropsMerge } from '../../lib/props-merge.js';
 
 export type CheckRunEventPayload = {
   action: 'created' | 'completed' | 'rerequested' | 'requested_action';
@@ -62,11 +63,13 @@ export async function applyCheckRunEvent(
 
   for (const row of candidates) {
     const current = (row.props ?? {}) as Record<string, unknown>;
-    const validated = pbiPropsSchema.parse({ ...current, ci });
+    // 検証ゲート（書き込みには使わない）。書き込みは ci キーだけの原子マージ —
+    // 全量書き戻しは並行する PBI 更新を巻き戻す（apps/api/src/lib/props-merge.ts）。
+    pbiPropsSchema.parse({ ...current, ci });
     await db
       .update(schema.block)
       .set({
-        props: validated,
+        props: atomicPropsMerge({ set: { ci } }),
         version: sql`${schema.block.version} + 1`,
         updatedAt: new Date(),
       })
