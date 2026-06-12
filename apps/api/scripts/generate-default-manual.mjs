@@ -36,15 +36,19 @@ const KEYS = {
   [HUB_ID]: 'hub',
   '01KT8H52AGE7ZVAPBJDV87CSAG': 'getting-started',
   '01KT8H54AVPJTWZSKD6F8YWVW6': 'docs-editor',
-  '01KT8H6YMDVSVKS46QGCABHP24': 'slash-commands',
   '01KT8H6ZWTEPCGJ02CN2P1VQ6X': 'page-ops',
   '01KT8H56T6J7G6F0A2Y5M2CYAC': 'project-management',
   '01KT8H5974BWFGVCD82DT37GHW': 'spreadsheet',
   '01KT8H5AHXV7WR1WP92ASXST7D': 'database',
   '01KT8H5CTQ0ZGCPFAKEYHKXVR7': 'ai-assist',
+  // 2026-06-12 easy-Japanese rewrite: this page now hosts the merged
+  // developer chapter (GitHub + Claude Code & MCP). The key stays "github"
+  // on purpose — changing a key would make seeding see a "missing" page and
+  // duplicate it in already-seeded workspaces.
   '01KT8H5EPV4KPVR3NEJAF0MD7Q': 'github',
-  '01KT8H5GSH6C73DJ5JEZXNJK6W': 'claude-code-mcp',
   '01KT8H5JE2QC5WTN8G72XT5TTH': 'collaboration',
+  // Retired (trashed in the rewrite): slash-commands 01KT8H6YMD…, and
+  // claude-code-mcp 01KT8H5GSH… — both merged into surviving pages.
 };
 
 // What apps/sync/src/template-schema.ts (StarterKit + task list + table) can
@@ -93,6 +97,19 @@ function sanitize(node) {
   return out;
 }
 
+// The live-editor replace path (internal doc-write) and ProseMirror
+// normalisation leave empty top-level paragraphs behind (e.g. a blank first
+// line). None of the authored content uses intentional blank paragraphs, so
+// drop them all at the document root.
+function pruneEmptyRootParagraphs(docNode) {
+  return {
+    ...docNode,
+    content: (docNode.content ?? []).filter(
+      (n) => !(n.type === 'paragraph' && !(Array.isArray(n.content) && n.content.length > 0)),
+    ),
+  };
+}
+
 function verify(node, path) {
   if (!node || typeof node !== 'object') return;
   if (node.type && !ALLOWED_NODES.has(node.type)) {
@@ -126,7 +143,7 @@ function toDef(row) {
       console.warn(`WARN: no stable key for ${row.id} (${row.props.title}); using "${slug}"`);
       return slug;
     })();
-  const doc = sanitize(row.props.doc);
+  const doc = pruneEmptyRootParagraphs(sanitize(row.props.doc));
   verify(doc, key);
   const children = (byParent.get(row.id) ?? [])
     .sort((a, b) => (a.position < b.position ? -1 : 1))

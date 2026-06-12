@@ -18,8 +18,8 @@ export type ManualPageDef = {
 
 export const DEFAULT_MANUAL: ManualPageDef = {
   key: 'hub',
-  title: 'SYNAPSE でできること',
-  icon: '🧠',
+  title: 'SYNAPSE の使い方ガイド',
+  icon: '🧭',
   doc: {
     type: 'doc',
     content: [
@@ -30,7 +30,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
         },
         content: [
           {
-            text: '🧠 SYNAPSE でできること',
+            text: '🧭 SYNAPSE の使い方ガイド',
             type: 'text',
           },
         ],
@@ -39,35 +39,16 @@ export const DEFAULT_MANUAL: ManualPageDef = {
         type: 'paragraph',
         content: [
           {
-            text: 'SYNAPSE は、',
+            text: 'SYNAPSE（シナプス）は、チームの「書きもの」「やることの管理」「数字の表」を、ひとつの場所にまとめて使える道具です。',
             type: 'text',
           },
+        ],
+      },
+      {
+        type: 'paragraph',
+        content: [
           {
-            text: 'ドキュメント・プロジェクト管理・表計算・データベース・GitHub・Claude Code',
-            type: 'text',
-            marks: [
-              {
-                type: 'bold',
-                attrs: {},
-              },
-            ],
-          },
-          {
-            text: ' を「ひとつのブロックモデル」に統合したワークスペースです。ページも、見出しも、PBI も、表計算のセルも——すべて同じ ',
-            type: 'text',
-          },
-          {
-            text: 'block',
-            type: 'text',
-            marks: [
-              {
-                type: 'code',
-                attrs: {},
-              },
-            ],
-          },
-          {
-            text: ' テーブルの 1 行。だから自在に組み合わせられます。',
+            text: 'メモも、計画も、進み具合も、ぜんぶここに置けます。「あの資料どこだっけ？」を減らすための場所、と思ってください。',
             type: 'text',
           },
         ],
@@ -79,7 +60,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             type: 'paragraph',
             content: [
               {
-                text: '💡 この資料自体が SYNAPSE のページです。見出し・表・タスク・コード・引用——いま見えている構造そのものが、SYNAPSE の表現力です。',
+                text: '💡 いま読んでいるこの説明書も、SYNAPSE の「ページ」です。読みながらそのまま真似できます。',
                 type: 'text',
               },
             ],
@@ -96,16 +77,66 @@ export const DEFAULT_MANUAL: ManualPageDef = {
         },
         content: [
           {
-            text: '一言でいうと',
+            text: 'この説明書の読み方',
             type: 'text',
           },
         ],
       },
       {
-        type: 'paragraph',
+        type: 'bulletList',
         content: [
           {
-            text: '書く・決める・計算する・実装する。ばらばらのツールを行き来せず、その全部を同じワークスペースで地続きに。',
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '上から順に読む必要はありません。やりたいことのページだけ開けば大丈夫です。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '初めての方は、次の「🔰 まずはここから」だけ読めば使い始められます。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '左の一覧（このページの下にも並んでいます）から、各ページを開けます。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'heading',
+        attrs: {
+          level: 2,
+        },
+        content: [
+          {
+            text: '各ページの案内',
             type: 'text',
           },
         ],
@@ -123,7 +154,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '側面',
+                        text: 'ページ',
                         type: 'text',
                       },
                     ],
@@ -137,7 +168,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'できること',
+                        text: '内容',
                         type: 'text',
                       },
                     ],
@@ -156,7 +187,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '📝 つくる',
+                        text: '🔰 まずはここから',
                         type: 'text',
                       },
                     ],
@@ -170,7 +201,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'リッチなドキュメント / ナレッジのリンク / 表計算・DB の埋め込み',
+                        text: '入り方・画面の見方・はじめての1ページ',
                         type: 'text',
                       },
                     ],
@@ -189,7 +220,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '📊 まわす',
+                        text: '✏️ ページに文章を書く',
                         type: 'text',
                       },
                     ],
@@ -203,7 +234,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'PBI・SBI・Sprint / カンバン・タイムライン / GitHub 連携',
+                        text: '文字の飾り・表や写真の入れ方',
                         type: 'text',
                       },
                     ],
@@ -222,7 +253,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '🤖 任せる',
+                        text: '🗂️ ページの整理と便利機能',
                         type: 'text',
                       },
                     ],
@@ -236,7 +267,205 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'AI で書く・要約する / Claude Code を MCP でつなぐ',
+                        text: '並べ替え・ひな形・昔の状態に戻す・ゴミ箱',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '✅ 仕事の管理（やること表）',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'やることカードの作り方と動かし方',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '🧮 計算表',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '数字の表と合計の出し方',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '🗃️ 一覧表（データベース）',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '名簿や記録など、同じ項目で並べる情報',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '🤖 AI に手伝ってもらう',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '文章の下書き・要約・書き直し',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '💬 みんなで使う',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '同時に書く・コメント・連絡・仲間を招く',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'tableRow',
+            content: [
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '🔧 開発者向け機能',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableCell',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'システム開発の担当者向け（読み飛ばしてOK）',
                         type: 'text',
                       },
                     ],
@@ -254,30 +483,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
         },
         content: [
           {
-            text: '機能別マニュアル（目次）',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            text: '各機能の詳しい使い方は、下の',
-            type: 'text',
-          },
-          {
-            text: '子ページ',
-            type: 'text',
-            marks: [
-              {
-                type: 'bold',
-                attrs: {},
-              },
-            ],
-          },
-          {
-            text: 'にまとめています。左サイドバーのツリー、またはこのページ末尾の「子ページ」一覧からも開けます。',
+            text: '困ったときは',
             type: 'text',
           },
         ],
@@ -292,7 +498,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 type: 'paragraph',
                 content: [
                   {
-                    text: '🚀 はじめかた',
+                    text: '画面左下の ',
+                    type: 'text',
+                  },
+                  {
+                    text: '📖 使い方',
                     type: 'text',
                     marks: [
                       {
@@ -302,7 +512,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    text: '　— 画面の歩き方、最初の 5 ステップ、ショートカット',
+                    text: ' に、いつでも見られる短い手引きがあります。',
                     type: 'text',
                   },
                 ],
@@ -316,7 +526,25 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 type: 'paragraph',
                 content: [
                   {
-                    text: '📝 ドキュメント & エディタ',
+                    text: 'それでも分からないときは、この場所に招待してくれた人（管理者）に聞いてください。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'listItem',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '操作をまちがえても大丈夫。たいていのことは',
+                    type: 'text',
+                  },
+                  {
+                    text: '元に戻せます',
                     type: 'text',
                     marks: [
                       {
@@ -326,534 +554,12 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    text: '　— リッチエディタ、整形、メンション、取り込み／書き出し（配下にスラッシュ早見表・ページ運用）',
+                    text: '（→「🗂️ ページの整理と便利機能」）。',
                     type: 'text',
                   },
                 ],
               },
             ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '📊 プロジェクト管理（PRJ / Sprint / PBI / SBI）',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— 階層・ステータス・ビュー・バーンダウン・依存',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🧮 スプレッドシート',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— AG Grid + HyperFormula、',
-                    type: 'text',
-                  },
-                  {
-                    text: '=ASK()',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🗃️ データベース',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— 5 ビュー・8 列タイプ・絞り込み',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🤖 AI アシスト',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— ',
-                    type: 'text',
-                  },
-                  {
-                    text: '/ai',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '、選択 AI、ページ要点、',
-                    type: 'text',
-                  },
-                  {
-                    text: '=ASK',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🔗 GitHub 連携',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— Issue リンクと双方向同期',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🧠 Claude Code & MCP サーバー',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— MCP 接続・31 ツール・「cc で実装」',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '💬 コラボレーション',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '　— コメント・チャット・通知・同時編集',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'heading',
-        attrs: {
-          level: 2,
-        },
-        content: [
-          {
-            text: 'すべては "ブロック"',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'blockquote',
-        content: [
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'ページも、段落も、見出しも、表計算のセルも、PBI も、チャットも——',
-                type: 'text',
-              },
-              {
-                text: 'すべて同じ block テーブルの 1 行',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '。だからページに表を、PBI にドキュメントを、自在に組み合わせられます。',
-                type: 'text',
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            text: '📖 サイドバーの「使い方」(/help) にも常設のクイックガイドがあります。この資料はその詳細版です。',
-            type: 'text',
-            marks: [
-              {
-                type: 'italic',
-                attrs: {},
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'heading',
-        attrs: {
-          level: 2,
-        },
-        content: [
-          {
-            text: '🔀 フロー図ブロック（ノードグラフ ＋ 実行順ステップ再生）',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            text: '大きなシステムやデータパイプラインの全体構造を、ドキュメントの中に埋め込み図として描けます。色分けしたノードを線でつなぎ、「▶ 一括実行」で実行順に 1 ステップずつ点灯再生。ノードをクリックすれば詳細（説明・コード・ソースパス）が開きます。Mermaid と同じく本文に同居し、リロードしても残ります。',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'heading',
-        attrs: {
-          level: 3,
-        },
-        content: [
-          {
-            text: '使い方',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'bulletList',
-        content: [
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '挿入：本文で /flow → 「フロー図」を選ぶと、サンプル（条件付き確率 生成パイプライン）が入ります。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '▶ 一括実行：上部中央のボタン。実行順にノードが点灯し、下部に「STEP n / total」の説明・コードが出ます。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'ステップ送り：⏮ / ⏭ で 1 歩ずつ、⟲ で先頭に戻す、1x で速度（0.5 / 1 / 2 倍）を切替。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '見回す：ホイールでズーム、背景ドラッグでパン、⤢ で全体表示、＋ / − で拡大縮小。右下のミニマップで現在位置。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '詳細：ノードをクリック → 右側パネルにタグ・説明・実装コード・ソースパス。Esc か ✕ で閉じる。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '編集：右下の「JSON を編集」でノード／エッジ／カテゴリ／ステップを直接編集（ビジュアル編集 UI は今後追加）。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'heading',
-        attrs: {
-          level: 3,
-        },
-        content: [
-          {
-            text: '構成要素（FlowDoc）',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'bulletList',
-        content: [
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'categories … 凡例＝色分けの定義（id / label / color）',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'nodes … ノード（id / label / categoryId / x / y、任意で subtitle / tags / description / code / sourcePath）',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'edges … 矢印（id / source / target、左 → 右フロー）',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'listItem',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'steps … 「一括実行」で順に点灯させる段（id / title / nodeIds、任意で description / code）。省略すると依存関係から自動生成。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'heading',
-        attrs: {
-          level: 3,
-        },
-        content: [
-          {
-            text: '例：最小のフロー（コピーして使えます）',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            text: '/flow で挿入したあと「JSON を編集」を開き、下を貼り付けると差し替えられます。',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'codeBlock',
-        attrs: {
-          language: 'json',
-        },
-        content: [
-          {
-            text: '{\n  "title": "リリースの流れ",\n  "categories": [\n    { "id": "dev", "label": "開発", "color": "#38bdf8" },\n    { "id": "ci", "label": "CI", "color": "#f59e0b" },\n    { "id": "ship", "label": "リリース", "color": "#10b981" }\n  ],\n  "nodes": [\n    { "id": "code", "label": "実装", "categoryId": "dev", "x": 40, "y": 60 },\n    { "id": "review", "label": "レビュー", "categoryId": "dev", "x": 280, "y": 60 },\n    { "id": "test", "label": "CI テスト", "categoryId": "ci", "x": 520, "y": 60 },\n    { "id": "deploy", "label": "デプロイ", "categoryId": "ship", "x": 760, "y": 60 }\n  ],\n  "edges": [\n    { "id": "e1", "source": "code", "target": "review" },\n    { "id": "e2", "source": "review", "target": "test" },\n    { "id": "e3", "source": "test", "target": "deploy" }\n  ],\n  "steps": [\n    { "id": "s1", "title": "実装", "nodeIds": ["code"] },\n    { "id": "s2", "title": "レビュー", "nodeIds": ["review"] },\n    { "id": "s3", "title": "CI", "nodeIds": ["test"] },\n    { "id": "s4", "title": "リリース", "nodeIds": ["deploy"] }\n  ]\n}\n',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'blockquote',
-        content: [
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '💡 ノード位置 x / y は手置きです（左 → 右に並べると線がきれいに流れます）。steps を省けば依存関係から実行順を自動生成します。',
-                type: 'text',
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            text: '下に、実際に動くフロー図の例を置いておきます。▶ 一括実行 を押してみてください 👇',
-            type: 'text',
-          },
-        ],
-      },
-      {
-        type: 'paragraph',
-        content: [
-          {
-            type: 'text',
-            marks: [
-              {
-                type: 'italic',
-              },
-            ],
-            text: '※ ここには Flow ブロック（実行順つきノードグラフ）のライブ例が入ります。エディタで「/flow」と入力すると挿入できます。',
           },
         ],
       },
@@ -862,8 +568,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
   children: [
     {
       key: 'getting-started',
-      title: '🚀 はじめかた',
-      icon: '📄',
+      title: 'まずはここから',
+      icon: '🔰',
       doc: {
         type: 'doc',
         content: [
@@ -874,7 +580,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '🚀 はじめかた',
+                text: '🔰 まずはここから',
                 type: 'text',
               },
             ],
@@ -883,7 +589,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             type: 'paragraph',
             content: [
               {
-                text: '最初の一歩と画面の歩き方をまとめます。各機能の詳細は、トップ「SYNAPSE でできること」配下の機能別マニュアルへ。',
+                text: 'SYNAPSE に入って、最初の1ページを作るまでを案内します。5分くらいでできます。',
                 type: 'text',
               },
             ],
@@ -895,7 +601,117 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '画面の歩き方（左サイドバー）',
+                text: '1. 入る',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '案内された住所（URL）をブラウザで開きます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'はじめての人は ',
+                        type: 'text',
+                      },
+                      {
+                        text: '「新規登録」',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押して、名前・メールアドレス・パスワード（8文字以上）を入れます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '2回目からは ',
+                        type: 'text',
+                      },
+                      {
+                        text: '「ログイン」',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' にメールアドレスとパスワードを入れるだけです。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '💡 パスワードを忘れないようにご注意ください。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '2. 画面の見方',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: '画面の左に、縦に細長い案内板があります。上から順に：',
                 type: 'text',
               },
             ],
@@ -910,7 +726,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'ワークスペース切替',
+                        text: '作業場所の名前',
                         type: 'text',
                         marks: [
                           {
@@ -920,7 +736,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' — 上部メニューで所属ワークスペースを切替',
+                        text: ' — いまいる「みんなの作業場所（ワークスペース）」の名前です。',
                         type: 'text',
                       },
                     ],
@@ -934,7 +750,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '🔔 通知ベル / 検索ヒント',
+                        text: '検索',
                         type: 'text',
                         marks: [
                           {
@@ -944,7 +760,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' — メンションやリマインダーの通知',
+                        text: ' と ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🔔 お知らせ',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' — 探しもの・自分宛ての連絡はここ。',
                         type: 'text',
                       },
                     ],
@@ -958,7 +788,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '管理',
+                        text: 'プロジェクト / スプリント / PBI / SBI / チャット',
                         type: 'text',
                         marks: [
                           {
@@ -968,31 +798,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' — 📁 プロジェクト / 🏃 スプリント / ✅ PBI / 🟢 SBI / 💬 チャット',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '⭐ お気に入り',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' — ☆ を付けたページがここに並ぶ',
+                        text: ' — 仕事の管理と連絡（あとのページで説明します）。',
                         type: 'text',
                       },
                     ],
@@ -1016,21 +822,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' — ドキュメントのツリー。',
-                        type: 'text',
-                      },
-                      {
-                        text: '+',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' で新規、ドラッグで階層・並び替え、📋 からテンプレート挿入',
+                        text: ' — 作った文書の一覧。ここが書きものの本棚です。',
                         type: 'text',
                       },
                     ],
@@ -1044,7 +836,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '設定',
+                        text: '設定・ゴミ箱・使い方',
                         type: 'text',
                         marks: [
                           {
@@ -1054,31 +846,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' — 👥 メンバー / 🔑 API トークン / 📋 監査ログ / 🗑️ ゴミ箱 / 📖 使い方',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'ユーザーメニュー',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' — 最下部（ログアウト）',
+                        text: ' — いちばん下にまとまっています。',
                         type: 'text',
                       },
                     ],
@@ -1094,7 +862,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'まずはこの 5 ステップ',
+                text: '3. はじめての1ページ',
                 type: 'text',
               },
             ],
@@ -1109,115 +877,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'サイドバー「ページ」の ',
+                        text: '左の「ページ」の横にある ',
                         type: 'text',
                       },
                       {
-                        text: '+',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' で新しいページを作る',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '本文で ',
-                        type: 'text',
-                      },
-                      {
-                        text: '/',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' を打つとブロックメニューが開く（見出し・リスト・表・コード・画像…）',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '/pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' と打つとその場で PBI を起票 — PBI 一覧／ボードにも自動で並ぶ',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Cmd/Ctrl + K',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' でページ・PBI・シートへ横断ジャンプ',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '「設定 → API トークン」でトークンを発行し、',
-                        type: 'text',
-                      },
-                      {
-                        text: 'Claude Code（MCP）',
+                        text: '＋',
                         type: 'text',
                         marks: [
                           {
@@ -1227,7 +891,178 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' をつなぐ',
+                        text: ' を押します。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '新しいページが開くので、いちばん上に題名を打ちます（例：自己紹介）。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'その下の白いところを押して、ふつうに文章を書きます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '💡 保存ボタンはありません。',
+                    type: 'text',
+                  },
+                  {
+                    text: '書いたそばから自動で保存されます。',
+                    type: 'text',
+                    marks: [
+                      {
+                        type: 'bold',
+                        attrs: {},
+                      },
+                    ],
+                  },
+                  {
+                    text: ' そのまま画面を閉じても消えません。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '4. 探す',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '左上の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '検索',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押すと、ページや仕事のカードをまとめて探せます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'キーボードの ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'Ctrl',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' と ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'K',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を同時に押しても開きます（Mac は ',
+                        type: 'text',
+                      },
+                      {
+                        text: '⌘',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' と ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'K',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '）。',
                         type: 'text',
                       },
                     ],
@@ -1243,7 +1078,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'どこでも使えるショートカット',
+                text: 'よく使うキー操作（覚えなくても大丈夫）',
                 type: 'text',
               },
             ],
@@ -1275,7 +1110,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '動作',
+                            text: 'はたらき',
                             type: 'text',
                           },
                         ],
@@ -1294,7 +1129,64 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'Cmd/Ctrl + K',
+                            text: 'Ctrl + K',
+                            type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
+                          },
+                          {
+                            text: '（Mac: ',
+                            type: 'text',
+                          },
+                          {
+                            text: '⌘ + K',
+                            type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
+                          },
+                          {
+                            text: '）',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '検索を開く',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'Ctrl + Z',
                             type: 'text',
                             marks: [
                               {
@@ -1314,7 +1206,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'コマンドパレット（横断検索＆移動）',
+                            text: 'ひとつ前に戻す（書きまちがいの取り消し）',
                             type: 'text',
                           },
                         ],
@@ -1333,7 +1225,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '?',
+                            text: 'Ctrl + B',
                             type: 'text',
                             marks: [
                               {
@@ -1353,7 +1245,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'キーボードショートカット一覧',
+                            text: '選んだ文字を太字にする',
                             type: 'text',
                           },
                         ],
@@ -1392,296 +1284,10 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'モーダル / ポップオーバーを閉じる',
+                            text: '開いている小窓を閉じる',
                             type: 'text',
                           },
                         ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '/',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'スラッシュメニュー（本文編集中）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '@',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ページメンション / リンク（本文編集中）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'Cmd/Ctrl + B / I',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '太字 / 斜体',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'Cmd/Ctrl + Z',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '元に戻す（Yjs の Undo）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'Cmd/Ctrl + K',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: ' （選択中）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'リンクを付与',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '💡 コマンドパレットは「→ PBI 一覧へ」などの移動コマンドと、Typesense による全文検索の両方をまとめて出します。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'ワークスペースとメンバー',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'データはすべてワークスペース単位で隔離されます（MCP トークンも 1 ワークスペースに固定）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '設定 → メンバー で招待・ロール（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'owner / admin / member',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）管理。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '設定 → 監査ログ で MCP 経由の操作履歴（誰が・どのツールを・いつ）を確認。',
-                        type: 'text',
                       },
                     ],
                   },
@@ -1694,8 +1300,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
     },
     {
       key: 'docs-editor',
-      title: '📝 ドキュメント & エディタ',
-      icon: '📄',
+      title: 'ページに文章を書く',
+      icon: '✏️',
       doc: {
         type: 'doc',
         content: [
@@ -1706,7 +1312,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '📝 ドキュメント & エディタ',
+                text: '✏️ ページに文章を書く',
                 type: 'text',
               },
             ],
@@ -1715,11 +1321,147 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             type: 'paragraph',
             content: [
               {
-                text: '本文は ',
+                text: 'ページは、ノートの1枚のようなものです。文章のほかに、表・写真・チェックの一覧なども置けます。',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '文字を飾る',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '飾りたい文字を',
+                        type: 'text',
+                      },
+                      {
+                        text: 'なぞって選ぶ',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: 'と、小さなボタンが浮かびます。',
+                        type: 'text',
+                      },
+                      {
+                        text: 'B',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で太字、',
+                        type: 'text',
+                      },
+                      {
+                        text: 'I',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'italic',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で斜め文字、下線・取り消し線もここから。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '本文の上にも同じボタンが並んでいます。どちらを使っても同じです。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '章の見出しにしたい行は ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'H1・H2・H3',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押します（数字が大きいほど小さな見出し）。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '「/」で部品を呼び出す',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: '本文で ',
                 type: 'text',
               },
               {
-                text: 'TipTap（ProseMirror）',
+                text: '「/」（スラッシュ）',
                 type: 'text',
                 marks: [
                   {
@@ -1729,22 +1471,291 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 ],
               },
               {
-                text: ' のリッチエディタ。実体は ',
+                text: ' を打つと、入れられる部品の一覧が出ます。よく使うのはこのあたり：',
                 type: 'text',
               },
+            ],
+          },
+          {
+            type: 'table',
+            content: [
               {
-                text: 'Yjs',
-                type: 'text',
-                marks: [
+                type: 'tableRow',
+                content: [
                   {
-                    type: 'bold',
-                    attrs: {},
+                    type: 'tableHeader',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '部品',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '使いどころ',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
                   },
                 ],
               },
               {
-                text: ' の共有ドキュメントで、自動保存・オフライン編集・複数人の同時編集に対応します。',
-                type: 'text',
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '箇条書き・番号付き',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '要点を並べる・手順を書く',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'チェックの一覧',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'やることの確認（押すと ✓ が付きます）',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '表',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '行と列で整理したいとき',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '引用',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'ほかの資料からの抜き書き',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '区切り線',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '話題の切り替え',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '画像・ファイル',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '写真や資料を貼る',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '目次',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '長いページの見出し一覧を自動で作る',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '💡 一覧にはもっとたくさん部品があります。気になるものを試してみてください。失敗しても Ctrl + Z で戻せます。',
+                    type: 'text',
+                  },
+                ],
               },
             ],
           },
@@ -1755,7 +1766,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'リアルタイム共同編集',
+                text: '別のページへの案内を貼る',
                 type: 'text',
               },
             ],
@@ -1770,80 +1781,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '上部のバッジが接続状態を表示：',
+                        text: '本文で ',
                         type: 'text',
                       },
                       {
-                        text: '同期中 / 接続中… / オフライン / 切断',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '同じページを開いている人のアバターが「同時編集」として並ぶ（プレゼンス）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'オフラインでも編集でき、再接続時に自動マージ（CRDT）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '文字をととのえる',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '上部ツールバー',
+                        text: '「@」',
                         type: 'text',
                         marks: [
                           {
@@ -1853,21 +1795,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '：太字 / 斜体 / 下線 / 取り消し線 / インラインコード、見出し H1–H3、箇条書き・番号・チェックリスト・引用・コードブロック、リンク、🎨 文字色＆マーカー。',
+                        text: ' を打ってページ名を選ぶと、そのページへの',
                         type: 'text',
                       },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
                       {
-                        text: 'バブルメニュー',
+                        text: '案内（リンク）',
                         type: 'text',
                         marks: [
                           {
@@ -1877,7 +1809,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '：テキストを選択すると浮かぶ。整形・リンク・💬 コメント・✨AI（要約／翻訳／書き換え）。',
+                        text: 'が入ります。押すと相手のページに飛べます。',
                         type: 'text',
                       },
                     ],
@@ -1891,204 +1823,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'Markdown 入力',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '：',
-                        type: 'text',
-                      },
-                      {
-                        text: '**太字**',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '# 見出し',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '> 引用',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '- 箇条書き',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' などはその場で整形されます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '表',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '：表の中にカーソルを置くと、行・列の追加／削除ボタンがツールバーに出ます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'ブロックを挿入する',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '/',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '（スラッシュ）でブロックメニュー。見出し・リスト・表・コード・コールアウト・数式・Mermaid 図・カラム・トグル・各種埋め込みなど ',
-                        type: 'text',
-                      },
-                      {
-                        text: '40 種以上',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '。詳しくは子ページ「スラッシュコマンド & ブロック早見表」。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '@',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' で別ページへのメンション（リンク）。参照されたページには ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'バックリンク',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' が自動で並びます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'ページ内に子ページを作るとツリーで階層管理。パンくず・子ページ一覧・バックリンクが本文下に出ます。',
+                        text: '案内された側のページの下には「このページはどこから案内されているか」が自動で並びます。',
                         type: 'text',
                       },
                     ],
@@ -2104,7 +1839,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '取り込み・書き出し',
+                text: '表のあつかい',
                 type: 'text',
               },
             ],
@@ -2119,45 +1854,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '📥 取り込み',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '：',
-                        type: 'text',
-                      },
-                      {
-                        text: '.md',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: '.html',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ファイルを本文に挿入。',
+                        text: '表の中を押すと、行や列を増やす・減らすボタンが上に出ます。',
                         type: 'text',
                       },
                     ],
@@ -2171,7 +1868,38 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '⬇️ MD',
+                        text: 'マスの中はふつうの文章と同じように書けます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '印刷・書き出し・取り込み',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '印刷したい・PDF にしたい',
                         type: 'text',
                         marks: [
                           {
@@ -2181,19 +1909,9 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '：Markdown ファイルとしてダウンロード。',
+                        text: ' — 本文の上の ',
                         type: 'text',
                       },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
                       {
                         text: '🖨️ PDF',
                         type: 'text',
@@ -2205,7 +1923,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '：ブラウザの印刷ダイアログから PDF 保存。',
+                        text: ' を押すと印刷画面が開きます。',
                         type: 'text',
                       },
                     ],
@@ -2219,7 +1937,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '📋 MD / 📋 HTML',
+                        text: 'ほかの道具で作った文書を入れたい',
                         type: 'text',
                         marks: [
                           {
@@ -2229,7 +1947,139 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '：本文を Markdown / HTML としてクリップボードへコピー。',
+                        text: ' — ',
+                        type: 'text',
+                      },
+                      {
+                        text: '📥 取り込み',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' から文書ファイルを選びます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'そのほか、文書を丸ごとファイルとして手元に保存することもできます（⬇️ のボタン）。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      key: 'page-ops',
+      title: 'ページの整理と便利機能',
+      icon: '🗂️',
+      doc: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: {
+              level: 1,
+            },
+            content: [
+              {
+                text: '🗂️ ページの整理と便利機能',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: 'ページが増えてきたら、この機能で片づきます。どれもページの上に並ぶボタンか、左の一覧から使えます。',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '並べ替えと親子',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '左の一覧でページ名を',
+                        type: 'text',
+                      },
+                      {
+                        text: '押したまま上下に動かす',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: 'と、順番を入れ替えられます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'ページ名に重ねて離すと、そのページの',
+                        type: 'text',
+                      },
+                      {
+                        text: '中（子ページ）',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: 'に入ります。書類をフォルダーにしまうイメージです。',
                         type: 'text',
                       },
                     ],
@@ -2245,7 +2095,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'ページ内検索・カバー・アイコン',
+                text: 'お気に入り',
                 type: 'text',
               },
             ],
@@ -2260,21 +2110,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'ページ内検索バーで本文中の語をハイライト。',
+                        text: 'よく開くページは、ページ右上の ',
                         type: 'text',
                       },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
                       {
-                        text: '🖼️ カバー画像とページアイコン（絵文字）でページを識別しやすく。',
+                        text: '☆',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押しておきましょう。左の「お気に入り」にいつも表示されます。',
                         type: 'text',
                       },
                     ],
@@ -2284,20 +2134,14 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             ],
           },
           {
-            type: 'horizontalRule',
-          },
-          {
-            type: 'paragraph',
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
             content: [
               {
-                text: 'このページの子ページ：',
+                text: 'ひな形（テンプレート）',
                 type: 'text',
-                marks: [
-                  {
-                    type: 'italic',
-                    attrs: {},
-                  },
-                ],
               },
             ],
           },
@@ -2311,14 +2155,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '⌨️ スラッシュコマンド & ブロック早見表',
+                        text: '同じ形の文書を何度も作るなら、ひな形が便利です。',
                         type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
                       },
                     ],
                   },
@@ -2331,7 +2169,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '🗂️ ページ運用（履歴・共有・テンプレート・リマインダー）',
+                        text: '左の「ページ」の横の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '📋',
                         type: 'text',
                         marks: [
                           {
@@ -2340,6 +2182,52 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                           },
                         ],
                       },
+                      {
+                        text: ' から、',
+                        type: 'text',
+                      },
+                      {
+                        text: '用意されているひな形',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '（作業計画書・議事録など8種類）を選べます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '自分のページをひな形にしたいときは、ページ上部の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '📋 テンプレートとして保存',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押します。',
+                        type: 'text',
+                      },
                     ],
                   },
                 ],
@@ -2347,307 +2235,420 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             ],
           },
           {
-            type: 'paragraph',
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '昔の状態に戻す（履歴）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'ページ上部の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🕐 履歴',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押します。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '日時の一覧から、戻したい時点を選びます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '中身を確かめて「この版に戻す」を押せば完了です。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '💡 「まちがって消しちゃった！」も、履歴から戻せることが多いです。あわてなくて大丈夫。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '外部の人に見せる（共有）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'ページ上部の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🔗 共有',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' から、',
+                        type: 'text',
+                      },
+                      {
+                        text: '見るだけの案内（URL）',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: 'を作れます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'この案内を知っている人は、ログインしなくてもそのページを見られます。社外に送る前に、見せてよい内容か確認しましょう。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: 'お知らせの予約（リマインダー）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'ページ上部の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '⏰ リマインダー',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で日時を決めると、その時刻に ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🔔',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' へお知らせが届きます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '「金曜にこのページを見返す」のような使い方ができます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '捨てる・戻す（ゴミ箱）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'いらないページは、ページ上部の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🗑️ ゴミ箱',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' へ。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'まちがえて捨てても、左下の ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'ゴミ箱',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' からいつでも戻せます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'ゴミ箱に入れて30日たつと、自動で完全に消えます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
-      children: [
-        {
-          key: 'slash-commands',
-          title: '⌨️ スラッシュコマンド & ブロック早見表',
-          icon: '📄',
-          doc: {
-            type: 'doc',
+    },
+    {
+      key: 'project-management',
+      title: '仕事の管理（やること表）',
+      icon: '✅',
+      doc: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: {
+              level: 1,
+            },
             content: [
               {
-                type: 'heading',
-                attrs: {
-                  level: 1,
-                },
+                text: '✅ 仕事の管理（やること表）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: 'SYNAPSE では、仕事を「カード」にして管理します。ホワイトボードに付箋を貼って、終わったら隣に動かす——あの感覚です。',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '4つの入れ物',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: '画面の左に4つの言葉が並んでいます。大きい順にこういう関係です：',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'table',
+            content: [
+              {
+                type: 'tableRow',
                 content: [
                   {
-                    text: '⌨️ スラッシュコマンド & ブロック早見表',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'paragraph',
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '基本ブロック',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'table',
-                content: [
-                  {
-                    type: 'tableRow',
+                    type: 'tableHeader',
                     content: [
                       {
-                        type: 'tableHeader',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'コマンド',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '内容',
-                                type: 'text',
-                              },
-                            ],
+                            text: '名前',
+                            type: 'text',
                           },
                         ],
                       },
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableHeader',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '見出し 1 / 2 / 3',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'セクション見出し',
-                                type: 'text',
-                              },
-                            ],
+                            text: 'たとえると',
+                            type: 'text',
                           },
                         ],
                       },
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableHeader',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '箇条書き / 番号付きリスト',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '・印 / 1. 2. 3. のリスト',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '引用',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '引用ブロック',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'コードブロック',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'シンタックスハイライト付きコード',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '区切り線',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '色を変えられる水平線',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '目次',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '見出しから自動生成される目次',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '日付',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '相対表記の日付メンション',
-                                type: 'text',
-                              },
-                            ],
+                            text: '例',
+                            type: 'text',
                           },
                         ],
                       },
@@ -2656,46 +2657,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 ],
               },
               {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
+                type: 'tableRow',
                 content: [
                   {
-                    text: 'リッチブロック',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'table',
-                content: [
-                  {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableHeader',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
+                            text: 'プロジェクト',
+                            type: 'text',
+                            marks: [
                               {
-                                text: 'コマンド',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '内容',
-                                type: 'text',
+                                type: 'bold',
+                                attrs: {},
                               },
                             ],
                           },
@@ -2704,264 +2680,28 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'Callout',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '情報 / 注意 / 成功 / メモ の囲み（4 トーン）',
-                                type: 'text',
-                              },
-                            ],
+                            text: '大きな目標の箱',
+                            type: 'text',
                           },
                         ],
                       },
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'トグル',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '折りたたみできるブロック',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'テーブル',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '3×3 の表を挿入',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '2 カラム',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '横並びの段組レイアウト',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '同期ブロック',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '別ページの内容をライブ表示（ミラー）',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '数式ブロック / インライン数式',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'KaTeX で組版',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'Mermaid 図',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'フローチャート / シーケンス / ガント等をコードから描画',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '埋め込み',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'YouTube / Figma / Loom などを iframe 埋め込み',
-                                type: 'text',
-                              },
-                            ],
+                            text: '「新店舗の立ち上げ」',
+                            type: 'text',
                           },
                         ],
                       },
@@ -2970,213 +2710,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 ],
               },
               {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
+                type: 'tableRow',
                 content: [
                   {
-                    text: 'メディア',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'table',
-                content: [
-                  {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableHeader',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
+                            text: 'スプリント',
+                            type: 'text',
+                            marks: [
                               {
-                                text: 'コマンド',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '内容',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/画像',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '画像をアップロードして挿入',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/ファイル',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'ファイルを添付（ダウンロード可能）',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/動画',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: ' / ',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '動画を埋め込み',
-                                type: 'text',
+                                type: 'bold',
+                                attrs: {},
                               },
                             ],
                           },
@@ -3185,102 +2733,28 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/音声',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '音声を埋め込み',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
+                            text: '2週間ごとの区切り',
+                            type: 'text',
                           },
                         ],
                       },
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/ブックマーク',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'URL の OG プレビューをカードで挿入',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
+                            text: '「今月前半にやる分」',
+                            type: 'text',
                           },
                         ],
                       },
@@ -3289,206 +2763,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 ],
               },
               {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
+                type: 'tableRow',
                 content: [
                   {
-                    text: 'ワークアイテム・連携',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'table',
-                content: [
-                  {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableHeader',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
+                            text: 'PBI',
+                            type: 'text',
+                            marks: [
                               {
-                                text: 'コマンド',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '内容',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableHeader',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/pbi',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'PBI を作成し、参照ノードを挿入',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/project',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: ' / ',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/sprint',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'プロジェクト / スプリントを作成',
-                                type: 'text',
+                                type: 'bold',
+                                attrs: {},
                               },
                             ],
                           },
@@ -3497,315 +2786,28 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/sheet',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'スプレッドシート（AG Grid + HyperFormula）を埋め込み',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
+                            text: 'やることカード',
+                            type: 'text',
                           },
                         ],
                       },
                     ],
                   },
                   {
-                    type: 'tableRow',
+                    type: 'tableCell',
                     content: [
                       {
-                        type: 'tableCell',
+                        type: 'paragraph',
                         content: [
                           {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/db',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '任意スキーマのデータベースを本文に埋め込み',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/pr',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'GitHub PR（owner/repo#番号）を埋め込み',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/page',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'サブページを作成してリンク',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableRow',
-                    content: [
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: '/ai',
-                                type: 'text',
-                                marks: [
-                                  {
-                                    type: 'code',
-                                    attrs: {},
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        content: [
-                          {
-                            type: 'paragraph',
-                            content: [
-                              {
-                                text: 'AI で文章を生成して挿入（→「AI アシスト」）',
-                                type: 'text',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
-                          },
-                        ],
-                      },
-                      {
-                        type: 'tableCell',
-                        attrs: {
-                          colspan: 1,
-                          rowspan: 1,
-                        },
-                        content: [
-                          {
-                            type: 'paragraph',
+                            text: '「チラシの原稿を作る」',
+                            type: 'text',
                           },
                         ],
                       },
@@ -3814,26 +2816,72 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 ],
               },
               {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
+                type: 'tableRow',
                 content: [
                   {
-                    text: 'インライン装飾',
-                    type: 'text',
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'SBI',
+                            type: 'text',
+                            marks: [
+                              {
+                                type: 'bold',
+                                attrs: {},
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'カードを割った作業メモ',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '「写真を選ぶ」「文面を書く」',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
                   },
                 ],
               },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
               {
                 type: 'paragraph',
                 content: [
                   {
-                    text: 'テキストには ',
+                    text: '💡 ぜんぶ覚えなくて大丈夫。まずは',
                     type: 'text',
                   },
                   {
-                    text: '太字',
+                    text: '「PBI ＝ やることカード」',
                     type: 'text',
                     marks: [
                       {
@@ -3843,61 +2891,74 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    text: '、',
-                    type: 'text',
-                  },
-                  {
-                    text: '斜体',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'italic',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '、',
-                    type: 'text',
-                  },
-                  {
-                    text: '取り消し線',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'strike',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '、',
-                    type: 'text',
-                  },
-                  {
-                    text: 'インラインコード',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '、文字色／蛍光マーカーを混在できます。',
+                    text: 'だけ覚えれば使えます。',
                     type: 'text',
                   },
                 ],
               },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
               {
-                type: 'blockquote',
+                text: 'カードを作る',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
                 content: [
                   {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '📝 この資料は DB へ直接 seed した都合で標準ブロック構成ですが、機能としては上記すべて利用可能です。',
+                        text: '左の ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'PBI',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押します。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '＋ 新規',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押して、やることを短く書きます（例：チラシの原稿を作る）。',
                         type: 'text',
                       },
                     ],
@@ -3906,942 +2967,14 @@ export const DEFAULT_MANUAL: ManualPageDef = {
               },
             ],
           },
-        },
-        {
-          key: 'page-ops',
-          title: '🗂️ ページ運用（履歴・共有・テンプレート・リマインダー）',
-          icon: '📄',
-          doc: {
-            type: 'doc',
-            content: [
-              {
-                type: 'heading',
-                attrs: {
-                  level: 1,
-                },
-                content: [
-                  {
-                    text: '🗂️ ページ運用',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'ページ右上のツールバーから使える、版管理・共有・テンプレート・リマインダー・ドキュメント情報をまとめます。',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '🕐 履歴（バージョン）',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「現在を保存」で手動版を作成。編集中は約 5 分間隔で自動版も積まれます（1 ページ最大 50 版）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '各版から「復元」で本文を巻き戻し（Yjs に新しい変更として反映）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「差分」で選んだ版と現在の語単位の差分を表示。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '🔗 公開共有（read-only）',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「このページを公開する」で ',
-                            type: 'text',
-                          },
-                          {
-                            text: '/share/<token>',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: ' の閲覧専用リンクを発行。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'リンクを知っている人は誰でも閲覧可（編集不可・社内向け埋め込みは非表示）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「公開を停止」でいつでも無効化。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '📋 テンプレート',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '「テンプレートとして保存」で現在のページを複製可能なテンプレ化。サイドバー「ページ」の 📋 から挿入できます。最初から次の組み込みテンプレートが使えます：',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '作業計画書 / 作業報告書（計画書からは「報告書を作成」で対応する報告書を生成）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '調査報告書 / 個別作業実施報告書',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'コード修正計画書 / 手順書（Runbook）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '技術仕様書 / 議事録',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '⏰ リマインダー',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '日時とメッセージを指定して、このページに自分宛てのリマインダーを作成。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '繰り返し：',
-                            type: 'text',
-                          },
-                          {
-                            text: 'なし / 毎日 / 毎週 / 毎月',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: '。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '時間が来ると通知ベルに届きます（💤 で 10 分スヌーズ）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '📑 ドキュメント情報',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ステータス：',
-                            type: 'text',
-                          },
-                          {
-                            text: '下書き → レビュー待ち → 承認済み → アーカイブ',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: '。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '種別：',
-                            type: 'text',
-                          },
-                          {
-                            text: '仕様 / 設計 / 計画 / 報告 / 手順 / メモ / その他',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: '。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'レビュアー指定・タグ付け。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「要点 (AI)」で本文から要点を 3〜5 項目に自動生成（→「AI アシスト」）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '🗑️ ゴミ箱',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ゴミ箱への移動はページとその子ページをまとめてソフト削除（取り消し可能）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '左サイドバー「ゴミ箱」から復元できます。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 1,
-                },
-                content: [
-                  {
-                    text: '🗂️ ページ運用',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: 'ページ右上のツールバーから使える、版管理・共有・テンプレート・リマインダー・ドキュメント情報をまとめます。',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '🕐 履歴（バージョン）',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「現在を保存」で手動版を作成。編集中は約 5 分間隔で自動版も積まれます（1 ページ最大 50 版）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '各版から「復元」で本文を巻き戻し（Yjs に新しい変更として反映）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「差分」で選んだ版と現在の語単位の差分を表示。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '🔗 公開共有（read-only）',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「このページを公開する」で ',
-                            type: 'text',
-                          },
-                          {
-                            text: '/share/<token>',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: ' の閲覧専用リンクを発行。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'リンクを知っている人は誰でも閲覧可（編集不可・社内向け埋め込みは非表示）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「公開を停止」でいつでも無効化。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '📋 テンプレート',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '「テンプレートとして保存」で現在のページを複製可能なテンプレ化。サイドバー「ページ」の 📋 から挿入できます。最初から次の組み込みテンプレートが使えます：',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '作業計画書 / 作業報告書（計画書からは「報告書を作成」で対応する報告書を生成）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '調査報告書 / 個別作業実施報告書',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'コード修正計画書 / 手順書（Runbook）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '技術仕様書 / 議事録',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '⏰ リマインダー',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '日時とメッセージを指定して、このページに自分宛てのリマインダーを作成。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '繰り返し：',
-                            type: 'text',
-                          },
-                          {
-                            text: 'なし / 毎日 / 毎週 / 毎月',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: '。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '時間が来ると通知ベルに届きます（💤 で 10 分スヌーズ）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '📑 ドキュメント情報',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ステータス：',
-                            type: 'text',
-                          },
-                          {
-                            text: '下書き → レビュー待ち → 承認済み → アーカイブ',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: '。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '種別：',
-                            type: 'text',
-                          },
-                          {
-                            text: '仕様 / 設計 / 計画 / 報告 / 手順 / メモ / その他',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                          {
-                            text: '。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'レビュアー指定・タグ付け。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '「要点 (AI)」で本文から要点を 3〜5 項目に自動生成（→「AI アシスト」）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'heading',
-                attrs: {
-                  level: 2,
-                },
-                content: [
-                  {
-                    text: '🗑️ ゴミ箱',
-                    type: 'text',
-                  },
-                ],
-              },
-              {
-                type: 'bulletList',
-                content: [
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ゴミ箱への移動はページとその子ページをまとめてソフト削除（取り消し可能）。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'listItem',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '左サイドバー「ゴミ箱」から復元できます。',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      ],
-    },
-    {
-      key: 'project-management',
-      title: '📊 プロジェクト管理（PRJ / Sprint / PBI / SBI）',
-      icon: '📄',
-      doc: {
-        type: 'doc',
-        content: [
           {
             type: 'heading',
             attrs: {
-              level: 1,
+              level: 2,
             },
             content: [
               {
-                text: '📊 プロジェクト管理（PRJ / Sprint / PBI / SBI）',
+                text: 'カードの状態を動かす',
                 type: 'text',
               },
             ],
@@ -4850,21 +2983,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             type: 'paragraph',
             content: [
               {
-                text: '作業は 4 つの階層で構造化します。どの種別も詳細ページ ',
-                type: 'text',
-              },
-              {
-                text: '/b/<id>',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' で開き、メタ情報の編集とドキュメント本文編集ができます。',
+                text: 'カードには「いまどの段階か」の印が付きます。左から右へ進んでいきます：',
                 type: 'text',
               },
             ],
@@ -4882,7 +3001,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '階層',
+                            text: '画面の表示',
                             type: 'text',
                           },
                         ],
@@ -4896,21 +3015,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '単位',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableHeader',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '役割',
+                            text: '意味',
                             type: 'text',
                           },
                         ],
@@ -4929,8 +3034,14 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'PRJ（プロジェクト）',
+                            text: 'backlog',
                             type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
                           },
                         ],
                       },
@@ -4943,21 +3054,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '—',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '最上位のまとまり',
+                            text: 'やる予定（まだ手を付けない）',
                             type: 'text',
                           },
                         ],
@@ -4976,8 +3073,14 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'Sprint（スプリント）',
+                            text: 'ready',
                             type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
                           },
                         ],
                       },
@@ -4990,21 +3093,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '期間',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '2 週間を既定に区切る反復',
+                            text: '準備ができた（次にやる）',
                             type: 'text',
                           },
                         ],
@@ -5023,8 +3112,14 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'PBI',
+                            text: 'in_progress',
                             type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
                           },
                         ],
                       },
@@ -5037,21 +3132,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'ストーリー（pt）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ユーザー価値の単位',
+                            text: 'いま作業中',
                             type: 'text',
                           },
                         ],
@@ -5070,8 +3151,14 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'SBI',
+                            text: 'review',
                             type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
                           },
                         ],
                       },
@@ -5084,660 +3171,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'サブタスク（h）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '実装の最小単位（時間見積）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'ステータスと優先度',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'PBI：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'backlog → ready → in_progress → review → done',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'SBI：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'todo → in_progress → review → done → archived',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Sprint：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'planning → active → review → done',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Project：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'backlog → planned → in_progress → paused → review → done → cancelled → archived',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '優先度（MoSCoW）：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'must / should / could / wont',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'PBI 見積（フィボナッチ pt）：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '1 2 3 5 8 13 21',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '。SBI は時間（h）で見積。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'ビュー',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'PBI：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' バックログ（一覧）/ カンバン（ステータス列・ドラッグ or ボタンで遷移）/ タイムライン（期限 dueDate を軸に期間バー）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'プロジェクト・スプリント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' リスト / カンバン。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'SBI ボード：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ステータス列のカンバン。親 PBI 必須。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '表示したビューはブラウザに記憶されます。ステータス・優先度で絞り込み可。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '詳細ページでできること',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'タイトル・ステータス・優先度・担当者・期間をその場で編集。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '本文（Yjs ドキュメント）に仕様や議論を書ける。コメント欄つき。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'プロジェクト → 配下 PBI 一覧、スプリント → 配下 PBI＋バーンダウン、PBI → 配下 SBI 一覧。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'バーンダウン & 進捗',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'スプリント詳細に理想線（破線）と残時間（実線）のバーンダウンチャート。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '「PBI x / y 完了」など進捗サマリ。MCP の ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'synapse_sprint_metrics',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' でも取得可。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'SBI のアラート',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '実績が見積を超えると「超過」、着手から 4 日以上「進行中」のままだと「停滞」のバッジ。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '親 PBI の見出しに「⚠ N 件要注意」を集計表示。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '依存関係',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'ブロック間の「これに依存している（blocked by）／これをブロックしている」を記録できます。Claude Code（MCP）の ',
-                type: 'text',
-              },
-              {
-                text: 'synapse_add_dependency',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'synapse_list_dependencies',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' から操作・確認できます。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '📊 プロジェクト管理（PRJ / Sprint / PBI / SBI）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '作業は 4 つの階層で構造化します。どの種別も詳細ページ ',
-                type: 'text',
-              },
-              {
-                text: '/b/<id>',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' で開き、メタ情報の編集とドキュメント本文編集ができます。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'table',
-            content: [
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableHeader',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '階層',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableHeader',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '単位',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableHeader',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '役割',
+                            text: 'できたので確認待ち',
                             type: 'text',
                           },
                         ],
@@ -5751,17 +3185,19 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 content: [
                   {
                     type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
                     content: [
                       {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'PRJ（プロジェクト）',
+                            text: 'done',
                             type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
                           },
                         ],
                       },
@@ -5769,34 +3205,12 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                   },
                   {
                     type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
                     content: [
                       {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '—',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '最上位のまとまり',
+                            text: '完了！',
                             type: 'text',
                           },
                         ],
@@ -5805,178 +3219,48 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                   },
                 ],
               },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
               {
-                type: 'tableRow',
+                type: 'listItem',
                 content: [
                   {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
+                    type: 'paragraph',
                     content: [
                       {
-                        type: 'paragraph',
-                        content: [
+                        text: '表示を',
+                        type: 'text',
+                      },
+                      {
+                        text: '「カンバン」',
+                        type: 'text',
+                        marks: [
                           {
-                            text: 'Sprint（スプリント）',
-                            type: 'text',
+                            type: 'bold',
+                            attrs: {},
                           },
                         ],
                       },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
                       {
-                        type: 'paragraph',
-                        content: [
+                        text: 'に切り替えると、状態ごとの列にカードが並びます。カードを',
+                        type: 'text',
+                      },
+                      {
+                        text: '押したまま隣の列へ動かす',
+                        type: 'text',
+                        marks: [
                           {
-                            text: '期間',
-                            type: 'text',
+                            type: 'bold',
+                            attrs: {},
                           },
                         ],
                       },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
                       {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '2 週間を既定に区切る反復',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'PBI',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ストーリー（pt）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'ユーザー価値の単位',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'SBI',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'サブタスク（h）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    attrs: {
-                      colspan: 1,
-                      rowspan: 1,
-                    },
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '実装の最小単位（時間見積）',
-                            type: 'text',
-                          },
-                        ],
+                        text: 'だけで状態が変わります。',
+                        type: 'text',
                       },
                     ],
                   },
@@ -5991,7 +3275,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'ステータスと優先度',
+                text: 'カードの中身',
                 type: 'text',
               },
             ],
@@ -6006,28 +3290,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'PBI：',
+                        text: 'カードを押して開くと、期限・担当者・優先度を選べます。',
                         type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'backlog → ready → in_progress → review → done',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
                       },
                     ],
                   },
@@ -6040,28 +3304,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'SBI：',
+                        text: 'カードの中はふつうのページと同じように文章が書けます。メモや相談ごとはそのまま書いておきましょう。',
                         type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'todo → in_progress → review → done → archived',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
                       },
                     ],
                   },
@@ -6074,133 +3318,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'Sprint：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'planning → active → review → done',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Project：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'backlog → planned → in_progress → paused → review → done → cancelled → archived',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '優先度（MoSCoW）：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'must / should / could / wont',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'PBI 見積（フィボナッチ pt）：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '1 2 3 5 8 13 21',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '。SBI は時間（h）で見積。',
+                        text: 'カードにはコメントも付けられます（→「💬 みんなで使う」）。',
                         type: 'text',
                       },
                     ],
@@ -6216,7 +3334,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'ビュー',
+                text: '進み具合を見る',
                 type: 'text',
               },
             ],
@@ -6231,7 +3349,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'PBI：',
+                        text: 'スプリント',
                         type: 'text',
                         marks: [
                           {
@@ -6241,7 +3359,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' バックログ（一覧）/ カンバン（ステータス列・ドラッグ or ボタンで遷移）/ タイムライン（期限 dueDate を軸に期間バー）。',
+                        text: ' の画面を開くと、「あとどれくらい残っているか」のグラフと「何枚中何枚終わったか」が見られます。',
                         type: 'text',
                       },
                     ],
@@ -6255,272 +3373,12 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'プロジェクト・スプリント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' リスト / カンバン。',
+                        text: '長く動きのないカードには「停滞」の印が自動で付くので、声かけのきっかけになります。',
                         type: 'text',
                       },
                     ],
                   },
                 ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'SBI ボード：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ステータス列のカンバン。親 PBI 必須。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '表示したビューはブラウザに記憶されます。ステータス・優先度で絞り込み可。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '詳細ページでできること',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'タイトル・ステータス・優先度・担当者・期間をその場で編集。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '本文（Yjs ドキュメント）に仕様や議論を書ける。コメント欄つき。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'プロジェクト → 配下 PBI 一覧、スプリント → 配下 PBI＋バーンダウン、PBI → 配下 SBI 一覧。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'バーンダウン & 進捗',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'スプリント詳細に理想線（破線）と残時間（実線）のバーンダウンチャート。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '「PBI x / y 完了」など進捗サマリ。MCP の ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'synapse_sprint_metrics',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' でも取得可。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'SBI のアラート',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '実績が見積を超えると「超過」、着手から 4 日以上「進行中」のままだと「停滞」のバッジ。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '親 PBI の見出しに「⚠ N 件要注意」を集計表示。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '依存関係',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'ブロック間の「これに依存している（blocked by）／これをブロックしている」を記録できます。Claude Code（MCP）の ',
-                type: 'text',
-              },
-              {
-                text: 'synapse_add_dependency',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'synapse_list_dependencies',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' から操作・確認できます。',
-                type: 'text',
               },
             ],
           },
@@ -6529,14 +3387,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
     },
     {
       key: 'spreadsheet',
-      title: '🧮 スプレッドシート',
-      icon: '📄',
+      title: '計算表（スプレッドシート）',
+      icon: '🧮',
       doc: {
         type: 'doc',
         content: [
-          {
-            type: 'paragraph',
-          },
           {
             type: 'heading',
             attrs: {
@@ -6544,13 +3399,19 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '🧮 スプレッドシート',
+                text: '🧮 計算表（スプレッドシート）',
                 type: 'text',
               },
             ],
           },
           {
             type: 'paragraph',
+            content: [
+              {
+                text: 'ページの中に、数字の計算ができる表を置けます。集計表や簡単な見積もりに便利です。',
+                type: 'text',
+              },
+            ],
           },
           {
             type: 'heading',
@@ -6559,7 +3420,284 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '基本',
+                text: '作る',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '本文で ',
+                        type: 'text',
+                      },
+                      {
+                        text: '「/」',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を打ち、一覧から ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'sheet（スプレッドシート）',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を選びます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'マス（セル）を押して、数字や文字を入れます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '合計などの計算',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: 'マスに ',
+                type: 'text',
+              },
+              {
+                text: '「=」で始まる式',
+                type: 'text',
+                marks: [
+                  {
+                    type: 'bold',
+                    attrs: {},
+                  },
+                ],
+              },
+              {
+                text: ' を打つと、計算した答えが表示されます：',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'table',
+            content: [
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableHeader',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '打ち方',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableHeader',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '意味',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '=SUM(A1:A10)',
+                            type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'A の列の 1〜10 行目を合計する',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '=AVERAGE(A1:A10)',
+                            type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '同じ範囲の平均を出す',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'tableRow',
+                content: [
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: '=A1*B1',
+                            type: 'text',
+                            marks: [
+                              {
+                                type: 'code',
+                                attrs: {},
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: 'tableCell',
+                    content: [
+                      {
+                        type: 'paragraph',
+                        content: [
+                          {
+                            text: 'A1 と B1 のかけ算',
+                            type: 'text',
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '💡 「A1」はマスの住所です。横の列がアルファベット、縦の行が数字。左上のマスが A1 です。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: 'AI に聞くマス',
                 type: 'text',
               },
             ],
@@ -6574,11 +3712,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'セルは A1 形式。既定 ',
+                        text: 'マスに ',
                         type: 'text',
                       },
                       {
-                        text: '10 行 × 8 列',
+                        text: '=ASK("質問")',
                         type: 'text',
                         marks: [
                           {
@@ -6588,7 +3726,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '（最大 500 行 × 26 列）。',
+                        text: ' と打つと、AI の答えがそのマスに出ます。',
                         type: 'text',
                       },
                     ],
@@ -6602,22 +3740,18 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'セルに入力した生の値が source of truth。リロードしても式はそのまま往復します。',
+                        text: '例：',
                         type: 'text',
                       },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
                       {
-                        text: '数式は HyperFormula が同期評価し、計算結果を表示します。',
+                        text: '=ASK("この表の数字を一言でまとめて")',
                         type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
                       },
                     ],
                   },
@@ -6625,132 +3759,33 @@ export const DEFAULT_MANUAL: ManualPageDef = {
               },
             ],
           },
+        ],
+      },
+    },
+    {
+      key: 'database',
+      title: '一覧表（データベース）',
+      icon: '🗃️',
+      doc: {
+        type: 'doc',
+        content: [
           {
             type: 'heading',
             attrs: {
-              level: 2,
+              level: 1,
             },
             content: [
               {
-                text: '数式',
+                text: '🗃️ 一覧表（データベース）',
                 type: 'text',
               },
             ],
           },
           {
-            type: 'bulletList',
+            type: 'paragraph',
             content: [
               {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '標準関数：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '=SUM(A1:A10)',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '、',
-                        type: 'text',
-                      },
-                      {
-                        text: '=AVERAGE(...)',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '、',
-                        type: 'text',
-                      },
-                      {
-                        text: '=IF(...)',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' など HyperFormula の関数が使えます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'AI セル関数：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: '=ASK("プロンプト")',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' で Claude を呼び、回答テキストをそのセルに表示。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'codeBlock',
-            content: [
-              {
-                text: '=SUM(A1:A10)               … ふつうの集計\n=ASK("この列を3行で要約して")    … セルから AI を呼ぶ',
+                text: '「同じ項目で情報を並べたい」ときの表です。会員名簿、備品の管理、問い合わせの記録などに向いています。',
                 type: 'text',
               },
             ],
@@ -6762,108 +3797,12 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                 type: 'paragraph',
                 content: [
                   {
-                    text: '🔎 ',
-                    type: 'text',
-                  },
-                  {
-                    text: '=ASK(...)',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' は引用符で囲んだ',
-                    type: 'text',
-                  },
-                  {
-                    text: '単一の文字列',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: 'を受け取ります（例：',
-                    type: 'text',
-                  },
-                  {
-                    text: '=ASK("売上が伸びた理由を一言で")',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '）。非同期取得中はセルに ',
-                    type: 'text',
-                  },
-                  {
-                    text: '…',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' が表示され、応答が届くと差し替わります。',
+                    text: '💡 計算表との違い：計算表は「数字の計算」が得意。一覧表は「項目をそろえて情報を管理する」のが得意です。',
                     type: 'text',
                   },
                 ],
               },
             ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '※ ANTHROPIC_API_KEY 未設定の環境では、AI 応答はスタブ（動線確認用テキスト）になります。詳しくは「AI アシスト」へ。',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'italic',
-                    attrs: {},
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      key: 'database',
-      title: '🗃️ データベース',
-      icon: '📄',
-      doc: {
-        type: 'doc',
-        content: [
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '🗃️ データベース',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
           },
           {
             type: 'heading',
@@ -6872,7 +3811,123 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '5 つのビュー',
+                text: '作る',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '本文で ',
+                        type: 'text',
+                      },
+                      {
+                        text: '「/」',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を打ち、一覧から ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'db（データベース）',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を選びます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '＋ 列',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で項目を増やします。項目の種類は、文字・数字・チェック・選択肢・日付などから選べます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '＋ 行を追加',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で1件ずつ増やしていきます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '見え方を切り替える',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: '同じ中身を、5通りの見え方で表示できます：',
                 type: 'text',
               },
             ],
@@ -6890,7 +3945,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'ビュー',
+                            text: '見え方',
                             type: 'text',
                           },
                         ],
@@ -6904,7 +3959,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '内容',
+                            text: '向いている場面',
                             type: 'text',
                           },
                         ],
@@ -6937,7 +3992,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'セルをインライン編集。行はドラッグで並べ替え、列ヘッダから型変更・削除',
+                            text: 'ふつうの表。その場で書き換えられます',
                             type: 'text',
                           },
                         ],
@@ -6970,7 +4025,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'select 列でグループ化したカンバン（カードをドロップで値変更）',
+                            text: '「選択肢」の項目ごとに札を並べる（例：対応中／完了）',
                             type: 'text',
                           },
                         ],
@@ -7003,7 +4058,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'カード型の一覧',
+                            text: '1件ずつカードで眺める',
                             type: 'text',
                           },
                         ],
@@ -7036,7 +4091,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: 'date 列を使った月間カレンダー',
+                            text: '「日付」の項目をこよみに並べる',
                             type: 'text',
                           },
                         ],
@@ -7069,7 +4124,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'paragraph',
                         content: [
                           {
-                            text: '入力可能な列だけのフォームで 1 行を追加',
+                            text: '入力欄だけの画面で1件ずつ足す（記入用紙のイメージ）',
                             type: 'text',
                           },
                         ],
@@ -7087,406 +4142,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '8 つの列タイプ',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'table',
-            content: [
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableHeader',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '型',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableHeader',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '説明',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'text',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'テキスト',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'number',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '数値',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'checkbox',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'チェック',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'select',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '選択肢（ボード／フォームのグループに使える）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'date',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '日付（カレンダーに使える）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'relation',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '別の DB の行へのリンク',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'rollup',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'relation をたどって集計（count / sum / avg / min / max / show）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'tableRow',
-                content: [
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: 'formula',
-                            type: 'text',
-                            marks: [
-                              {
-                                type: 'code',
-                                attrs: {},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: 'tableCell',
-                    content: [
-                      {
-                        type: 'paragraph',
-                        content: [
-                          {
-                            text: '他列を参照する式（HyperFormula 評価）',
-                            type: 'text',
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'Formula 列は他の列を ',
-                type: 'text',
-              },
-              {
-                text: '{列名}',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' で参照します。例：',
-                type: 'text',
-              },
-              {
-                text: '{単価} * {数量}',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '絞り込み・並び替え・編集',
+                text: '絞り込みと並び替え',
                 type: 'text',
               },
             ],
@@ -7501,7 +4157,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'フィルタ条件と並び替えで表示行を制御。',
+                        text: '「ステータスが対応中のものだけ」のように、条件で絞り込めます。',
                         type: 'text',
                       },
                     ],
@@ -7515,35 +4171,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '「+ 行を追加」「+ 列」で行・列を追加。基本型どうしは列の型変更も可能（relation / rollup / formula は名前のみ変更）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '既定列は ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'タイトル / ステータス / 期限',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '。',
+                        text: '日付順・名前順などの並び替えもできます。',
                         type: 'text',
                       },
                     ],
@@ -7557,8 +4185,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
     },
     {
       key: 'ai-assist',
-      title: '🤖 AI アシスト',
-      icon: '📄',
+      title: 'AI に手伝ってもらう',
+      icon: '🤖',
       doc: {
         type: 'doc',
         content: [
@@ -7569,7 +4197,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '🤖 AI アシスト',
+                text: '🤖 AI に手伝ってもらう',
                 type: 'text',
               },
             ],
@@ -7578,21 +4206,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             type: 'paragraph',
             content: [
               {
-                text: 'AI は Anthropic SDK 経由で ',
-                type: 'text',
-              },
-              {
-                text: 'apps/api',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' から呼び出します（ブラウザから直接は呼びません）。入口は次の通り。',
+                text: 'SYNAPSE には、文章の下書きや要約を手伝ってくれる AI（人工知能）が入っています。難しい設定はいりません。',
                 type: 'text',
               },
             ],
@@ -7604,13 +4218,13 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'エディタの AI',
+                text: '文章を書いてもらう',
                 type: 'text',
               },
             ],
           },
           {
-            type: 'bulletList',
+            type: 'orderedList',
             content: [
               {
                 type: 'listItem',
@@ -7619,7 +4233,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '/ai（AI で書く）：',
+                        text: '本文で ',
+                        type: 'text',
+                      },
+                      {
+                        text: '「/ai」',
                         type: 'text',
                         marks: [
                           {
@@ -7629,7 +4247,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' 指示文を渡すと文章を生成し、カーソル位置に挿入。',
+                        text: ' と打ちます。',
                         type: 'text',
                       },
                     ],
@@ -7643,31 +4261,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '選択して ✨AI：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' テキストを選ぶとバブルメニューに ✨AI が出て、',
+                        text: 'お願いごとを書きます（例：「保護者向けのお知らせ文を、ていねいな言葉で書いて」）。',
                         type: 'text',
                       },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
                       {
-                        text: '要約 / 翻訳 / 書き換え',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ができます。',
+                        text: 'できあがった文章が、その場に入ります。気に入らなければ消して書き直してもらえます。',
                         type: 'text',
                       },
                     ],
@@ -7683,13 +4291,13 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'ページの AI',
+                text: '文章を直してもらう',
                 type: 'text',
               },
             ],
           },
           {
-            type: 'bulletList',
+            type: 'orderedList',
             content: [
               {
                 type: 'listItem',
@@ -7698,790 +4306,15 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '要点 (AI)：',
+                        text: '直したい文章を',
+                        type: 'text',
+                      },
+                      {
+                        text: 'なぞって選びます',
                         type: 'text',
                         marks: [
                           {
                             type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ページ右上の 📑 情報パネルから、本文の要点を 3〜5 項目に自動生成して保存。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'スプレッドシートの AI',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '=ASK("プロンプト")：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' セルから Claude を呼び、回答を表示（→「スプレッドシート」）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'プロジェクト管理の AI',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'スプリント完了報告：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' スプリント配下の PBI / SBI を集計し、要約レポートを生成。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '使うモデル',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'モデル ID は ',
-                type: 'text',
-              },
-              {
-                text: 'packages/schema/src/models.ts',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' に集約：',
-                type: 'text',
-              },
-              {
-                text: 'claude-opus-4-7',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'claude-sonnet-4-6',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'claude-haiku-4-5',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '。機能コードに直書きはしません。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🛡️ 外部から取り込んだテキスト（Issue 本文や Web など）は',
-                    type: 'text',
-                  },
-                  {
-                    text: 'データ',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: 'として扱い、命令としては実行しません（プロンプトインジェクション対策）。',
-                    type: 'text',
-                  },
-                  {
-                    text: 'また ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'ANTHROPIC_API_KEY',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' 未設定の環境では、各 AI 機能はスタブ応答を返します（動線確認用）。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '🤖 AI アシスト',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'AI は Anthropic SDK 経由で ',
-                type: 'text',
-              },
-              {
-                text: 'apps/api',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' から呼び出します（ブラウザから直接は呼びません）。入口は次の通り。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'エディタの AI',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '/ai（AI で書く）：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' 指示文を渡すと文章を生成し、カーソル位置に挿入。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '選択して ✨AI：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' テキストを選ぶとバブルメニューに ✨AI が出て、',
-                        type: 'text',
-                      },
-                      {
-                        text: '要約 / 翻訳 / 書き換え',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ができます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'ページの AI',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '要点 (AI)：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ページ右上の 📑 情報パネルから、本文の要点を 3〜5 項目に自動生成して保存。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'スプレッドシートの AI',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '=ASK("プロンプト")：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' セルから Claude を呼び、回答を表示（→「スプレッドシート」）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'プロジェクト管理の AI',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'スプリント完了報告：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' スプリント配下の PBI / SBI を集計し、要約レポートを生成。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '使うモデル',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'モデル ID は ',
-                type: 'text',
-              },
-              {
-                text: 'packages/schema/src/models.ts',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' に集約：',
-                type: 'text',
-              },
-              {
-                text: 'claude-opus-4-7',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'claude-sonnet-4-6',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'claude-haiku-4-5',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '。機能コードに直書きはしません。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🛡️ 外部から取り込んだテキスト（Issue 本文や Web など）は',
-                    type: 'text',
-                  },
-                  {
-                    text: 'データ',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: 'として扱い、命令としては実行しません（プロンプトインジェクション対策）。また ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'ANTHROPIC_API_KEY',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' 未設定の環境では、各 AI 機能はスタブ応答を返します（動線確認用）。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      key: 'github',
-      title: '🔗 GitHub 連携',
-      icon: '📄',
-      doc: {
-        type: 'doc',
-        content: [
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '🔗 GitHub 連携',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'PBI と GitHub Issue を結びつけ、状態を双方向に同期します。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'できること（実装済み）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Issue を手動でリンク：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' PBI カードの「+ Issue を紐付け」、または MCP の ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'synapse_link_github_issue',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' に ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'owner / repo / issue 番号',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' を渡してリンク。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'アウトバウンド同期：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' PBI のタイトル／ステータスを変えると、リンク済み Issue へ反映（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'done → closed',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '、それ以外 → ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'open',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'インバウンド同期：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' GitHub の Webhook（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'issues',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' イベント）を受けて、Issue 編集 → タイトル、close → ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'done',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '、reopen（done 時）→ ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'backlog',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
                             attrs: {},
                           },
                         ],
@@ -8501,7 +4334,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'CI バッジ：',
+                        text: '浮かんだボタンの ',
+                        type: 'text',
+                      },
+                      {
+                        text: '✨AI',
                         type: 'text',
                         marks: [
                           {
@@ -8511,7 +4348,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' PBI に CI 情報があればカードにステータスバッジを表示。',
+                        text: ' を押します。',
                         type: 'text',
                       },
                     ],
@@ -8525,7 +4362,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '/pr：',
+                        text: '要約',
                         type: 'text',
                         marks: [
                           {
@@ -8535,21 +4372,35 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' 本文に GitHub PR（',
+                        text: '（短くまとめる）・',
                         type: 'text',
                       },
                       {
-                        text: 'owner/repo#番号',
+                        text: '翻訳',
                         type: 'text',
                         marks: [
                           {
-                            type: 'code',
+                            type: 'bold',
                             attrs: {},
                           },
                         ],
                       },
                       {
-                        text: '）の参照を埋め込み。',
+                        text: '・',
+                        type: 'text',
+                      },
+                      {
+                        text: '書き換え',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '（言い回しを変える）から選びます。',
                         type: 'text',
                       },
                     ],
@@ -8565,7 +4416,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'セキュリティ',
+                text: 'ページの要点を作ってもらう',
                 type: 'text',
               },
             ],
@@ -8580,35 +4431,35 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'Webhook は HMAC 署名（',
+                        text: 'ページ右上の ',
                         type: 'text',
                       },
                       {
-                        text: 'X-Hub-Signature-256',
+                        text: '📑 情報',
                         type: 'text',
                         marks: [
                           {
-                            type: 'code',
+                            type: 'bold',
                             attrs: {},
                           },
                         ],
                       },
                       {
-                        text: '）を必ず検証し、',
+                        text: ' を開いて ',
                         type: 'text',
                       },
                       {
-                        text: 'X-GitHub-Delivery',
+                        text: '要点 (AI)',
                         type: 'text',
                         marks: [
                           {
-                            type: 'code',
+                            type: 'bold',
                             attrs: {},
                           },
                         ],
                       },
                       {
-                        text: ' で 24h 冪等化。',
+                        text: ' を押すと、本文のまとめ（3〜5行）を作って覚えておいてくれます。',
                         type: 'text',
                       },
                     ],
@@ -8622,7 +4473,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'アウトバウンドの送信にはサーバ側に GitHub トークンの設定が必要です。',
+                        text: '長い議事録の「結局なにが決まったの？」に便利です。',
                         type: 'text',
                       },
                     ],
@@ -8638,82 +4489,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '現状の範囲（正直な注記）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '⚠️ 次は',
-                    type: 'text',
-                  },
-                  {
-                    text: 'まだ実装されていません',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '：Issue の自動生成、ブランチの自動作成、PR / CI イベントの本処理（Webhook では ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'issues',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' 以外は受理のみ）。アウトバウンドはサーバに GitHub トークンが設定されている場合に動作します（dev 既定ではログ出力のみ）。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '🔗 GitHub 連携',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'PBI と GitHub Issue を結びつけ、状態を双方向に同期します。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'できること（実装済み）',
+                text: '計算表から聞く',
                 type: 'text',
               },
             ],
@@ -8728,21 +4504,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'Issue を手動でリンク：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' PBI カードの「+ Issue を紐付け」、または MCP の ',
+                        text: '計算表のマスに ',
                         type: 'text',
                       },
                       {
-                        text: 'synapse_link_github_issue',
+                        text: '=ASK("質問")',
                         type: 'text',
                         marks: [
                           {
@@ -8752,1420 +4518,12 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' に ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'owner / repo / issue 番号',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' を渡してリンク。',
+                        text: ' と打つ使い方もあります（→「🧮 計算表」）。',
                         type: 'text',
                       },
                     ],
                   },
                 ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'アウトバウンド同期：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' PBI のタイトル／ステータスを変えると、リンク済み Issue へ反映（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'done → closed',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '、それ以外 → ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'open',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'インバウンド同期：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' GitHub の Webhook（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'issues',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' イベント）を受けて、Issue 編集 → タイトル、close → ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'done',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '、reopen（done 時）→ ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'backlog',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'CI バッジ：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' PBI に CI 情報があればカードにステータスバッジを表示。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '/pr：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' 本文に GitHub PR（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'owner/repo#番号',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）の参照を埋め込み。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'セキュリティ',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Webhook は HMAC 署名（',
-                        type: 'text',
-                      },
-                      {
-                        text: 'X-Hub-Signature-256',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）を必ず検証し、',
-                        type: 'text',
-                      },
-                      {
-                        text: 'X-GitHub-Delivery',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' で 24h 冪等化。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'アウトバウンドの送信にはサーバ側に GitHub トークンの設定が必要です。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '現状の範囲（正直な注記）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '⚠️ 次は',
-                    type: 'text',
-                  },
-                  {
-                    text: 'まだ実装されていません',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '：Issue の自動生成、ブランチの自動作成、PR / CI イベントの本処理（Webhook では ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'issues',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' 以外は受理のみ）。アウトバウンドはサーバに GitHub トークンが設定されている場合に動作します（dev 既定ではログ出力のみ）。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      key: 'claude-code-mcp',
-      title: '🧠 Claude Code & MCP サーバー',
-      icon: '📄',
-      doc: {
-        type: 'doc',
-        content: [
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '🧠 Claude Code & MCP サーバー',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'SYNAPSE には、Claude Code から操作するための ',
-                type: 'text',
-              },
-              {
-                text: 'MCP サーバー',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' が同梱されています。接続は ',
-                type: 'text',
-              },
-              {
-                text: 'stdio',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '（標準入出力）で、追加のサーバー起動は不要です。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '接続の手順',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'orderedList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '「設定 → API トークン」(/settings/tokens) でワークスペース用トークンを発行（作成時に一度だけ表示）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'リポジトリ直下に .mcp.json を作成（下記）。トークンを含むので必ず .gitignore に入れる。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Claude Code で /mcp を実行し、表示された「synapse」を承認すると接続完了。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'codeBlock',
-            content: [
-              {
-                text: '{\n  "mcpServers": {\n    "synapse": {\n      "type": "stdio",\n      "command": "node",\n      "args": ["<repo>/apps/mcp/dist/index.js"],\n      "env": {\n        "DATABASE_URL": "postgres://…",\n        "SYNAPSE_API_TOKEN": "synapse_…"\n      }\n    }\n  }\n}',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '本文編集ツール（',
-                type: 'text',
-              },
-              {
-                text: 'synapse_append_doc',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'synapse_set_doc',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '）も使うなら、env に ',
-                type: 'text',
-              },
-              {
-                text: 'SYNC_INTERNAL_URL',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' と ',
-                type: 'text',
-              },
-              {
-                text: 'SYNC_INTERNAL_SECRET',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' を追加します（sync の内部 doc-write エンドポイント）。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'スコープ（権限）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'read',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … 閲覧',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'write_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … PBI・SBI・プロジェクト・スプリント・依存の書き込み',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'write_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … コメント',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'write_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … ページ作成・改名・移動・ゴミ箱・本文編集',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'admin',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … 全許可',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '使えるツール（31 種・抜粋）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '読み取り：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'get_overview',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_projects',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_sprints',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_pbis',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_sbis',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'get_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'resolve_key',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'search',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'sprint_metrics',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_dependencies',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_comments',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_pages',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'get_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'audit_log',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'PM 書き込み：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_pbi_status',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_sbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_sbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_project',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_project',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_sprint',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_sprint',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'add_dependency',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'remove_dependency',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'コメント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'add_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'resolve_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'react_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'delete_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'ページ／ドキュメント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_page_title',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'move_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'trash_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'restore_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'append_doc',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'set_doc',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'GitHub：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'link_github_issue',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'unlink_github_issue',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🔑 ',
-                    type: 'text',
-                  },
-                  {
-                    text: '黄金律',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '：MCP ツールは ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'ブロック id（ULID）',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' を取ります。',
-                    type: 'text',
-                  },
-                  {
-                    text: 'PBI-42',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' のような人間キーは ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'synapse_resolve_key',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' で先に解決してください。',
-                    type: 'text',
-                  },
-                  {
-                    text: '書き込みツールは Claude Code 側で確認を挟み、全呼び出しは監査ログ（',
-                    type: 'text',
-                  },
-                  {
-                    text: 'synapse_audit_log',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' / 設定 → 監査ログ）に残ります。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '「cc で実装」ボタン',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'PBI から headless な Claude Code セッションを起動できます（カード／一覧／詳細の「cc で実装」）。',
-                type: 'text',
               },
             ],
           },
@@ -10180,7 +4538,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'text',
                   },
                   {
-                    text: '現状はスタブ動作',
+                    text: 'AI の文章は、まちがうことがあります。',
                     type: 'text',
                     marks: [
                       {
@@ -10190,1195 +4548,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     ],
                   },
                   {
-                    text: 'です。ローカル／サンドボックス未接続では、',
-                    type: 'text',
-                  },
-                  {
-                    text: 'queued → running → succeeded',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' と擬似的に遷移し、ダミーの PR リンクを返します。本番はサンドボックス（Cloudflare Container、',
-                    type: 'text',
-                  },
-                  {
-                    text: 'allowedTools',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' は明示 allowlist、資格情報マウントなし、',
-                    type: 'text',
-                  },
-                  {
-                    text: '--dangerously-skip-permissions',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' 禁止）で実行する設計ですが、実行本体は今後の実装です。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '🧠 Claude Code & MCP サーバー',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'SYNAPSE には、Claude Code から操作するための ',
-                type: 'text',
-              },
-              {
-                text: 'MCP サーバー',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' が同梱されています。接続は ',
-                type: 'text',
-              },
-              {
-                text: 'stdio',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'bold',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '（標準入出力）で、追加のサーバー起動は不要です。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '接続の手順',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'orderedList',
-            attrs: {
-              start: 1,
-            },
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '「設定 → API トークン」(/settings/tokens) でワークスペース用トークンを発行（作成時に一度だけ表示）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'リポジトリ直下に .mcp.json を作成（下記）。トークンを含むので必ず .gitignore に入れる。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'Claude Code で /mcp を実行し、表示された「synapse」を承認すると接続完了。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'codeBlock',
-            content: [
-              {
-                text: '{\n  "mcpServers": {\n    "synapse": {\n      "type": "stdio",\n      "command": "node",\n      "args": ["<repo>/apps/mcp/dist/index.js"],\n      "env": {\n        "DATABASE_URL": "postgres://…",\n        "SYNAPSE_API_TOKEN": "synapse_…"\n      }\n    }\n  }\n}',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '本文編集ツール（',
-                type: 'text',
-              },
-              {
-                text: 'synapse_append_doc',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' / ',
-                type: 'text',
-              },
-              {
-                text: 'synapse_set_doc',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: '）も使うなら、env に ',
-                type: 'text',
-              },
-              {
-                text: 'SYNC_INTERNAL_URL',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' と ',
-                type: 'text',
-              },
-              {
-                text: 'SYNC_INTERNAL_SECRET',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'code',
-                    attrs: {},
-                  },
-                ],
-              },
-              {
-                text: ' を追加します（sync の内部 doc-write エンドポイント）。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'スコープ（権限）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'read',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … 閲覧',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'write_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … PBI・SBI・プロジェクト・スプリント・依存の書き込み',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'write_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … コメント',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'write_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … ページ作成・改名・移動・ゴミ箱・本文編集',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'admin',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' … 全許可',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '使えるツール（31 種・抜粋）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '読み取り：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'get_overview',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_projects',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_sprints',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_pbis',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_sbis',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'get_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'resolve_key',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'search',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'sprint_metrics',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_dependencies',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_comments',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'list_pages',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'get_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'audit_log',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'PM 書き込み：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_pbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_pbi_status',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_sbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_sbi',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_project',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_project',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_sprint',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_sprint',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'add_dependency',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'remove_dependency',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'コメント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'add_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'resolve_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'react_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'delete_comment',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'ページ／ドキュメント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'create_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'update_page_title',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'move_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'trash_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'restore_page',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'append_doc',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'set_doc',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'GitHub：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'link_github_issue',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' / ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'unlink_github_issue',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '🔑 ',
-                    type: 'text',
-                  },
-                  {
-                    text: '黄金律',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: '：MCP ツールは ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'ブロック id（ULID）',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' を取ります。',
-                    type: 'text',
-                  },
-                  {
-                    text: 'PBI-42',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' のような人間キーは ',
-                    type: 'text',
-                  },
-                  {
-                    text: 'synapse_resolve_key',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' で先に解決してください。書き込みツールは Claude Code 側で確認を挟み、全呼び出しは監査ログ（',
-                    type: 'text',
-                  },
-                  {
-                    text: 'synapse_audit_log',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' / 設定 → 監査ログ）に残ります。',
-                    type: 'text',
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '「cc で実装」ボタン',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'PBI から headless な Claude Code セッションを起動できます（カード／一覧／詳細の「cc で実装」）。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'blockquote',
-            content: [
-              {
-                type: 'paragraph',
-                content: [
-                  {
-                    text: '⚠️ ',
-                    type: 'text',
-                  },
-                  {
-                    text: '現状はスタブ動作',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'bold',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: 'です。ローカル／サンドボックス未接続では、',
-                    type: 'text',
-                  },
-                  {
-                    text: 'queued → running → succeeded',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' と擬似的に遷移し、ダミーの PR リンクを返します。本番はサンドボックス（Cloudflare Container、',
-                    type: 'text',
-                  },
-                  {
-                    text: 'allowedTools',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' は明示 allowlist、資格情報マウントなし、',
-                    type: 'text',
-                  },
-                  {
-                    text: '--dangerously-skip-permissions',
-                    type: 'text',
-                    marks: [
-                      {
-                        type: 'code',
-                        attrs: {},
-                      },
-                    ],
-                  },
-                  {
-                    text: ' 禁止）で実行する設計ですが、実行本体は今後の実装です。',
+                    text: ' 日付・名前・金額などの大事な内容は、必ず人の目で確かめてから使ってください。',
                     type: 'text',
                   },
                 ],
@@ -11390,8 +4560,8 @@ export const DEFAULT_MANUAL: ManualPageDef = {
     },
     {
       key: 'collaboration',
-      title: '💬 コラボレーション',
-      icon: '📄',
+      title: 'みんなで使う',
+      icon: '💬',
       doc: {
         type: 'doc',
         content: [
@@ -11402,7 +4572,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '💬 コラボレーション',
+                text: '💬 みんなで使う',
                 type: 'text',
               },
             ],
@@ -11411,7 +4581,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             type: 'paragraph',
             content: [
               {
-                text: 'SYNAPSE はチームで使う前提。同時編集・コメント・チャット・通知が揃っています。',
+                text: 'SYNAPSE はみんなで同時に使う前提で作られています。書く・話す・知らせる、が全部そろっています。',
                 type: 'text',
               },
             ],
@@ -11423,7 +4593,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: '同時編集（プレゼンス）',
+                text: '同時に書ける',
                 type: 'text',
               },
             ],
@@ -11438,7 +4608,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: '同じページを開いている人のアバターが並び、接続状態がバッジで分かります。',
+                        text: '同じページを何人かで同時に開いて、同時に書けます。上書きで消し合う心配はありません。',
                         type: 'text',
                       },
                     ],
@@ -11452,7 +4622,21 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'オフラインでも編集でき、再接続で自動マージ（Yjs CRDT）。',
+                        text: 'いま誰が同じページを見ているかは、ページ上部の顔印で分かります。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '電波が切れても書き続けられます。つながったときに自動でまとまります。',
                         type: 'text',
                       },
                     ],
@@ -11468,7 +4652,94 @@ export const DEFAULT_MANUAL: ManualPageDef = {
             },
             content: [
               {
-                text: 'コメント',
+                text: 'コメントで質問・指摘',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '気になる文章を',
+                        type: 'text',
+                      },
+                      {
+                        text: 'なぞって選び',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '、浮かんだ ',
+                        type: 'text',
+                      },
+                      {
+                        text: '💬',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を押します。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '質問や指摘を書きます。該当の場所に印が付きます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '相手は返信ができて、解決したら「解決済み」にできます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '連絡を取り合う（チャット）',
                 type: 'text',
               },
             ],
@@ -11483,7 +4754,671 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'インラインコメント：',
+                        text: '左の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '💬 チャット',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' は、その場の連絡用です。話題ごとの部屋（チャンネル）に分かれています。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '文中で ',
+                        type: 'text',
+                      },
+                      {
+                        text: '「@相手の名前」',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' と書くと、その人の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🔔',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' にお知らせが届きます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '絵文字での反応（👍 など）や、画像・ファイルの添付もできます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: '💡 使い分けの目安：残したい内容は「ページ」や「カード」に、その場の連絡は「チャット」に。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: 'お知らせ（通知）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '自分宛ての呼びかけや、予約したお知らせは、左上の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '🔔',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' にたまります。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '数字が付いていたら、未読がある印です。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: '仲間を招く',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '左下の ',
+                        type: 'text',
+                      },
+                      {
+                        text: '設定 → メンバー',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を開きます。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '「招待」から相手のメールアドレスを入れて、案内を送ります。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '役割を選びます：ふだん使う人は「member」、人の出入りや設定を管理する人は「admin / owner」。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      key: 'github',
+      title: '開発者向け機能（GitHub・Claude Code）',
+      icon: '🔧',
+      doc: {
+        type: 'doc',
+        content: [
+          {
+            type: 'heading',
+            attrs: {
+              level: 1,
+            },
+            content: [
+              {
+                text: '🔧 開発者向け機能（GitHub・Claude Code）',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    text: 'このページは',
+                    type: 'text',
+                  },
+                  {
+                    text: 'システム開発の担当者向け',
+                    type: 'text',
+                    marks: [
+                      {
+                        type: 'bold',
+                        attrs: {},
+                      },
+                    ],
+                  },
+                  {
+                    text: 'です。開発に関わらない方は読み飛ばして大丈夫です。ここから先は専門用語をそのまま使います。',
+                    type: 'text',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: 'GitHub 連携',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'Issue リンク：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' PBI カードの「+ Issue を紐付け」、または MCP の ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'synapse_link_github_issue',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '（owner / repo / issue 番号）。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'アウトバウンド同期：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' PBI のタイトル／ステータス変更をリンク済み Issue へ反映（',
+                        type: 'text',
+                      },
+                      {
+                        text: 'done → closed',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '、それ以外 → ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'open',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: '）。サーバ側に GitHub トークン設定が必要。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'インバウンド同期：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' GitHub Webhook（issues イベント）で Issue 編集 → タイトル反映、close → done、reopen → backlog。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'セキュリティ：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' Webhook は ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'X-Hub-Signature-256',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' の HMAC 検証必須、',
+                        type: 'text',
+                      },
+                      {
+                        text: 'X-GitHub-Delivery',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で 24h 冪等化。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '未実装：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' Issue 自動生成・ブランチ自動作成・PR / CI イベントの本処理。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'heading',
+            attrs: {
+              level: 2,
+            },
+            content: [
+              {
+                text: 'Claude Code & MCP サーバー',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'paragraph',
+            content: [
+              {
+                text: 'SYNAPSE には Claude Code から操作するための MCP サーバー（stdio）が同梱されています。',
+                type: 'text',
+              },
+            ],
+          },
+          {
+            type: 'orderedList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '「設定 → API トークン」でワークスペース用トークンを発行（表示は作成時の一度だけ）。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'リポジトリ直下に ',
+                        type: 'text',
+                      },
+                      {
+                        text: '.mcp.json',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を作成（トークンを含むため必ず gitignore）。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'Claude Code で ',
+                        type: 'text',
+                      },
+                      {
+                        text: '/mcp',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' を実行し、synapse サーバーを承認。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: 'ツール：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' 読み取り／PM 書き込み／コメント／ページ・本文編集／GitHub リンクなど 31 種。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '黄金律：',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'bold',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' ツールはブロック id（ULID）を取る。',
+                        type: 'text',
+                      },
+                      {
+                        text: 'PBI-42',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' のような人間キーは ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'synapse_resolve_key',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' で先に解決。',
+                        type: 'text',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [
+                      {
+                        text: '本文編集：',
                         type: 'text',
                         marks: [
                           {
@@ -11497,7 +5432,59 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         type: 'text',
                       },
                       {
-                        text: '本文の範囲を選択し 💬 でコメント。該当箇所がハイライトされます。',
+                        text: 'synapse_set_doc',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' / ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'synapse_append_doc',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' は sync の内部 doc-write API 経由（',
+                        type: 'text',
+                      },
+                      {
+                        text: 'SYNC_INTERNAL_URL',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' / ',
+                        type: 'text',
+                      },
+                      {
+                        text: 'SYNC_INTERNAL_SECRET',
+                        type: 'text',
+                        marks: [
+                          {
+                            type: 'code',
+                            attrs: {},
+                          },
+                        ],
+                      },
+                      {
+                        text: ' が必要）。',
                         type: 'text',
                       },
                     ],
@@ -11511,7 +5498,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'ブロックコメント：',
+                        text: '監査：',
                         type: 'text',
                         marks: [
                           {
@@ -11521,25 +5508,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' PBI / SBI / ページ等の詳細ページでスレッド型のコメント。返信・絵文字リアクション（',
+                        text: ' 全ツール呼び出しは監査ログに記録（設定 → 監査ログ、または ',
                         type: 'text',
                       },
                       {
-                        text: '👍 🎉 👀 ✅ 🤔',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）・',
-                        type: 'text',
-                      },
-                      {
-                        text: '@メンション',
+                        text: 'synapse_audit_log',
                         type: 'text',
                         marks: [
                           {
@@ -11549,30 +5522,13 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: '（名前で解決）に対応。',
+                        text: '）。',
                         type: 'text',
                       },
                     ],
                   },
                 ],
               },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'チャット',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
               {
                 type: 'listItem',
                 content: [
@@ -11580,11 +5536,7 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                     type: 'paragraph',
                     content: [
                       {
-                        text: 'サイドバーの 💬 チャットで ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'チャンネル型',
+                        text: 'スコープ：',
                         type: 'text',
                         marks: [
                           {
@@ -11594,25 +5546,11 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: 'のチームチャット。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'メッセージは ',
+                        text: ' ',
                         type: 'text',
                       },
                       {
-                        text: '@メンション',
+                        text: 'read / write_pbi / write_comment / write_page / admin',
                         type: 'text',
                         marks: [
                           {
@@ -11622,450 +5560,24 @@ export const DEFAULT_MANUAL: ManualPageDef = {
                         ],
                       },
                       {
-                        text: ' で通知、絵文字リアクション（',
-                        type: 'text',
-                      },
-                      {
-                        text: '👍 🎉 👀 ✅ 🤔 ❤️',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）、画像／ファイル添付に対応。',
+                        text: '。',
                         type: 'text',
                       },
                     ],
                   },
                 ],
               },
+            ],
+          },
+          {
+            type: 'blockquote',
+            content: [
               {
-                type: 'listItem',
+                type: 'paragraph',
                 content: [
                   {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '削除は投稿者本人またはワークスペース管理者。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '※ チャットはメンバー同士のやり取りです（AI は参加しません）。AI への相談はエディタの /ai や =ASK を使ってください。',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'italic',
-                    attrs: {},
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '通知とメンバー',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'メンションやリマインダーは通知ベルに届きます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'メンバーは ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'owner / admin / member',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' のロールで管理（設定 → メンバー）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 1,
-            },
-            content: [
-              {
-                text: '💬 コラボレーション',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: 'SYNAPSE はチームで使う前提。同時編集・コメント・チャット・通知が揃っています。',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '同時編集（プレゼンス）',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '同じページを開いている人のアバターが並び、接続状態がバッジで分かります。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'オフラインでも編集でき、再接続で自動マージ（Yjs CRDT）。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'コメント',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'インラインコメント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' 本文の範囲を選択し 💬 でコメント。',
-                        type: 'text',
-                      },
-                      {
-                        text: '該当箇所がハイライトされます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'ブロックコメント：',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' PBI / SBI / ページ等の詳細ページでスレッド型のコメント。返信・絵文字リアクション（',
-                        type: 'text',
-                      },
-                      {
-                        text: '👍 🎉 👀 ✅ 🤔',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）・',
-                        type: 'text',
-                      },
-                      {
-                        text: '@メンション',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '（名前で解決）に対応。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: 'チャット',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'サイドバーの 💬 チャットで ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'チャンネル型',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'bold',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: 'のチームチャット。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'メッセージは ',
-                        type: 'text',
-                      },
-                      {
-                        text: '@メンション',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' で通知、絵文字リアクション（',
-                        type: 'text',
-                      },
-                      {
-                        text: '👍 🎉 👀 ✅ 🤔 ❤️',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: '）、画像／ファイル添付に対応。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: '削除は投稿者本人またはワークスペース管理者。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            content: [
-              {
-                text: '※ チャットはメンバー同士のやり取りです（AI は参加しません）。AI への相談はエディタの /ai や =ASK を使ってください。',
-                type: 'text',
-                marks: [
-                  {
-                    type: 'italic',
-                    attrs: {},
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: 'heading',
-            attrs: {
-              level: 2,
-            },
-            content: [
-              {
-                text: '通知とメンバー',
-                type: 'text',
-              },
-            ],
-          },
-          {
-            type: 'bulletList',
-            content: [
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'メンションやリマインダーは通知ベルに届きます。',
-                        type: 'text',
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                type: 'listItem',
-                content: [
-                  {
-                    type: 'paragraph',
-                    content: [
-                      {
-                        text: 'メンバーは ',
-                        type: 'text',
-                      },
-                      {
-                        text: 'owner / admin / member',
-                        type: 'text',
-                        marks: [
-                          {
-                            type: 'code',
-                            attrs: {},
-                          },
-                        ],
-                      },
-                      {
-                        text: ' のロールで管理（設定 → メンバー）。',
-                        type: 'text',
-                      },
-                    ],
+                    text: '⚠️ PBI の「cc で実装」ボタンは現状スタブ動作（queued → running → succeeded の擬似遷移）。本実行はサンドボックス前提で今後実装。',
+                    type: 'text',
                   },
                 ],
               },

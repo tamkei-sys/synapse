@@ -41,10 +41,10 @@ function collect(node: unknown, nodes: Set<string>, marks: Set<string>): void {
 describe('default manual', () => {
   const pages = flatten(DEFAULT_MANUAL);
 
-  it('ships the full 12-page tree under one hub', () => {
-    expect(pages.length).toBe(12);
+  it('ships the full 10-page tree under one hub', () => {
+    expect(pages.length).toBe(10);
     expect(DEFAULT_MANUAL.key).toBe('hub');
-    expect((DEFAULT_MANUAL.children ?? []).length).toBeGreaterThanOrEqual(9);
+    expect((DEFAULT_MANUAL.children ?? []).length).toBe(9);
   });
 
   it('has unique keys and non-empty titles/icons/docs', () => {

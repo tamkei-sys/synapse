@@ -1,10 +1,10 @@
 /**
  * Default in-app manual seeding (「SYNAPSE でできること」).
  *
- * Every new workspace gets the 12-page user manual tree as ordinary pages
- * (hub + children). Bodies ride the ADR-0009 rail: the TipTap snapshot lives
- * in `props.doc` and the sync server hydrates the editable Yjs state on
- * first open.
+ * Every new workspace gets the 10-page user manual tree as ordinary pages
+ * (hub + children, easy-Japanese edition for IT-unfamiliar readers). Bodies
+ * ride the ADR-0009 rail: the TipTap snapshot lives in `props.doc` and the
+ * sync server hydrates the editable Yjs state on first open.
  *
  * `props.builtinKey = "manual:<key>"` makes seeding idempotent the same way
  * default templates work: re-running only inserts pages a workspace doesn't
