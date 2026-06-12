@@ -23,6 +23,7 @@ import { z } from 'zod';
 import { db as schema } from '@synapse/schema';
 
 import { assertIsOwner, assertWorkspaceMember } from '../lib/access.js';
+import { seedDefaultManual } from '../lib/default-manual.js';
 import { seedDefaultTemplates } from '../lib/default-templates.js';
 import { slugify, suffixedSlug } from '../lib/slug.js';
 import { protectedProcedure, router } from '../trpc.js';
@@ -117,6 +118,14 @@ export const workspaceRouter = router({
         await seedDefaultTemplates(ctx.db, created.id, ctx.session.user.id);
       } catch (err) {
         console.warn('[templates] default seed failed:', err);
+      }
+
+      // Seed the built-in user manual the same way (12 ordinary pages under
+      // one hub; bodies hydrate from props.doc per ADR-0009).
+      try {
+        await seedDefaultManual(ctx.db, created.id, ctx.session.user.id);
+      } catch (err) {
+        console.warn('[manual] default seed failed:', err);
       }
 
       return created;
