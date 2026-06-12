@@ -20,12 +20,14 @@
     "dev": "wrangler dev --ip 0.0.0.0",
     "build": "tsc -b",
     "deploy": "wrangler deploy",
+    "start:node": "node server.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
     "clean": "rm -rf dist .turbo .wrangler"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13.7",
     "@synapse/blocks": "workspace:*",
     "@synapse/schema": "workspace:*",
     "@trpc/server": "^11.0.0-rc.617",
