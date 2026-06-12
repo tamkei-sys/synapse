@@ -37,7 +37,9 @@ if [ ! -x "$RUNTIME/bin/node" ]; then
 fi
 if [ ! -x "$RUNTIME/bin/pnpm" ]; then
   echo "==> Installing pnpm $PNPM_VERSION (into the dedicated toolchain only)"
-  "$RUNTIME/bin/npm" install -g "pnpm@${PNPM_VERSION}" >/dev/null
+  # --prefix pins the install into the dedicated toolchain; without it the
+  # host's npmrc (prefix=/usr) wins and the install EACCESes outside our dir.
+  "$RUNTIME/bin/npm" install -g --prefix "$RUNTIME" "pnpm@${PNPM_VERSION}" >/dev/null
 fi
 
 # ---- 2. PostgreSQL: synapse role + database + pgvector ---------------------
