@@ -866,7 +866,7 @@ function ChildPagesSection({ pageId }: { pageId: string }) {
 function ConnectionBadge({ status }: { status: CollabStatus }) {
   const label =
     status === 'connected'
-      ? '同期中'
+      ? '接続済み'
       : status === 'connecting'
         ? '接続中…'
         : status === 'offline'

@@ -17,7 +17,7 @@
  * route. Hocuspocus authorises the websocket on the workspace token
  * and routes purely by name.
  */
-import { HocuspocusProvider } from '@hocuspocus/provider';
+import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider';
 import { useEffect, useRef, useState } from 'react';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
@@ -60,9 +60,17 @@ export function useCollabDoc(docName: string, token: string | undefined) {
       name: docName,
       token,
       document: doc,
-      onConnect: () => setStatus('connected'),
-      onDisconnect: () => setStatus('disconnected'),
-      onClose: () => setStatus('disconnected'),
+      // 'status' is the one connection event Hocuspocus replays when a
+      // provider attaches to an already-open websocket; 'connect' fires
+      // once per physical socket, so a late-attached provider misses it.
+      onStatus: ({ status: ws }) =>
+        setStatus(
+          ws === WebSocketStatus.Connected
+            ? 'connected'
+            : ws === WebSocketStatus.Connecting
+              ? 'connecting'
+              : 'disconnected',
+        ),
       onAuthenticationFailed: () => setStatus('disconnected'),
     });
     providerRef.current = provider;
