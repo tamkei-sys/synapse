@@ -42,6 +42,7 @@ async function main(): Promise<void> {
       server,
       db,
       port: env.internalPort,
+      host: env.internalHost,
       secret: env.internalSecret,
     });
   }

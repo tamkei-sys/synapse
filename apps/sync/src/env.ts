@@ -17,6 +17,12 @@ export type SyncEnv = {
   /** Internal doc-write API port (server-to-server; never public). (ADR-0011) */
   internalPort: number;
   /**
+   * Internal doc-write API bind address. Unset → 0.0.0.0 (the devcontainer
+   * port-map needs it); the VPS sets 127.0.0.1 so the API stays loopback-only
+   * per ADR-0011.
+   */
+  internalHost?: string;
+  /**
    * Shared secret gating the internal doc-write API. When unset, the API is
    * not started — so existing deployments stay ws-only until configured.
    */
@@ -37,6 +43,7 @@ export function loadEnv(): SyncEnv {
     host: process.env['SYNC_HOST'] ?? '0.0.0.0',
     databaseUrl: required('DATABASE_URL'),
     internalPort: Number(process.env['SYNC_INTERNAL_PORT'] ?? 1235),
+    internalHost: process.env['SYNC_INTERNAL_HOST'] || undefined,
     internalSecret: process.env['SYNC_INTERNAL_SECRET'] || undefined,
   };
 }

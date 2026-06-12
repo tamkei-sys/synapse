@@ -76,6 +76,8 @@ export function startInternalServer(opts: {
   server: Hocuspocus;
   db: Database;
   port: number;
+  /** Bind address; unset keeps the historical 0.0.0.0 (devcontainer). */
+  host?: string;
   secret: string;
 }): void {
   const http = createServer((req, res) => {
@@ -98,7 +100,9 @@ export function startInternalServer(opts: {
     })();
   });
 
-  http.listen(opts.port, () => {
-    console.info(`[synapse-sync] internal doc-write API on :${opts.port}`);
+  http.listen(opts.port, opts.host, () => {
+    console.info(
+      `[synapse-sync] internal doc-write API on ${opts.host ?? '0.0.0.0'}:${opts.port}`,
+    );
   });
 }

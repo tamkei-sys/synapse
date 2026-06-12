@@ -47,6 +47,37 @@ git archive HEAD | ssh -i ~/.ssh/yokoito-vps deploy@<VPS_IP> 'tar -x -C /home/de
 ssh -i ~/.ssh/yokoito-vps deploy@<VPS_IP> 'bash /home/deploy/synapse/app/infra/vps/deploy.sh'
 ```
 
+## Claude Code から VPS を MCP 操作する（SSH stdio）
+
+MCP は stdio トランスポートなので SSH パイプ越しにそのまま動く。DB・Typesense・
+sync 内部 API はすべて VPS のループバックに閉じたまま、ローカルの Claude Code から
+`synapse_*` ツールで VPS ワークスペースを操作できる。
+
+1. トークン発行（VPS 上で実行、平文は `env/mcp.env`(600) のみに書かれ stdout には出ない）:
+
+   ```bash
+   ssh -i ~/.ssh/yokoito-vps deploy@<VPS_IP> \
+     '/home/deploy/synapse/runtime/node/bin/node /home/deploy/synapse/app/infra/vps/issue-mcp-token.mjs <workspace-slug>'
+   ```
+
+   再実行すると同ラベル（`vps-claude-code`）の旧トークンを revoke して回転する。
+
+2. ローカルの `.mcp.json`（リポジトリルート、gitignored）に追加:
+
+   ```json
+   "synapse-vps": {
+     "type": "stdio",
+     "command": "ssh",
+     "args": ["-i", "~/.ssh/yokoito-vps", "-o", "BatchMode=yes",
+              "deploy@<VPS_IP>", "bash",
+              "/home/deploy/synapse/app/infra/vps/mcp-stdio.sh"]
+   }
+   ```
+
+3. Claude Code を再起動すると `mcp__synapse-vps__*` ツールが現れる。本文編集ツール
+   （`synapse_set_doc` / `synapse_append_doc`）は sync の内部 doc-write API
+   （127.0.0.1:1235、`SYNC_INTERNAL_HOST=127.0.0.1` でループバック限定）経由で動く。
+
 ## 運用メモ
 
 - ログ: `journalctl -u synapse-api -f` / `journalctl -u synapse-sync -f`

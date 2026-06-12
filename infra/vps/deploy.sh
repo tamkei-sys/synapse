@@ -24,9 +24,9 @@ set +a
 echo "==> pnpm install"
 pnpm install --frozen-lockfile
 
-echo "==> Building api / sync / web"
+echo "==> Building api / sync / web / mcp"
 pnpm exec turbo run build \
-  --filter=@synapse/api --filter=@synapse/sync --filter=@synapse/web
+  --filter=@synapse/api --filter=@synapse/sync --filter=@synapse/web --filter=@synapse/mcp
 
 echo "==> Running DB migrations"
 pnpm --filter @synapse/schema db:migrate
