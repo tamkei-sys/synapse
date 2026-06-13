@@ -1,0 +1,20 @@
+# SYNAPSE API on the shared VPS (ADR-0013).
+# Installed to /etc/systemd/system/synapse-api.service by infra/vps/setup.sh.
+[Unit]
+Description=SYNAPSE API (Hono via @hono/node-server)
+After=network-online.target postgresql.service typesense-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/home/deploy/synapse/app/apps/api
+EnvironmentFile=/home/deploy/synapse/env/api.env
+ExecStart=/home/deploy/synapse/runtime/node/bin/node server.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -13,7 +13,7 @@
  *   - cell 更新は jsonb_set ベース。複数セル一括 update は当面 N+1 で
  *     許容（行数 < 1000 想定）。
  */
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, type SQL } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { sql } from 'drizzle-orm';
 import { ulid } from 'ulid';
@@ -43,6 +43,27 @@ function readDbProps(props: unknown): DbProps {
 
 function readRowProps(props: unknown): DbRowProps {
   return dbRowPropsSchema.parse(props);
+}
+
+/**
+ * db_row の props.values から列 1 個だけを set（null なら削除）する jsonb 式。
+ * values マップの全量書き戻しは、同一行の別セルを並行編集したとき片方を
+ * 巻き戻す lost update になる（lib/props-merge.ts 参照）。
+ */
+function rowCellMerge(columnId: string, value: DbCellValue): SQL {
+  if (value === null) {
+    return sql`coalesce(${schema.block.props}, '{}'::jsonb) #- array['values', ${columnId}]::text[]`;
+  }
+  return sql`coalesce(${schema.block.props}, '{}'::jsonb) || jsonb_build_object('values', coalesce(${schema.block.props}->'values', '{}'::jsonb) || jsonb_build_object(${columnId}::text, ${JSON.stringify(value)}::jsonb))`;
+}
+
+/**
+ * db 本体の columns キーだけを置き換える jsonb 式。name 等の他キーを古い値で
+ * 巻き戻さない。配列要素の置換は jsonb 単文では表現しづらいので columns キー
+ * 単位の LWW は許容する（スキーマ編集は低頻度。セル編集とはキーが分離済み）。
+ */
+function columnsReplace(columns: readonly DbColumn[]): SQL {
+  return sql`coalesce(${schema.block.props}, '{}'::jsonb) || jsonb_build_object('columns', ${JSON.stringify(columns)}::jsonb)`;
 }
 
 /** 参照先 DB の行から「タイトル」っぽい表示ラベルを取り出す。 */
@@ -247,13 +268,17 @@ export const dbRouter = router({
       if (!head || head.type !== 'db') throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, head.workspaceId, ctx.session.user.id);
       const props = readDbProps(head.props);
+      // 重複 id チェックは読み取り時点のベストエフォート（並行 addColumn 同士の
+      // TOCTOU は残るが、追加自体は配列 append なのでどちらの列も失われない）。
       if (props.columns.some((c) => c.id === input.column.id)) {
         throw new TRPCError({ code: 'CONFLICT', message: 'duplicate column id' });
       }
-      const next: DbProps = { ...props, columns: [...props.columns, input.column] };
       await ctx.db
         .update(schema.block)
-        .set({ props: next, updatedAt: new Date() })
+        .set({
+          props: sql`coalesce(${schema.block.props}, '{}'::jsonb) || jsonb_build_object('columns', coalesce(${schema.block.props}->'columns', '[]'::jsonb) || ${JSON.stringify(input.column)}::jsonb)`,
+          updatedAt: new Date(),
+        })
         .where(eq(schema.block.id, input.dbId));
       return { ok: true };
     }),
@@ -274,14 +299,15 @@ export const dbRouter = router({
       const prev = props.columns.find((c) => c.id === input.column.id);
       if (!prev) throw new TRPCError({ code: 'NOT_FOUND', message: 'column not found' });
       const columns = props.columns.map((c) => (c.id === input.column.id ? input.column : c));
-      const next: DbProps = { ...props, columns };
 
       await ctx.db.transaction(async (tx) => {
         await tx
           .update(schema.block)
-          .set({ props: next, updatedAt: new Date() })
+          .set({ props: columnsReplace(columns), updatedAt: new Date() })
           .where(eq(schema.block.id, input.dbId));
-        // kind が変わった場合のみ全行のセルを変換。
+        // kind が変わった場合のみ全行のセルを変換。書き込みは該当列のキーだけに
+        // する — values 全量書き戻しだと、変換ループ中の並行セル編集（別列）を
+        // 巻き戻す。
         if (prev.kind !== input.column.kind) {
           const rows = await tx
             .select()
@@ -292,12 +318,9 @@ export const dbRouter = router({
             const cur = rp.values[input.column.id];
             if (cur === undefined) continue;
             const coerced = coerceCellValue(cur, input.column.kind);
-            const values = { ...rp.values };
-            if (coerced === null) delete values[input.column.id];
-            else values[input.column.id] = coerced;
             await tx
               .update(schema.block)
-              .set({ props: { ...rp, values }, updatedAt: new Date() })
+              .set({ props: rowCellMerge(input.column.id, coerced), updatedAt: new Date() })
               .where(eq(schema.block.id, r.id));
           }
         }
@@ -322,27 +345,24 @@ export const dbRouter = router({
       if (columns.length === props.columns.length) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'column not found' });
       }
-      const next: DbProps = { ...props, columns };
 
       await ctx.db.transaction(async (tx) => {
         await tx
           .update(schema.block)
-          .set({ props: next, updatedAt: new Date() })
+          .set({ props: columnsReplace(columns), updatedAt: new Date() })
           .where(eq(schema.block.id, input.dbId));
-        const rows = await tx
-          .select()
-          .from(schema.block)
-          .where(and(eq(schema.block.parentId, input.dbId), eq(schema.block.type, 'db_row')));
-        for (const r of rows) {
-          const rp = readRowProps(r.props);
-          if (!(input.columnId in rp.values)) continue;
-          const values = { ...rp.values };
-          delete values[input.columnId];
-          await tx
-            .update(schema.block)
-            .set({ props: { ...rp, values }, updatedAt: new Date() })
-            .where(eq(schema.block.id, r.id));
-        }
+        // 全行から該当セルキーを 1 文で除去。行ごとの読み書きループは不要で、
+        // ループ中の並行セル編集（別列）を巻き戻す穴にもなっていた。
+        await tx
+          .update(schema.block)
+          .set({ props: rowCellMerge(input.columnId, null), updatedAt: new Date() })
+          .where(
+            and(
+              eq(schema.block.parentId, input.dbId),
+              eq(schema.block.type, 'db_row'),
+              sql`coalesce(${schema.block.props}->'values', '{}'::jsonb) ? ${input.columnId}::text`,
+            ),
+          );
       });
       return { ok: true };
     }),
@@ -397,17 +417,10 @@ export const dbRouter = router({
       )[0];
       if (!r || r.type !== 'db_row') throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, r.workspaceId, ctx.session.user.id);
-      const props = readRowProps(r.props);
-      const nextValues = { ...props.values };
-      if (input.value === null) {
-        delete nextValues[input.columnId];
-      } else {
-        nextValues[input.columnId] = input.value;
-      }
-      const next: DbRowProps = { ...props, values: nextValues };
+      // セル 1 個だけを UPDATE 文内で set / 削除する（rowCellMerge のコメント参照）。
       await ctx.db
         .update(schema.block)
-        .set({ props: next, updatedAt: new Date() })
+        .set({ props: rowCellMerge(input.columnId, input.value), updatedAt: new Date() })
         .where(eq(schema.block.id, input.rowId));
       return { ok: true };
     }),

@@ -29,6 +29,7 @@ import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
 import { EMPTY_DOC, extractTextPreview } from '../lib/page-doc.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { purgeOldTrash } from '../lib/purge-trash.js';
 import { generateShareToken, sanitizePublicDoc } from '../lib/public-doc.js';
 import { protectedProcedure, publicProcedure, router } from '../trpc.js';
@@ -930,14 +931,15 @@ export const blockRouter = router({
   /**
    * Replace the cell map (last-write-wins for S7).
    *
-   * Server still re-validates with Zod so feature code on read can
-   * trust the shape — the client is not the trust boundary.
+   * `cells` は入力スキーマ（sheetCellsSchema）でサーバ側検証済み — クライアント
+   * は信頼境界ではない。書き込みは cells キーだけの原子マージにする。全量
+   * 書き戻しだと rows/cols など他のキーまで古い値で巻き戻す（lib/props-merge.ts）。
    */
   updateSheetCells: protectedProcedure
     .input(z.object({ sheetId: z.string().min(1), cells: sheetCellsSchema }))
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
-        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .select({ workspaceId: schema.block.workspaceId })
         .from(schema.block)
         .where(
           and(
@@ -950,12 +952,10 @@ export const blockRouter = router({
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const current = (existing.props ?? {}) as Record<string, unknown>;
-      const validated = sheetPropsSchema.parse({ ...current, cells: input.cells });
       const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: validated,
+          props: atomicPropsMerge({ set: { cells: input.cells } }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
@@ -982,10 +982,7 @@ export const blockRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
-        .select({
-          workspaceId: schema.block.workspaceId,
-          props: schema.block.props,
-        })
+        .select({ workspaceId: schema.block.workspaceId })
         .from(schema.block)
         .where(
           and(
@@ -999,11 +996,12 @@ export const blockRouter = router({
 
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const currentProps = (existing.props ?? {}) as Record<string, unknown>;
+      // title キーだけの原子マージ。全量書き戻しだと sync の store フックが
+      // jsonb_set で焼く props.doc を巻き戻す（lib/props-merge.ts 参照）。
       const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: { ...currentProps, title: input.title },
+          props: atomicPropsMerge({ set: { title: input.title } }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
@@ -1046,23 +1044,12 @@ export const blockRouter = router({
         else setEntries[key] = v;
       }
 
-      // props は1つの UPDATE 文の中で jsonb 連結／キー削除する。読んでから JS で
-      // マージして全量書き戻すと、並行する updatePageMeta（や store フックの
-      // props.doc 焼き込み）の書き込みを古い props で巻き戻す lost update になる
-      // （ステータス→種別を連続変更すると先のステータスが消える。e2e
-      // page-doc-meta が間欠失敗していた実バグ）。単一文なら行ロックで直列化される。
-      let propsExpr = sql`coalesce(${schema.block.props}, '{}'::jsonb)`;
-      if (Object.keys(setEntries).length > 0) {
-        propsExpr = sql`${propsExpr} || ${JSON.stringify(setEntries)}::jsonb`;
-      }
-      for (const key of clearKeys) {
-        propsExpr = sql`${propsExpr} - ${key}::text`;
-      }
-
+      // props は1つの UPDATE 文の中で jsonb 連結／キー削除する。全量書き戻しが
+      // lost update になる経緯は lib/props-merge.ts のコメント参照。
       const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: propsExpr,
+          props: atomicPropsMerge({ set: setEntries, clear: clearKeys }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
@@ -1086,7 +1073,7 @@ export const blockRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
-        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .select({ workspaceId: schema.block.workspaceId })
         .from(schema.block)
         .where(
           and(
@@ -1099,13 +1086,13 @@ export const blockRouter = router({
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const currentProps = (existing.props ?? {}) as Record<string, unknown>;
-      const nextProps = { ...currentProps };
-      if (input.icon) nextProps['icon'] = input.icon;
-      else delete nextProps['icon'];
+      // icon キーだけを set / 削除（全量書き戻しは並行更新を巻き戻す）。
       await ctx.db
         .update(schema.block)
-        .set({ props: nextProps, updatedAt: new Date() })
+        .set({
+          props: atomicPropsMerge(input.icon ? { set: { icon: input.icon } } : { clear: ['icon'] }),
+          updatedAt: new Date(),
+        })
         .where(eq(schema.block.id, input.pageId));
       return { ok: true };
     }),
@@ -1124,7 +1111,7 @@ export const blockRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
-        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .select({ workspaceId: schema.block.workspaceId })
         .from(schema.block)
         .where(
           and(
@@ -1137,13 +1124,15 @@ export const blockRouter = router({
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const currentProps = (existing.props ?? {}) as Record<string, unknown>;
-      const nextProps = { ...currentProps };
-      if (input.cover) nextProps['cover'] = input.cover;
-      else delete nextProps['cover'];
+      // cover キーだけを set / 削除（全量書き戻しは並行更新を巻き戻す）。
       await ctx.db
         .update(schema.block)
-        .set({ props: nextProps, updatedAt: new Date() })
+        .set({
+          props: atomicPropsMerge(
+            input.cover ? { set: { cover: input.cover } } : { clear: ['cover'] },
+          ),
+          updatedAt: new Date(),
+        })
         .where(eq(schema.block.id, input.pageId));
       return { ok: true };
     }),
@@ -1159,7 +1148,7 @@ export const blockRouter = router({
     .input(z.object({ pageId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
-        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .select({ workspaceId: schema.block.workspaceId })
         .from(schema.block)
         .where(
           and(
@@ -1172,18 +1161,20 @@ export const blockRouter = router({
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const props = (existing.props ?? {}) as Record<string, unknown>;
-      const share = (props['publicShare'] ?? {}) as { token?: string };
-      const token =
-        typeof share.token === 'string' && share.token ? share.token : generateShareToken();
-      await ctx.db
+      // publicShare キーだけを原子更新する。既存 token の再利用判定も UPDATE 文の
+      // 中で行い、並行 enable 同士でも先に確定した token が残る。全量書き戻しは
+      // 並行する本文編集（store フックの props.doc）等を巻き戻す（lib/props-merge.ts）。
+      const fresh = generateShareToken();
+      const [updated] = await ctx.db
         .update(schema.block)
         .set({
-          props: { ...props, publicShare: { enabled: true, token } },
+          props: sql`coalesce(${schema.block.props}, '{}'::jsonb) || jsonb_build_object('publicShare', coalesce(${schema.block.props}->'publicShare', '{}'::jsonb) || jsonb_build_object('enabled', true, 'token', coalesce(nullif(${schema.block.props}->'publicShare'->>'token', ''), ${fresh}::text)))`,
           updatedAt: new Date(),
         })
-        .where(eq(schema.block.id, input.pageId));
-      return { enabled: true, token };
+        .where(eq(schema.block.id, input.pageId))
+        .returning({ props: schema.block.props });
+      const share = ((updated?.props ?? {}) as { publicShare?: { token?: string } }).publicShare;
+      return { enabled: true, token: share?.token ?? fresh };
     }),
 
   /** 公開を停止する (PBI-56)。トークンは保持し、再公開で同じ URL に戻れる。 */
@@ -1191,7 +1182,7 @@ export const blockRouter = router({
     .input(z.object({ pageId: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
       const [existing] = await ctx.db
-        .select({ workspaceId: schema.block.workspaceId, props: schema.block.props })
+        .select({ workspaceId: schema.block.workspaceId })
         .from(schema.block)
         .where(
           and(
@@ -1204,12 +1195,13 @@ export const blockRouter = router({
       if (!existing) throw new TRPCError({ code: 'NOT_FOUND' });
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
-      const props = (existing.props ?? {}) as Record<string, unknown>;
-      const share = (props['publicShare'] ?? {}) as { token?: string };
-      const next = share.token ? { enabled: false, token: share.token } : { enabled: false };
+      // publicShare.enabled だけを false にする（token は温存して再公開で同じ URL）。
       await ctx.db
         .update(schema.block)
-        .set({ props: { ...props, publicShare: next }, updatedAt: new Date() })
+        .set({
+          props: sql`coalesce(${schema.block.props}, '{}'::jsonb) || jsonb_build_object('publicShare', coalesce(${schema.block.props}->'publicShare', '{}'::jsonb) || '{"enabled": false}'::jsonb)`,
+          updatedAt: new Date(),
+        })
         .where(eq(schema.block.id, input.pageId));
       return { ok: true };
     }),

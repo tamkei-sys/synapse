@@ -234,7 +234,7 @@ function SyncedEditable({ sourceId }: { sourceId: string }) {
     <div>
       <EditorContent editor={editor} />
       <p className="mt-1 text-[10px] text-zinc-400" data-testid="synced-block-edit-status">
-        {status === 'connected' ? '🟢 同期中（編集は元ページに反映されます）' : '接続中…'}
+        {status === 'connected' ? '🟢 接続済み（編集は元ページに反映されます）' : '接続中…'}
       </p>
     </div>
   );

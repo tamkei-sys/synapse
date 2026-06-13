@@ -178,12 +178,12 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
 
   return (
     <div className="w-full max-w-none px-6 py-12">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
+      <header className="mb-8 flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight" data-testid="workspace-name">
             {workspace.name}
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="break-all text-sm text-zinc-500 dark:text-zinc-400">
             <code className="font-mono">{workspace.slug}</code> · ログイン中：{email}
           </p>
         </div>
@@ -192,7 +192,7 @@ function WorkspaceHome({ workspace }: { workspace: WorkspaceRow }) {
           onClick={() => createPage.mutate()}
           disabled={createPage.isPending}
           data-testid="new-page-button"
-          className="rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+          className="shrink-0 whitespace-nowrap rounded-md bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
         >
           {createPage.isPending ? '作成中…' : '+ 新規ページ'}
         </button>
@@ -322,7 +322,6 @@ function PageListItem({ page }: { page: PageRow }) {
         className="block px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
         <span className="font-medium">{title}</span>
-        <span className="ml-2 font-mono text-xs text-zinc-400">{page.id.slice(-6)}</span>
       </Link>
     </li>
   );

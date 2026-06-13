@@ -1,0 +1,22 @@
+# SYNAPSE realtime sync (Hocuspocus / Yjs) on the shared VPS (ADR-0013).
+# Installed to /etc/systemd/system/synapse-sync.service by infra/vps/setup.sh.
+[Unit]
+Description=SYNAPSE realtime sync (Hocuspocus / Yjs)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/home/deploy/synapse/app/apps/sync
+EnvironmentFile=/home/deploy/synapse/env/sync.env
+ExecStart=/home/deploy/synapse/runtime/node/bin/node dist/index.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+# Yjs websockets are long-lived; default 1024 fds is too tight a ceiling.
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

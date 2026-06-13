@@ -304,7 +304,7 @@ function InviteForm({ workspaceId }: { workspaceId: string }) {
         data-testid="invite-form"
         className="flex flex-wrap items-end gap-2"
       >
-        <label className="flex-1">
+        <label className="min-w-56 flex-1">
           <span className="mb-1 block text-xs text-zinc-500">招待する人のメール</span>
           <input
             type="email"
@@ -332,7 +332,7 @@ function InviteForm({ workspaceId }: { workspaceId: string }) {
           type="submit"
           disabled={invite.isPending || !email.trim()}
           data-testid="invite-submit"
-          className="rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
+          className="shrink-0 whitespace-nowrap rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-60"
         >
           {invite.isPending ? '発行中…' : '招待リンクを発行'}
         </button>
