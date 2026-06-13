@@ -75,7 +75,7 @@ export function Sidebar() {
       <aside
         data-testid="sidebar"
         data-mobile-open={mobileOpen}
-        className={`fixed inset-y-0 left-0 z-30 w-60 flex-col gap-3 border-r border-zinc-200 bg-zinc-50 px-3 py-4 text-sm transition-transform duration-200 ease-out md:z-20 md:flex md:translate-x-0 dark:border-zinc-800 dark:bg-zinc-950 ${
+        className={`fixed inset-y-0 left-0 z-30 w-72 flex-col gap-3 border-r border-zinc-200 bg-zinc-50 px-3 py-4 text-sm transition-transform duration-200 ease-out md:z-20 md:flex md:w-60 md:translate-x-0 dark:border-zinc-800 dark:bg-zinc-950 ${
           mobileOpen ? 'flex translate-x-0 shadow-2xl' : 'hidden -translate-x-full'
         }`}
       >
@@ -86,53 +86,58 @@ export function Sidebar() {
           <NotificationBell workspaceId={current.id} />
         </div>
 
-        <NavSection>
-          <NavLink to="/" exact icon="🏠" onNavigate={closeMobile}>
-            {t('nav.home')}
-          </NavLink>
-        </NavSection>
+        {/* 中央だけスクロールする（ヘッダ＝切替/検索とフッタ＝UserMenu は固定）。
+            min-h-0 が無いと flex 子が縮まず、ツリーが伸びたとき下が画面外に
+            溢れてスクロールもできなくなる。 */}
+        <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-1">
+          <NavSection>
+            <NavLink to="/" exact icon="🏠" onNavigate={closeMobile}>
+              {t('nav.home')}
+            </NavLink>
+          </NavSection>
 
-        <FavoritesSection workspaceId={current.id} onNavigate={closeMobile} />
+          <FavoritesSection workspaceId={current.id} onNavigate={closeMobile} />
 
-        <NavSection title={t('nav.section.management')}>
-          <NavLink to="/project" icon="📁" onNavigate={closeMobile}>
-            {t('nav.projects')}
-          </NavLink>
-          <NavLink to="/sprint" icon="🏃" onNavigate={closeMobile}>
-            {t('nav.sprints')}
-          </NavLink>
-          <NavLink to="/pbi" icon="✅" onNavigate={closeMobile}>
-            {t('nav.pbi')}
-          </NavLink>
-          <NavLink to="/sbi" icon="🟢" onNavigate={closeMobile}>
-            {t('nav.sbi')}
-          </NavLink>
-          <NavLink to="/chat" icon="💬" onNavigate={closeMobile}>
-            {t('nav.chat')}
-          </NavLink>
-        </NavSection>
+          <NavSection title={t('nav.section.management')}>
+            <NavLink to="/project" icon="📁" onNavigate={closeMobile}>
+              {t('nav.projects')}
+            </NavLink>
+            <NavLink to="/sprint" icon="🏃" onNavigate={closeMobile}>
+              {t('nav.sprints')}
+            </NavLink>
+            <NavLink to="/pbi" icon="✅" onNavigate={closeMobile}>
+              {t('nav.pbi')}
+            </NavLink>
+            <NavLink to="/sbi" icon="🟢" onNavigate={closeMobile}>
+              {t('nav.sbi')}
+            </NavLink>
+            <NavLink to="/chat" icon="💬" onNavigate={closeMobile}>
+              {t('nav.chat')}
+            </NavLink>
+          </NavSection>
 
-        <PagesSection workspaceId={current.id} onNavigate={closeMobile} />
+          <PagesSection workspaceId={current.id} onNavigate={closeMobile} />
 
-        <NavSection title={t('nav.section.settings')}>
-          <NavLink to="/settings/members" icon="👥" onNavigate={closeMobile}>
-            {t('nav.members')}
-          </NavLink>
-          <NavLink to="/settings/tokens" icon="🔑" onNavigate={closeMobile}>
-            {t('nav.tokens')}
-          </NavLink>
-          <NavLink to="/settings/audit-log" icon="📋" onNavigate={closeMobile}>
-            {t('nav.audit')}
-          </NavLink>
-          <NavLink to="/trash" icon="🗑️" onNavigate={closeMobile}>
-            {t('nav.trash')}
-          </NavLink>
-          <NavLink to="/help" icon="📖" onNavigate={closeMobile}>
-            {t('nav.help')}
-          </NavLink>
-        </NavSection>
+          <NavSection title={t('nav.section.settings')}>
+            <NavLink to="/settings/members" icon="👥" onNavigate={closeMobile}>
+              {t('nav.members')}
+            </NavLink>
+            <NavLink to="/settings/tokens" icon="🔑" onNavigate={closeMobile}>
+              {t('nav.tokens')}
+            </NavLink>
+            <NavLink to="/settings/audit-log" icon="📋" onNavigate={closeMobile}>
+              {t('nav.audit')}
+            </NavLink>
+            <NavLink to="/trash" icon="🗑️" onNavigate={closeMobile}>
+              {t('nav.trash')}
+            </NavLink>
+            <NavLink to="/help" icon="📖" onNavigate={closeMobile}>
+              {t('nav.help')}
+            </NavLink>
+          </NavSection>
+        </div>
 
-        <div className="mt-auto flex items-center justify-end rounded-md bg-white/40 px-2 py-1.5 dark:bg-zinc-900/40">
+        <div className="flex items-center justify-end rounded-md bg-white/40 px-2 py-1.5 dark:bg-zinc-900/40">
           <UserMenu placement="top" />
         </div>
       </aside>
