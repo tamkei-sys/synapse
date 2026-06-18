@@ -333,6 +333,14 @@ function PbiHeader({ block }: { block: BlockRow }) {
       trpc.pbi.update.mutate({ pbiId: block.id, patch }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getAny', block.id] }),
   });
+  const projects = useQuery({
+    queryKey: ['project', 'list', block.workspaceId],
+    queryFn: () => trpc.project.list.query({ workspaceId: block.workspaceId }),
+  });
+  const sprints = useQuery({
+    queryKey: ['sprint', 'list', block.workspaceId],
+    queryFn: () => trpc.sprint.list.query({ workspaceId: block.workspaceId }),
+  });
 
   return (
     <>
@@ -364,8 +372,26 @@ function PbiHeader({ block }: { block: BlockRow }) {
           selected={p.assigneeIds ?? []}
           onChange={(ids) => update.mutate({ assigneeIds: ids })}
         />
-        {p.projectId ? <ParentLink type="project" id={p.projectId} /> : null}
-        {p.sprintId ? <ParentLink type="sprint" id={p.sprintId} /> : null}
+        <ParentSelect
+          placeholder="プロジェクトなし"
+          value={p.projectId}
+          testid="pbi-project-select"
+          options={(projects.data ?? []).map((r) => {
+            const pr = (r.props ?? {}) as { name?: string; number?: number };
+            return { id: r.id, label: `PRJ-${pr.number ?? '?'} ${pr.name ?? ''}`.trim() };
+          })}
+          onChange={(id) => update.mutate({ projectId: id })}
+        />
+        <ParentSelect
+          placeholder="スプリントなし"
+          value={p.sprintId}
+          testid="pbi-sprint-select"
+          options={(sprints.data ?? []).map((r) => {
+            const sp = (r.props ?? {}) as { name?: string; number?: number };
+            return { id: r.id, label: `SP-${sp.number ?? '?'} ${sp.name ?? ''}`.trim() };
+          })}
+          onChange={(id) => update.mutate({ sprintId: id })}
+        />
         <ImplementButton pbiId={block.id} />
       </div>
     </>
@@ -390,6 +416,14 @@ function SbiHeader({ block }: { block: BlockRow }) {
   const update = useMutation({
     mutationFn: (patch: Record<string, unknown>) =>
       trpc.sbi.update.mutate({ sbiId: block.id, patch }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getAny', block.id] }),
+  });
+  const pbis = useQuery({
+    queryKey: ['pbi', 'list', block.workspaceId],
+    queryFn: () => trpc.pbi.list.query({ workspaceId: block.workspaceId }),
+  });
+  const reparent = useMutation({
+    mutationFn: (pbiId: string) => trpc.sbi.reparent.mutate({ sbiId: block.id, pbiId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['block', 'getAny', block.id] }),
   });
 
@@ -433,7 +467,18 @@ function SbiHeader({ block }: { block: BlockRow }) {
           single
           onChange={(ids) => update.mutate({ assigneeId: ids[0] ?? undefined })}
         />
-        {p.pbiId ? <ParentLink type="pbi" id={p.pbiId} /> : null}
+        <ParentSelect
+          placeholder="親PBIを選択"
+          value={p.pbiId}
+          testid="sbi-pbi-select"
+          options={(pbis.data ?? []).map((r) => {
+            const pb = (r.props ?? {}) as { title?: string; number?: number };
+            return { id: r.id, label: `PBI-${pb.number ?? '?'} ${pb.title ?? ''}`.trim() };
+          })}
+          onChange={(id) => {
+            if (id) reparent.mutate(id);
+          }}
+        />
       </div>
     </>
   );
@@ -1398,28 +1443,39 @@ function MemberAvatar({
   );
 }
 
-function ParentLink({ type, id }: { type: 'project' | 'sprint' | 'pbi'; id: string }) {
-  const q = useQuery({
-    queryKey: ['block', 'getAny', id],
-    queryFn: () => trpc.block.getAny.query({ blockId: id }),
-  });
-  const props = (q.data?.props ?? {}) as { name?: string; title?: string; number?: number };
-  const prefix = blockHumanPrefix[type] ?? type.toUpperCase();
-  const label = `${prefix}-${props.number ?? '?'}`;
-  const name = props.name ?? props.title ?? '';
+/**
+ * Inline parent picker — shows the current parent and lets you re-assign it
+ * in place, matching the status/priority/assignee selects. `null` (the empty
+ * option) clears the link when `clearable`; callers that require a parent
+ * (an SBI's PBI) ignore the empty selection.
+ */
+function ParentSelect({
+  placeholder,
+  value,
+  options,
+  onChange,
+  testid,
+}: {
+  placeholder: string;
+  value: string | null | undefined;
+  options: { id: string; label: string }[];
+  onChange: (id: string | null) => void;
+  testid?: string;
+}) {
   return (
-    <Link
-      to="/b/$blockId"
-      params={{ blockId: id }}
-      data-testid={`parent-${type}-${id}`}
-      className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-0.5 font-mono text-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+    <select
+      value={value ?? ''}
+      onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
+      data-testid={testid}
+      className="max-w-[12rem] truncate rounded-md border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
     >
-      <span className="text-zinc-500">{blockTypeLabel[type] ?? type}</span>
-      <span>{label}</span>
-      {name ? (
-        <span className="ml-1 max-w-[8rem] truncate text-zinc-700 dark:text-zinc-300">{name}</span>
-      ) : null}
-    </Link>
+      <option value="">{placeholder}</option>
+      {options.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.label}
+        </option>
+      ))}
+    </select>
   );
 }
 

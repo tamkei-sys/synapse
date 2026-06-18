@@ -129,7 +129,10 @@ export const sbiRouter = router({
     .input(
       z.object({
         sbiId: z.string().min(1),
-        patch: sbiPropsSchema.partial(),
+        // `pbiId`/`number` are structural, not editable here. Re-parenting
+        // goes through `reparent` so the `parentId` column and `props.pbiId`
+        // mirror move together — a partial patch here would desync them.
+        patch: sbiPropsSchema.partial().omit({ pbiId: true, number: true }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -175,6 +178,62 @@ export const sbiRouter = router({
         .update(schema.block)
         .set({
           props: propsExpr,
+          version: sql`${schema.block.version} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.block.id, input.sbiId))
+        .returning();
+      if (!row) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      return row;
+    }),
+
+  /**
+   * Re-parent an SBI under a different PBI. The SBI's true parent is the
+   * `block.parentId` column (it drives PBI.progress rollups); `props.pbiId`
+   * is only a mirror. Both must move together, so this is its own procedure
+   * rather than a field on `update`, where a partial patch could desync them.
+   */
+  reparent: protectedProcedure
+    .input(z.object({ sbiId: z.string().min(1), pbiId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const [sbi] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.sbiId),
+            eq(schema.block.type, 'sbi'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!sbi) throw new TRPCError({ code: 'NOT_FOUND', message: 'SBI not found' });
+      await assertCanWrite(ctx.db, sbi.workspaceId, ctx.session.user.id);
+
+      // The new parent must be a live PBI in the same workspace, or the SBI
+      // would be orphaned from the rollup that counts it.
+      const [pbi] = await ctx.db
+        .select({ workspaceId: schema.block.workspaceId })
+        .from(schema.block)
+        .where(
+          and(
+            eq(schema.block.id, input.pbiId),
+            eq(schema.block.type, 'pbi'),
+            isNull(schema.block.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (!pbi) throw new TRPCError({ code: 'NOT_FOUND', message: 'Parent PBI not found' });
+      if (pbi.workspaceId !== sbi.workspaceId) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot move an SBI across workspaces' });
+      }
+
+      // Move the column and the props mirror in one atomic UPDATE.
+      const [row] = await ctx.db
+        .update(schema.block)
+        .set({
+          parentId: input.pbiId,
+          props: atomicPropsMerge({ set: { pbiId: input.pbiId } }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })
