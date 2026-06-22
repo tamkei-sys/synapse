@@ -234,14 +234,15 @@ describe('SBI schemas (PBI-98)', () => {
     expect(ok.estimateHours).toBe(4);
   });
 
-  it('updateSbi enforces the status enum and allows null to clear', () => {
+  it('updateSbi enforces the status enum, allows null to clear, and accepts pbiId to re-parent', () => {
     expect(() => updateSbiSchema.parse({ sbiId: 's', patch: { status: 'frozen' } })).toThrow();
     const ok = updateSbiSchema.parse({
       sbiId: 's',
-      patch: { status: 'done', assigneeId: null, estimateHours: null },
+      patch: { status: 'done', assigneeId: null, estimateHours: null, pbiId: 'pbi-123' },
     });
     expect(ok.patch.status).toBe('done');
     expect(ok.patch.assigneeId).toBeNull();
+    expect(ok.patch.pbiId).toBe('pbi-123');
   });
 });
 

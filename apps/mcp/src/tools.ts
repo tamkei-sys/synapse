@@ -135,6 +135,9 @@ export const updateSbiSchema = z.object({
     estimateHours: z.number().min(0).max(200).nullable().optional(),
     actualHours: z.number().min(0).max(2000).nullable().optional(),
     dueDate: z.string().date().nullable().optional(),
+    // Re-parent the SBI under a different PBI (block id). The parentId column
+    // and props.pbiId move together — see updateSbi.
+    pbiId: z.string().min(1).optional(),
   }),
 });
 
@@ -1657,12 +1660,37 @@ export async function updateSbi(
     merged['completedAt'] = new Date().toISOString();
   }
 
+  // Re-parent: the SBI's true parent is the parentId column, so move it
+  // alongside the props.pbiId mirror. The new parent must be a live PBI in
+  // this workspace, or the SBI would be orphaned from the rollup.
+  let newParentId: string | undefined;
+  if (p.pbiId !== undefined && p.pbiId !== current['pbiId']) {
+    const [pbi] = await ctx.db
+      .select({ workspaceId: schema.block.workspaceId })
+      .from(schema.block)
+      .where(
+        and(
+          eq(schema.block.id, p.pbiId),
+          eq(schema.block.type, 'pbi'),
+          isNull(schema.block.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!pbi) throw new ToolError('NOT_FOUND', `Parent PBI ${p.pbiId} not found`);
+    if (pbi.workspaceId !== ctx.workspaceId) {
+      throw new ToolError('FORBIDDEN', 'Parent PBI belongs to a different workspace');
+    }
+    merged['pbiId'] = p.pbiId;
+    newParentId = p.pbiId;
+  }
+
   const validated = sbiPropsSchema.parse(merged);
 
   const [row] = await ctx.db
     .update(schema.block)
     .set({
       props: validated,
+      ...(newParentId ? { parentId: newParentId } : {}),
       version: sql`${schema.block.version} + 1`,
       updatedAt: new Date(),
     })

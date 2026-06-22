@@ -21,6 +21,7 @@ async function main(): Promise<void> {
   // configure() returns the running instance.
   const server = Server.configure({
     port: env.port,
+    address: env.host,
     name: 'synapse-sync',
     extensions: [createPersistenceExtension(db)],
 
@@ -41,6 +42,7 @@ async function main(): Promise<void> {
       server,
       db,
       port: env.internalPort,
+      host: env.internalHost,
       secret: env.internalSecret,
     });
   }

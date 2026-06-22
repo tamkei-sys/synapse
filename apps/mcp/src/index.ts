@@ -543,7 +543,7 @@ async function main(): Promise<void> {
       {
         name: 'synapse_update_sbi',
         description:
-          'Patch an SBI (title, status, assignee, estimate/actual hours, due date). status→in_progress/done auto-stamps started/completed. Send null to clear a field. Write tool — cc should confirm.',
+          'Patch an SBI (title, status, assignee, estimate/actual hours, due date). status→in_progress/done auto-stamps started/completed. Send null to clear a field. Set patch.pbiId (a PBI block id) to re-parent the SBI under a different PBI. Write tool — cc should confirm.',
         inputSchema: {
           type: 'object',
           required: ['sbiId', 'patch'],
@@ -561,6 +561,7 @@ async function main(): Promise<void> {
                 estimateHours: { type: ['number', 'null'], minimum: 0, maximum: 200 },
                 actualHours: { type: ['number', 'null'], minimum: 0, maximum: 2000 },
                 dueDate: { type: ['string', 'null'] },
+                pbiId: { type: 'string' },
               },
             },
           },

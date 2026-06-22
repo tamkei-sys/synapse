@@ -200,9 +200,9 @@ function PageShell({
         </button>
       )}
       <Breadcrumb pageId={pageId} />
-      <nav className="mb-6 flex items-center justify-between text-sm">
+      <nav className="mb-6 flex flex-wrap items-center justify-between gap-y-1 text-sm">
         <BackLink />
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => toggleFav.mutate()}
@@ -216,7 +216,7 @@ function PageShell({
             <span className={fav.data?.favorited ? 'text-amber-500' : ''}>
               {fav.data?.favorited ? '★' : '☆'}
             </span>
-            <span className="text-xs">お気に入り</span>
+            <span className="hidden text-xs sm:inline">お気に入り</span>
           </button>
           <SharePopover pageId={pageId} />
           <HistoryPanel pageId={pageId} editor={editor} />
@@ -231,7 +231,7 @@ function PageShell({
             title="テンプレートとして保存"
           >
             <span>📋</span>
-            <span className="text-xs" data-testid="page-template-saved-label">
+            <span className="hidden text-xs sm:inline" data-testid="page-template-saved-label">
               {templateSavedAt ? 'テンプレートに保存しました' : 'テンプレートとして保存'}
             </span>
           </button>
@@ -248,7 +248,7 @@ function PageShell({
             title="ゴミ箱へ移動"
           >
             <span>🗑️</span>
-            <span className="text-xs">ゴミ箱</span>
+            <span className="hidden text-xs sm:inline">ゴミ箱</span>
           </button>
         </div>
       </nav>
@@ -285,8 +285,10 @@ function PageShell({
           placeholder="無題"
         />
       </div>
-      <p className="mb-8 flex items-center gap-3 font-mono text-xs text-zinc-400">
-        <span data-testid="page-id">{pageId}</span>
+      <p className="mb-8 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs text-zinc-400">
+        <span data-testid="page-id" className="hidden sm:inline">
+          {pageId}
+        </span>
         <ConnectionBadge status={status} />
         {titleSavedAt ? (
           <span data-testid="title-saved" className="text-zinc-500">
@@ -368,7 +370,7 @@ function SharePopover({ pageId }: { pageId: string }) {
         aria-expanded={open}
       >
         <span>🔗</span>
-        <span className="text-xs">共有</span>
+        <span className="hidden text-xs sm:inline">共有</span>
       </button>
       {open ? (
         <div
@@ -497,7 +499,7 @@ function HistoryPanel({ pageId, editor }: { pageId: string; editor: Editor | nul
         aria-expanded={open}
       >
         <span>🕐</span>
-        <span className="text-xs">履歴</span>
+        <span className="hidden text-xs sm:inline">履歴</span>
       </button>
       {open ? (
         <div
@@ -694,7 +696,7 @@ function ReminderPanel({ pageId, workspaceId }: { pageId: string; workspaceId: s
         aria-expanded={open}
       >
         <span>⏰</span>
-        <span className="text-xs">リマインダー</span>
+        <span className="hidden text-xs sm:inline">リマインダー</span>
       </button>
       {open ? (
         <div
@@ -866,7 +868,7 @@ function ChildPagesSection({ pageId }: { pageId: string }) {
 function ConnectionBadge({ status }: { status: CollabStatus }) {
   const label =
     status === 'connected'
-      ? '同期中'
+      ? '接続済み'
       : status === 'connecting'
         ? '接続中…'
         : status === 'offline'
@@ -926,8 +928,11 @@ function Breadcrumb({ pageId }: { pageId: string }) {
 
 function BackLink() {
   return (
-    <Link to="/" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
-      ← ワークスペースに戻る
+    <Link
+      to="/"
+      className="shrink-0 whitespace-nowrap text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+    >
+      ← <span className="hidden sm:inline">ワークスペースに</span>戻る
     </Link>
   );
 }

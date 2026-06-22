@@ -43,9 +43,14 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
     queryFn: () => trpc.chat.listChannels.query({ workspaceId }),
   });
 
-  // 最初のチャンネルを自動選択。
+  // 最初のチャンネルを自動選択（初回ロード時のみ）。モバイルの 1 カラム表示で
+  // 「← 一覧へ戻る」と null に戻した直後に再選択されてしまわないよう、
+  // 自動選択は一度きりにする。
+  const autoSelectedRef = useRef(false);
   useEffect(() => {
+    if (autoSelectedRef.current) return;
     if (!channelId && channels.data && channels.data.length > 0) {
+      autoSelectedRef.current = true;
       setChannelId(channels.data[0]!.id);
     }
   }, [channelId, channels.data]);
@@ -60,8 +65,13 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
 
   return (
     <div className="flex h-[calc(100vh-1px)] w-full max-w-none">
-      {/* チャンネル一覧 */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-zinc-200 dark:border-zinc-800">
+      {/* チャンネル一覧 — モバイル(< md)はチャンネル未選択のときだけ全幅表示する
+          1 カラム切替。md 以上は従来どおり常設の左カラム。 */}
+      <aside
+        className={`${
+          channelId ? 'hidden' : 'flex w-full'
+        } shrink-0 flex-col border-zinc-200 md:flex md:w-60 md:border-r dark:border-zinc-800`}
+      >
         <div className="flex items-center justify-between px-3 py-3">
           <h1 className="text-sm font-semibold">💬 {t('page.chat.channels')}</h1>
           <button
@@ -103,10 +113,20 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
         </ul>
       </aside>
 
-      {/* メッセージ領域 */}
-      <section className="flex min-w-0 flex-1 flex-col">
+      {/* メッセージ領域 — モバイルではチャンネル選択中のみ表示。 */}
+      <section className={`${channelId ? 'flex' : 'hidden'} min-w-0 flex-1 flex-col md:flex`}>
         {channelId ? (
-          <ChannelView channelId={channelId} workspaceId={workspaceId} />
+          <>
+            <button
+              type="button"
+              onClick={() => setChannelId(null)}
+              data-testid="chat-back-to-channels"
+              className="flex items-center gap-1 border-b border-zinc-200 px-3 py-2 text-left text-sm text-zinc-500 hover:bg-zinc-50 md:hidden dark:border-zinc-800 dark:hover:bg-zinc-900"
+            >
+              ← チャンネル一覧
+            </button>
+            <ChannelView channelId={channelId} workspaceId={workspaceId} />
+          </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-zinc-400">
             チャンネルを選択 / 作成してください

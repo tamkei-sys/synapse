@@ -20,6 +20,7 @@ import { allocateHumanId } from '../lib/human-id.js';
 import { indexBlock } from '../integrations/typesense/client.js';
 import { projectBlock } from '../integrations/typesense/extract.js';
 import { assertCanWrite, assertWorkspaceMember } from '../lib/access.js';
+import { atomicPropsMerge } from '../lib/props-merge.js';
 import { protectedProcedure, router } from '../trpc.js';
 
 export const projectRouter = router({
@@ -125,13 +126,19 @@ export const projectRouter = router({
       await assertCanWrite(ctx.db, existing.workspaceId, ctx.session.user.id);
 
       const current = (existing.props ?? {}) as Record<string, unknown>;
-      const merged = { ...current, ...input.patch };
-      const validated = projectPropsSchema.parse(merged);
+      const patch: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(input.patch)) {
+        if (value !== undefined) patch[key] = value;
+      }
+      // 検証ゲート：マージ結果のスキーマ違反はここで弾く（書き込みには使わない）。
+      projectPropsSchema.parse({ ...current, ...patch });
 
+      // 書き込みは patch キーだけの単一 UPDATE 文の jsonb マージ。全量書き戻しは
+      // 並行する update / MCP の書き込みを巻き戻す（lib/props-merge.ts 参照）。
       const [row] = await ctx.db
         .update(schema.block)
         .set({
-          props: validated,
+          props: atomicPropsMerge({ set: patch }),
           version: sql`${schema.block.version} + 1`,
           updatedAt: new Date(),
         })

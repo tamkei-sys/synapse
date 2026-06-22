@@ -124,7 +124,7 @@ export function DocMetaPanel({ pageId, workspaceId }: { pageId: string; workspac
             {docStatusLabel[status]}
           </span>
         ) : (
-          <span className="text-xs">情報</span>
+          <span className="hidden text-xs sm:inline">情報</span>
         )}
       </button>
       {open ? (

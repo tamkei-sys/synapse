@@ -24,6 +24,7 @@ import {
 import { db as schema } from '@synapse/schema';
 
 import type { Database } from '../../db.js';
+import { atomicPropsMerge } from '../../lib/props-merge.js';
 
 export type IssuesEventPayload = {
   action: string;
@@ -90,18 +91,21 @@ export async function applyIssuesEvent(
         ? issue.title.trim().slice(0, 200) || (current['title'] as string)
         : (current['title'] as string);
 
-    const next = {
-      ...current,
+    const setEntries = {
       title: nextTitle,
       status: nextStatus,
       github: nextLink,
     };
-    const validated = pbiPropsSchema.parse(next);
+    // 検証ゲート（書き込みには使わない）。既存 props が壊れていればここで止まる。
+    pbiPropsSchema.parse({ ...current, ...setEntries });
 
+    // 書き込みは 3 キーだけの単一 UPDATE 文の jsonb マージ。全量書き戻しは
+    // webhook 配送遅延の窓で UI / MCP の並行更新（estimate / aiSummary 等）を
+    // 巻き戻す lost update になる（apps/api/src/lib/props-merge.ts 参照）。
     await db
       .update(schema.block)
       .set({
-        props: validated,
+        props: atomicPropsMerge({ set: setEntries }),
         version: sql`${schema.block.version} + 1`,
         updatedAt: new Date(),
       })

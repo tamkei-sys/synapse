@@ -33,7 +33,7 @@
     }
   },
   "globalDependencies": ["tsconfig.base.json", ".nvmrc", "mise.toml", "pnpm-workspace.yaml"],
-  "globalEnv": ["NODE_ENV", "CI"],
+  "globalEnv": ["NODE_ENV", "CI", "VITE_API_URL", "VITE_SYNC_URL"],
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "BETTER_AUTH_URL",
