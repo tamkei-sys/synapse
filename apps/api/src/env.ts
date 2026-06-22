@@ -47,6 +47,23 @@ export type Env = {
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
 
+  // ---- Media storage (PBI-178) ------------------------------------------
+  /**
+   * R2 bucket for uploaded media (images and other attachments). Set in
+   * wrangler.toml as an [[r2_buckets]] binding with `binding = "MEDIA_BUCKET"`.
+   * Local dev は undefined のままで OK — media.upload は data:URL を返す
+   * fallback に切り替わる (apps/api/src/routers/media.ts)。
+   */
+  MEDIA_BUCKET?: R2Bucket;
+  /**
+   * Public base URL for objects stored in `MEDIA_BUCKET`. When set, uploaded
+   * media URLs are `${MEDIA_PUBLIC_BASE_URL}/${key}`. When unset (the dev
+   * default), the API returns relative `/media/<key>` paths which a future
+   * GET handler can resolve from R2. Set this in production to a CDN /
+   * custom-domain that fronts the bucket.
+   */
+  MEDIA_PUBLIC_BASE_URL?: string;
+
   // ---- cc Container (PBI-19) --------------------------------------------
   /**
    * Cloudflare Container DO binding for the cc-container image.

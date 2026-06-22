@@ -106,7 +106,7 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
       {/* メッセージ領域 */}
       <section className="flex min-w-0 flex-1 flex-col">
         {channelId ? (
-          <ChannelView channelId={channelId} />
+          <ChannelView channelId={channelId} workspaceId={workspaceId} />
         ) : (
           <div className="flex flex-1 items-center justify-center text-sm text-zinc-400">
             チャンネルを選択 / 作成してください
@@ -117,7 +117,7 @@ function ChatPanel({ workspaceId }: { workspaceId: string }) {
   );
 }
 
-function ChannelView({ channelId }: { channelId: string }) {
+function ChannelView({ channelId, workspaceId }: { channelId: string; workspaceId: string }) {
   const t = useT();
   const qc = useQueryClient();
   const [body, setBody] = useState('');
@@ -147,7 +147,7 @@ function ChannelView({ channelId }: { channelId: string }) {
     el.accept = 'image/*';
     el.onchange = () => {
       const f = el.files?.[0];
-      if (f) void uploadImage(f).then((url) => url && setAttachment({ kind: 'image', url, name: f.name, mime: f.type }));
+      if (f) void uploadImage(f, workspaceId).then((url) => url && setAttachment({ kind: 'image', url, name: f.name, mime: f.type }));
     };
     el.click();
   };

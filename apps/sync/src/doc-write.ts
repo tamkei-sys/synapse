@@ -51,7 +51,7 @@ function marksToFormat(marks: PmMark[] | undefined): Record<string, unknown> {
 }
 
 /** Build a y-prosemirror node (XmlElement / XmlText) from ProseMirror JSON. */
-function pmNodeToY(node: PmNode): Y.XmlElement | Y.XmlText {
+export function pmNodeToY(node: PmNode): Y.XmlElement | Y.XmlText {
   if (node.type === 'text') {
     const text = new Y.XmlText();
     const fmt = marksToFormat(node.marks);

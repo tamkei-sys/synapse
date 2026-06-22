@@ -1,13 +1,14 @@
 /**
- * `/image` slash command (PBI-39)。
+ * `/image` slash command (PBI-39 / PBI-178)。
  *
- * file picker を開いて画像を選択 → uploadImage（dev: data-URL）→ Image
- * ノードを挿入する。
+ * file picker を開いて画像を選択 → uploadImage (R2 or data:URL fallback)
+ * → Image ノードを挿入する。workspaceId は呼び出し元 (editor.tsx) から
+ * クロージャで受け取る。
  */
 import type { SlashCommand } from './slash-menu.js';
 import { uploadImage } from './image-upload.js';
 
-export function makeImageSlashCommand(): SlashCommand {
+export function makeImageSlashCommand(workspaceId: string): SlashCommand {
   return {
     id: 'image',
     title: '画像',
@@ -21,7 +22,7 @@ export function makeImageSlashCommand(): SlashCommand {
       input.onchange = () => {
         const file = input.files?.[0];
         if (!file) return;
-        void uploadImage(file).then((src) => {
+        void uploadImage(file, workspaceId).then((src) => {
           if (src) editor.chain().focus().setImage({ src }).run();
         });
       };

@@ -94,6 +94,10 @@ import {
   appendDocSchema,
   setDoc,
   setDocSchema,
+  uploadImage,
+  uploadImageSchema,
+  insertImage,
+  insertImageSchema,
   linkGithubIssue,
   linkGithubIssueSchema,
   unlinkGithubIssue,
@@ -231,6 +235,8 @@ const WRITE_PAGE_TOOLS = new Set<string>([
   'synapse_restore_page',
   'synapse_append_doc',
   'synapse_set_doc',
+  'synapse_upload_image',
+  'synapse_insert_image',
 ]);
 // Favorite (per-user page bookmark) write tools — gated by 'write_favorite'.
 // (PBI-126) bookmark.fetch / list / is are read-only and not listed here.
@@ -902,6 +908,59 @@ async function main(): Promise<void> {
           },
         },
       },
+      // ---- Image upload & insertion (PBI-179) -------------------------------
+      {
+        name: 'synapse_upload_image',
+        description:
+          'Upload an image and return its embeddable URL. Pass exactly one of: `path` (local file on disk), `dataUrl` ("data:<mime>;base64,…"), or `bytes` (raw base64; requires `mime`). Returns { url, bytes, mime, storage, key }. R2 is used when the API has MEDIA_BUCKET bound; otherwise a data:URL is returned so dev still works end-to-end. Write tool.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            path: {
+              type: 'string',
+              description: 'Local filesystem path to read (preferred when Claude Code has the file on disk).',
+            },
+            dataUrl: {
+              type: 'string',
+              description: '"data:<mime>;base64,<payload>" string (e.g. a pasted screenshot).',
+            },
+            bytes: {
+              type: 'string',
+              description: 'Raw base64 payload (no "data:" prefix). Requires `mime`.',
+            },
+            filename: {
+              type: 'string',
+              description: 'Optional filename. Defaults to "image" or the path basename.',
+            },
+            mime: {
+              type: 'string',
+              description: 'Optional MIME type. Inferred from dataUrl / path extension when omitted; REQUIRED when passing `bytes`.',
+            },
+          },
+        },
+      },
+      {
+        name: 'synapse_insert_image',
+        description:
+          'Upload an image AND append it to a document body in one shot — the target is a page / project / sprint / PBI / SBI by `blockId`. Same payload variants as `synapse_upload_image` (path / dataUrl / bytes — exactly one). Inserts as a markdown image with the given `alt`. Write tool.',
+        inputSchema: {
+          type: 'object',
+          required: ['blockId'],
+          properties: {
+            blockId: {
+              type: 'string',
+              description: 'Target block id (page / project / sprint / PBI / SBI). `pageId` accepted as a legacy alias.',
+            },
+            pageId: { type: 'string', description: 'Legacy alias for `blockId`.' },
+            alt: { type: 'string', description: 'Optional alt text for the inserted image.' },
+            path: { type: 'string', description: 'See synapse_upload_image.' },
+            dataUrl: { type: 'string', description: 'See synapse_upload_image.' },
+            bytes: { type: 'string', description: 'See synapse_upload_image.' },
+            filename: { type: 'string', description: 'See synapse_upload_image.' },
+            mime: { type: 'string', description: 'See synapse_upload_image.' },
+          },
+        },
+      },
       // ---- GitHub Issue linking (PBI-122) -----------------------------------
       {
         name: 'synapse_link_github_issue',
@@ -1501,6 +1560,10 @@ async function dispatch(
       return appendDoc(ctx, appendDocSchema.parse(args));
     case 'synapse_set_doc':
       return setDoc(ctx, setDocSchema.parse(args));
+    case 'synapse_upload_image':
+      return uploadImage(ctx, uploadImageSchema.parse(args));
+    case 'synapse_insert_image':
+      return insertImage(ctx, insertImageSchema.parse(args));
     // ---- GitHub Issue linking (PBI-122) -------------------------------------
     case 'synapse_link_github_issue':
       return linkGithubIssue(ctx, linkGithubIssueSchema.parse(args));

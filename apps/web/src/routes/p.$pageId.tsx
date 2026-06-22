@@ -115,7 +115,7 @@ function PageShell({
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
-      void uploadImage(file).then((url) => {
+      void uploadImage(file, workspaceId).then((url) => {
         if (url) {
           setCover(url);
           setPageCover.mutate(url);
