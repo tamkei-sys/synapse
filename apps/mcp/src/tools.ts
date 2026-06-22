@@ -739,6 +739,167 @@ export async function setDoc(
   return postDocWrite(ctx, docWriteTarget(input), input.markdown, 'replace');
 }
 
+// ---- Image upload & insertion (PBI-179) -------------------------------------
+//
+// Two tools share the same upload payload shape: synapse_upload_image returns
+// just the URL, while synapse_insert_image additionally appends a markdown
+// image to the target's document body. Both go through the API's
+// media.upload procedure (apps/api/src/routers/media.ts), which transparently
+// chooses R2 vs data:URL based on env.MEDIA_BUCKET.
+//
+// Callers pass the bytes via *exactly one* of:
+//   - path:    local filesystem path (Node-only; MCP runs on Node)
+//   - dataUrl: full "data:<mime>;base64,<payload>" string
+//   - bytes:   raw base64 payload (mime + filename required)
+
+const uploadPayloadFields = {
+  filename: z.string().min(1).max(200).optional(),
+  mime: z.string().min(1).max(120).optional(),
+  path: z.string().min(1).max(4096).optional(),
+  dataUrl: z.string().min(1).max(20_000_000).optional(),
+  bytes: z.string().min(1).max(10_000_000).optional(),
+} as const;
+
+function payloadOneOf(v: {
+  path?: string;
+  dataUrl?: string;
+  bytes?: string;
+}): boolean {
+  return [v.path, v.dataUrl, v.bytes].filter(Boolean).length === 1;
+}
+
+export const uploadImageSchema = z
+  .object(uploadPayloadFields)
+  .refine(payloadOneOf, {
+    message: 'pass exactly one of path / dataUrl / bytes',
+  });
+
+export const insertImageSchema = z
+  .object({
+    ...uploadPayloadFields,
+    blockId: z.string().min(1).optional(),
+    pageId: z.string().min(1).optional(),
+    alt: z.string().max(500).optional(),
+  })
+  .refine((v) => v.blockId != null || v.pageId != null, {
+    message: 'blockId is required (pageId is accepted as a legacy alias)',
+  })
+  .refine(payloadOneOf, {
+    message: 'pass exactly one of path / dataUrl / bytes',
+  });
+
+const DATA_URL_RE = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,(.+)$/;
+
+function guessMimeFromFilename(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'svg':
+      return 'image/svg+xml';
+    case 'avif':
+      return 'image/avif';
+    case 'bmp':
+      return 'image/bmp';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+type UploadPayloadInput = {
+  filename?: string;
+  mime?: string;
+  path?: string;
+  dataUrl?: string;
+  bytes?: string;
+};
+
+async function normalizeUploadPayload(
+  input: UploadPayloadInput,
+): Promise<{ filename: string; mime: string; bytes: string }> {
+  if (input.dataUrl) {
+    const m = DATA_URL_RE.exec(input.dataUrl);
+    if (!m) {
+      throw new ToolError('INVALID', 'dataUrl must be "data:<mime>;base64,<payload>"');
+    }
+    return {
+      filename: input.filename ?? 'image',
+      mime: input.mime ?? m[1]!,
+      bytes: m[2]!,
+    };
+  }
+  if (input.path) {
+    // Node-only — MCP server runs on Node (apps/mcp), not Workers.
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    let data: Buffer;
+    try {
+      data = await fs.readFile(input.path);
+    } catch (err) {
+      throw new ToolError(
+        'INVALID',
+        `cannot read path: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return {
+      filename: input.filename ?? path.basename(input.path),
+      mime: input.mime ?? guessMimeFromFilename(input.path),
+      bytes: data.toString('base64'),
+    };
+  }
+  if (input.bytes) {
+    if (!input.mime) {
+      throw new ToolError('INVALID', 'mime is required when passing raw bytes');
+    }
+    return {
+      filename: input.filename ?? 'image',
+      mime: input.mime,
+      bytes: input.bytes,
+    };
+  }
+  throw new ToolError('INVALID', 'one of path / dataUrl / bytes is required');
+}
+
+export async function uploadImage(
+  ctx: ToolContext,
+  input: z.infer<typeof uploadImageSchema>,
+): Promise<unknown> {
+  const payload = await normalizeUploadPayload(input);
+  return viaCaller(
+    ctx.caller.media.upload({
+      workspaceId: ctx.workspaceId,
+      ...payload,
+    }),
+  );
+}
+
+export async function insertImage(
+  ctx: ToolContext,
+  input: z.infer<typeof insertImageSchema>,
+): Promise<unknown> {
+  const target = docWriteTarget(input);
+  const payload = await normalizeUploadPayload(input);
+  const uploaded = (await viaCaller(
+    ctx.caller.media.upload({
+      workspaceId: ctx.workspaceId,
+      ...payload,
+    }),
+  )) as { url: string; bytes: number; mime: string; storage: 'r2' | 'data-url'; key: string | null };
+
+  // Defensive escaping: alt must not break out of the markdown image syntax.
+  const alt = (input.alt ?? '').replace(/[\r\n[\]]/g, ' ').trim();
+  const markdown = `\n\n![${alt}](${uploaded.url})\n\n`;
+  await postDocWrite(ctx, target, markdown, 'append');
+  return { ...uploaded, blockId: target, appended: true as const };
+}
+
 // ---- GitHub Issue linking (PBI-122) -----------------------------------------
 // Delegate to the API's pbi router through the caller so the canonical link
 // merge + fire-and-forget outbound GitHub push is reused. Workspace scope is

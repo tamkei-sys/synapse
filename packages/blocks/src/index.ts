@@ -12,6 +12,7 @@ export * from './chat.js';
 export * from './db.js';
 export * from './page-ref.js';
 export * from './page-meta.js';
+export * from './image.js';
 
 export type BlockType =
   | 'page'

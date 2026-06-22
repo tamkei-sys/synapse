@@ -15,6 +15,7 @@ import { commentRouter } from './comment.js';
 import { dbRouter } from './db.js';
 import { dependencyRouter } from './dependency.js';
 import { favoriteRouter } from './favorite.js';
+import { mediaRouter } from './media.js';
 import { notificationRouter } from './notification.js';
 import { notificationChannelRouter } from './notification-channel.js';
 import { pbiRouter } from './pbi.js';
@@ -63,6 +64,7 @@ export const appRouter = router({
   reminder: reminderRouter,
   db: dbRouter,
   favorite: favoriteRouter,
+  media: mediaRouter,
 });
 
 export type AppRouter = typeof appRouter;
