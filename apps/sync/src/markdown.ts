@@ -8,13 +8,23 @@
  * `applyDocWrite` path; `pmNodeToY` encodes it into the Yjs 'default' fragment.
  *
  * Supported: headings, paragraphs, bullet/ordered/task lists (nested), code
- * blocks, blockquotes, horizontal rules, and inline bold/italic/strike/code/
- * link/hard-break. Unsupported block types (e.g. tables, raw HTML) fall back to
- * a plain paragraph of their source text rather than failing.
+ * blocks, blockquotes, horizontal rules, **images** (block-level: a paragraph
+ * containing image tokens is split so each image becomes its own block node,
+ * matching `@tiptap/extension-image` configured with `inline: false`), and
+ * inline bold/italic/strike/code/link/hard-break. Unsupported block types
+ * (e.g. tables, raw HTML) fall back to a plain paragraph of their source text
+ * rather than failing.
  */
 import { marked, type Token, type Tokens } from 'marked';
 
 import type { PmDoc, PmMark, PmNode } from './doc-write.js';
+
+function imageNodeFromToken(tok: Tokens.Image): PmNode {
+  const attrs: Record<string, unknown> = { src: tok.href };
+  if (tok.text) attrs.alt = tok.text;
+  if (tok.title) attrs.title = tok.title;
+  return { type: 'image', attrs };
+}
 
 function inlineToPm(tokens: Token[] | undefined, marks: PmMark[]): PmNode[] {
   const out: PmNode[] = [];
@@ -49,12 +59,52 @@ function inlineToPm(tokens: Token[] | undefined, marks: PmMark[]): PmNode[] {
       case 'br':
         out.push({ type: 'hardBreak' });
         break;
+      case 'image': {
+        // image is configured as a block node in the editor — emit it here so
+        // paragraphToPm can split the surrounding inline run.
+        out.push(imageNodeFromToken(tok as Tokens.Image));
+        break;
+      }
       default: {
         const text = (tok as { text?: unknown }).text;
         if (typeof text === 'string') pushText(text, marks);
       }
     }
   }
+  return out;
+}
+
+/**
+ * marked treats `![](url)` as an inline image inside a paragraph, but the
+ * editor's image extension is configured as a **block** node. Split the
+ * paragraph so each image surfaces as its own block, and the surrounding
+ * text spans remain paragraphs. A paragraph that contains only image
+ * tokens collapses into a sequence of image blocks with no empty paragraphs
+ * left behind.
+ */
+function paragraphToPm(p: Tokens.Paragraph): PmNode | PmNode[] {
+  const inline = inlineToPm(p.tokens, []);
+  const hasImage = inline.some((n) => n.type === 'image');
+  if (!hasImage) return { type: 'paragraph', content: inline };
+
+  const out: PmNode[] = [];
+  let buffer: PmNode[] = [];
+  const flush = (): void => {
+    if (buffer.length === 0) return;
+    out.push({ type: 'paragraph', content: buffer });
+    buffer = [];
+  };
+  for (const node of inline) {
+    if (node.type === 'image') {
+      flush();
+      out.push(node);
+    } else {
+      buffer.push(node);
+    }
+  }
+  flush();
+  if (out.length === 0) return { type: 'paragraph', content: [] };
+  if (out.length === 1) return out[0]!;
   return out;
 }
 
@@ -80,7 +130,7 @@ function listToPm(list: Tokens.List): PmNode {
   return { type: 'bulletList', content: items };
 }
 
-function blockToPm(token: Token): PmNode | null {
+function blockToPm(token: Token): PmNode | PmNode[] | null {
   switch (token.type) {
     case 'space':
     case 'def':
@@ -89,16 +139,17 @@ function blockToPm(token: Token): PmNode | null {
       const h = token as Tokens.Heading;
       return { type: 'heading', attrs: { level: h.depth }, content: inlineToPm(h.tokens, []) };
     }
-    case 'paragraph': {
-      const p = token as Tokens.Paragraph;
-      return { type: 'paragraph', content: inlineToPm(p.tokens, []) };
-    }
+    case 'paragraph':
+      return paragraphToPm(token as Tokens.Paragraph);
     case 'text': {
       const t = token as Tokens.Text;
-      return {
-        type: 'paragraph',
-        content: t.tokens ? inlineToPm(t.tokens, []) : inlineToPm([t], []),
-      };
+      const inline = t.tokens ? inlineToPm(t.tokens, []) : inlineToPm([t], []);
+      // text tokens can also carry image inlines — reuse the paragraph splitter
+      // so an image-only "text" block doesn't sit inside an illegal paragraph.
+      if (inline.some((n) => n.type === 'image')) {
+        return paragraphToPm({ type: 'paragraph', raw: t.raw, text: t.text, tokens: t.tokens ?? [] } as Tokens.Paragraph);
+      }
+      return { type: 'paragraph', content: inline };
     }
     case 'code': {
       const c = token as Tokens.Code;
@@ -132,7 +183,8 @@ function blocksToPm(tokens: Token[]): PmNode[] {
   const out: PmNode[] = [];
   for (const token of tokens) {
     const node = blockToPm(token);
-    if (node) out.push(node);
+    if (Array.isArray(node)) out.push(...node);
+    else if (node) out.push(node);
   }
   return out;
 }

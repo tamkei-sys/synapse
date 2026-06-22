@@ -67,4 +67,52 @@ describe('markdownToPmDoc', () => {
     const json = JSON.stringify(markdownToPmDoc('# H\n\ntext'));
     expect(json).not.toContain('"text":""');
   });
+
+  it('promotes a standalone image to a block-level image node', () => {
+    const doc = markdownToPmDoc('![alt text](https://example.com/x.png)');
+    expect(doc.content?.[0]).toEqual({
+      type: 'image',
+      attrs: { src: 'https://example.com/x.png', alt: 'alt text' },
+    });
+  });
+
+  it('preserves the title attribute on images', () => {
+    const doc = markdownToPmDoc('![](https://example.com/x.png "caption")');
+    expect(doc.content?.[0]).toMatchObject({
+      type: 'image',
+      attrs: { src: 'https://example.com/x.png', title: 'caption' },
+    });
+  });
+
+  it('splits mixed paragraphs into text paragraphs and image blocks', () => {
+    const doc = markdownToPmDoc('before ![alt](https://x.test/a.png) after');
+    const nodes = doc.content ?? [];
+    expect(nodes).toHaveLength(3);
+    expect(nodes[0]?.type).toBe('paragraph');
+    expect(nodes[0]?.content).toContainEqual({ type: 'text', text: 'before ' });
+    expect(nodes[1]).toMatchObject({
+      type: 'image',
+      attrs: { src: 'https://x.test/a.png', alt: 'alt' },
+    });
+    expect(nodes[2]?.type).toBe('paragraph');
+    expect(nodes[2]?.content).toContainEqual({ type: 'text', text: ' after' });
+  });
+
+  it('supports data:image URLs as image src', () => {
+    const dataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
+    const doc = markdownToPmDoc(`![tiny](${dataUrl})`);
+    expect(doc.content?.[0]).toMatchObject({
+      type: 'image',
+      attrs: { src: dataUrl, alt: 'tiny' },
+    });
+  });
+
+  it('emits multiple image-only paragraphs as a flat sequence of image blocks', () => {
+    const doc = markdownToPmDoc(
+      '![a](https://x.test/a.png)\n\n![b](https://x.test/b.png)',
+    );
+    expect(doc.content).toHaveLength(2);
+    expect(doc.content?.[0]).toMatchObject({ type: 'image', attrs: { src: 'https://x.test/a.png' } });
+    expect(doc.content?.[1]).toMatchObject({ type: 'image', attrs: { src: 'https://x.test/b.png' } });
+  });
 });
